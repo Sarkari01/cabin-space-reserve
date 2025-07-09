@@ -16,10 +16,10 @@ import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { BookingEditModal } from "@/components/BookingEditModal";
 
 const MerchantDashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
-  const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking } = useBookings("merchant");
+  const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking } = useBookings(userRole === "admin" ? "admin" : "merchant");
   
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
@@ -178,7 +178,14 @@ const MerchantDashboard = () => {
         {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-foreground mb-2">Merchant Dashboard</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-2">
+              Merchant Dashboard
+              {userRole === "admin" && (
+                <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-md">
+                  Admin View
+                </span>
+              )}
+            </h2>
             <p className="text-muted-foreground">Welcome back, {user?.email || 'Merchant'}</p>
           </div>
           <Button onClick={handleAddStudyHall}>
@@ -629,7 +636,7 @@ const MerchantDashboard = () => {
           open={bookingDetailOpen}
           onOpenChange={setBookingDetailOpen}
           booking={selectedBooking}
-          userRole="merchant"
+          userRole={userRole === "admin" ? "admin" : "merchant"}
           onConfirm={handleConfirmBooking}
           onEdit={handleEditBooking}
           loading={actionLoading}

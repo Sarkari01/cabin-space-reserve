@@ -34,6 +34,7 @@ export interface Booking {
 export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
   const { user, userRole } = useAuth();
   const effectiveRole = forceRole || userRole;
+  console.log("useBookings: Current user role:", userRole, "Effective role:", effectiveRole);
   const { toast } = useToast();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
