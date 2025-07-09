@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield } from "lucide-react";
+import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
+import { useBookings } from "@/hooks/useBookings";
 import { UserModal } from "@/components/admin/UserModal";
 import { BannersTab } from "@/components/admin/BannersTab";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +27,7 @@ const AdminDashboard = () => {
     deleteUser, 
     updateStudyHallStatus 
   } = useAdminData();
+  const { bookings, loading: bookingsLoading } = useBookings();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -81,6 +83,31 @@ const AdminDashboard = () => {
   const handleUpdateStudyHallStatus = async (studyHallId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     await updateStudyHallStatus(studyHallId, newStatus);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return 'default';
+      case 'pending':
+        return 'secondary';
+      case 'cancelled':
+        return 'destructive';
+      case 'completed':
+        return 'outline';
+      case 'refunded':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
   };
 
   const filteredUsers = users.filter(user => 
@@ -492,6 +519,90 @@ const AdminDashboard = () => {
                   </Card>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Bookings Tab */}
+          {activeTab === "bookings" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-semibold">All Platform Bookings</h3>
+                <div className="flex space-x-2">
+                  <Button variant="outline">
+                    Export Data
+                  </Button>
+                  <Button variant="outline">
+                    Filters
+                  </Button>
+                </div>
+              </div>
+              
+              {bookingsLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-24 bg-muted rounded-lg"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : bookings.length > 0 ? (
+                <div className="space-y-4">
+                  {bookings.map((booking) => (
+                    <Card key={booking.id}>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="text-lg font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
+                              <Badge variant={getStatusColor(booking.status)}>
+                                {booking.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              <span className="flex items-center space-x-1">
+                                <Users className="h-4 w-4" />
+                                <span>{booking.user?.full_name || booking.user?.email}</span>
+                              </span>
+                              <span className="flex items-center space-x-1">
+                                <Building className="h-4 w-4" />
+                                <span>{booking.study_hall?.location}</span>
+                              </span>
+                              <span className="flex items-center space-x-1">
+                                <Calendar className="h-4 w-4" />
+                                <span>Seat {booking.seat?.seat_id}</span>
+                              </span>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              <span>Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}</span> • 
+                              <span className="ml-2">Duration: {booking.booking_period}</span> • 
+                              <span className="ml-2">Created: {formatDate(booking.created_at)}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-semibold mb-2">₹{Number(booking.total_amount).toLocaleString()}</p>
+                            <div className="flex space-x-2">
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4 mr-1" />
+                                View Details
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <Edit className="h-4 w-4 mr-1" />
+                                Manage
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No bookings found</h3>
+                  <p>Platform bookings will appear here once users start booking study halls</p>
+                </div>
+              )}
             </div>
           )}
 

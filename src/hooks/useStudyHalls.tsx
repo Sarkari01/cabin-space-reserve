@@ -204,6 +204,32 @@ export const useSeats = (studyHallId?: string) => {
     }
   }, [studyHallId]);
 
+  // Real-time subscription for seat updates
+  useEffect(() => {
+    if (!studyHallId) return;
+
+    const channel = supabase
+      .channel('seats-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'seats',
+          filter: `study_hall_id=eq.${studyHallId}`
+        },
+        (payload) => {
+          console.log('Seat change detected:', payload);
+          fetchSeats(studyHallId); // Refresh seats when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [studyHallId]);
+
   return {
     seats,
     loading,

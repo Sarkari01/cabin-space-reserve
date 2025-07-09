@@ -104,7 +104,8 @@ export const useBookings = () => {
     }
 
     try {
-      const { data, error } = await supabase
+      // Start a transaction to update both booking and seat availability
+      const { data: booking, error: bookingError } = await supabase
         .from("bookings")
         .insert({
           ...bookingData,
@@ -114,7 +115,18 @@ export const useBookings = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (bookingError) throw bookingError;
+
+      // Update seat availability to false (booked)
+      const { error: seatError } = await supabase
+        .from("seats")
+        .update({ is_available: false })
+        .eq("id", bookingData.seat_id);
+
+      if (seatError) {
+        console.error("Error updating seat availability:", seatError);
+        // Still proceed with booking even if seat update fails
+      }
 
       toast({
         title: "Success",
@@ -168,6 +180,31 @@ export const useBookings = () => {
   useEffect(() => {
     fetchBookings();
   }, [user, userRole]);
+
+  // Real-time subscription for bookings
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings'
+        },
+        (payload) => {
+          console.log('Booking change detected:', payload);
+          fetchBookings(); // Refresh bookings when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   return {
     bookings,

@@ -11,11 +11,13 @@ import { BannerCarousel } from "@/components/BannerCarousel";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudyHalls } from "@/hooks/useStudyHalls";
+import { useBookings } from "@/hooks/useBookings";
 
 const MerchantDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
+  const { bookings, loading: bookingsLoading } = useBookings();
   
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
@@ -90,38 +92,31 @@ const MerchantDashboard = () => {
     await deleteStudyHall(id);
   };
 
-  const recentBookings = [
-    {
-      id: 1,
-      studyHall: "Central Study Hub",
-      student: "John Smith",
-      seat: "A1",
-      date: "2024-01-15",
-      duration: "1 week",
-      amount: "₹500",
-      status: "confirmed"
-    },
-    {
-      id: 2,
-      studyHall: "Tech Campus Library",
-      student: "Sarah Johnson",
-      seat: "B3",
-      date: "2024-01-18",
-      duration: "1 month",
-      amount: "₹1500",
-      status: "pending"
-    },
-    {
-      id: 3,
-      studyHall: "Central Study Hub",
-      student: "Mike Davis",
-      seat: "C2",
-      date: "2024-01-20",
-      duration: "1 day",
-      amount: "₹100",
-      status: "confirmed"
+  // Format booking data for display
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return 'default';
+      case 'pending':
+        return 'secondary';
+      case 'cancelled':
+        return 'destructive';
+      case 'completed':
+        return 'outline';
+      case 'refunded':
+        return 'outline';
+      default:
+        return 'secondary';
     }
-  ];
+  };
 
   return (
         <DashboardSidebar 
@@ -267,41 +262,58 @@ const MerchantDashboard = () => {
           <TabsContent value="bookings" className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold mb-4">Recent Bookings</h3>
-              <div className="space-y-4">
-                {recentBookings.map((booking) => (
-                  <Card key={booking.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-semibold">{booking.studyHall}</h4>
-                            <Badge variant={booking.status === "confirmed" ? "default" : "secondary"}>
-                              {booking.status}
-                            </Badge>
+              {bookingsLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-24 bg-muted rounded-lg"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : bookings.length > 0 ? (
+                <div className="space-y-4">
+                  {bookings.slice(0, 5).map((booking) => (
+                    <Card key={booking.id}>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
+                              <Badge variant={getStatusColor(booking.status)}>
+                                {booking.status}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">{booking.user?.full_name || booking.user?.email}</span> • 
+                              Seat {booking.seat?.seat_id} • {booking.booking_period}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Booked: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            <span className="font-medium">{booking.student}</span> • Seat {booking.seat} • {booking.duration}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Booked on: {booking.date}
+                          <div className="text-right">
+                            <p className="text-lg font-semibold">₹{Number(booking.total_amount).toLocaleString()}</p>
+                            <div className="flex space-x-2 mt-2">
+                              <Button variant="outline" size="sm">
+                                View
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                Contact
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-semibold">{booking.amount}</p>
-                          <div className="flex space-x-2 mt-2">
-                            <Button variant="outline" size="sm">
-                              View
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              Contact
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No bookings yet</p>
+                  <p className="text-sm">Bookings for your study halls will appear here</p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -426,41 +438,61 @@ const MerchantDashboard = () => {
 
         {activeTab === "bookings" && (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold">Recent Bookings</h3>
-            <div className="space-y-4">
-              {recentBookings.map((booking) => (
-                <Card key={booking.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-semibold">{booking.studyHall}</h4>
-                          <Badge variant={booking.status === "confirmed" ? "default" : "secondary"}>
-                            {booking.status}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium">{booking.student}</span> • Seat {booking.seat} • {booking.duration}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Booked on: {booking.date}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-semibold">{booking.amount}</p>
-                        <div className="flex space-x-2 mt-2">
-                          <Button variant="outline" size="sm">
-                            View
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Contact
-                          </Button>
-                        </div>
-                      </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-4">All Bookings</h3>
+              {bookingsLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-24 bg-muted rounded-lg"></div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  ))}
+                </div>
+              ) : bookings.length > 0 ? (
+                <div className="space-y-4">
+                  {bookings.map((booking) => (
+                    <Card key={booking.id}>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
+                              <Badge variant={getStatusColor(booking.status)}>
+                                {booking.status}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">{booking.user?.full_name || booking.user?.email}</span> • 
+                              Seat {booking.seat?.seat_id} • {booking.booking_period}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)} • 
+                              Created: {formatDate(booking.created_at)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-semibold">₹{Number(booking.total_amount).toLocaleString()}</p>
+                            <div className="flex space-x-2 mt-2">
+                              <Button variant="outline" size="sm">
+                                View Details
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                Contact
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No bookings yet</p>
+                  <p className="text-sm">Bookings for your study halls will appear here</p>
+                </div>
+              )}
             </div>
           </div>
         )}
