@@ -43,7 +43,7 @@ export function CabinModal({ isOpen, onClose, cabin, mode, onSave, onDelete }: C
     status: cabin?.status || "pending",
     bookings: cabin?.bookings || 0,
     rating: cabin?.rating || 0,
-    revenue: cabin?.revenue || "$0",
+    revenue: cabin?.revenue || "₹0",
     description: cabin?.description || "",
     amenities: cabin?.amenities || [],
   });
@@ -105,7 +105,7 @@ export function CabinModal({ isOpen, onClose, cabin, mode, onSave, onDelete }: C
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="price">Price per Day ($)</Label>
+              <Label htmlFor="price">Price per Day (₹)</Label>
               <Input
                 id="price"
                 type="number"

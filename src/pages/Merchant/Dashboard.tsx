@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { StudyHallModal } from "@/components/StudyHallModal";
@@ -29,6 +31,10 @@ const MerchantDashboard = () => {
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
   const [bookingEditOpen, setBookingEditOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const [searchUser, setSearchUser] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -164,6 +170,58 @@ const MerchantDashboard = () => {
     return success;
   };
 
+  // Filter bookings based on criteria
+  const filteredBookings = bookings.filter(booking => {
+    const matchesStatus = filterStatus === "all" || booking.status === filterStatus;
+    const matchesUser = !searchUser || 
+      (booking.user?.full_name?.toLowerCase().includes(searchUser.toLowerCase()) ||
+       booking.user?.email?.toLowerCase().includes(searchUser.toLowerCase()));
+    
+    let matchesDate = true;
+    if (filterDateFrom) {
+      matchesDate = matchesDate && new Date(booking.start_date) >= new Date(filterDateFrom);
+    }
+    if (filterDateTo) {
+      matchesDate = matchesDate && new Date(booking.start_date) <= new Date(filterDateTo);
+    }
+    
+    return matchesStatus && matchesUser && matchesDate;
+  });
+
+  const handleExportBookings = () => {
+    // Create CSV content
+    const headers = ["Booking ID", "User Name", "Email", "Study Hall", "Seat", "Period", "Start Date", "End Date", "Amount", "Status", "Created"];
+    const csvData = filteredBookings.map(booking => [
+      booking.id.substring(0, 8),
+      booking.user?.full_name || 'N/A',
+      booking.user?.email || 'N/A',
+      booking.study_hall?.name || 'N/A',
+      booking.seat?.seat_id || 'N/A',
+      booking.booking_period,
+      formatDate(booking.start_date),
+      formatDate(booking.end_date),
+      Number(booking.total_amount).toLocaleString(),
+      booking.status,
+      formatDate(booking.created_at)
+    ]);
+    
+    const csvContent = [headers, ...csvData].map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `bookings-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    toast({
+      title: "Export Successful",
+      description: "Booking data has been exported to CSV",
+    });
+  };
+
   return (
     <DashboardSidebar 
       userRole="merchant" 
@@ -219,9 +277,10 @@ const MerchantDashboard = () => {
         {/* Main Content based on active tab */}
         {activeTab === "overview" && (
           <Tabs defaultValue="studyhalls" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="studyhalls">My Study Halls</TabsTrigger>
-              <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="bookings">Recent Bookings</TabsTrigger>
+              <TabsTrigger value="history">Booking History</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
 
@@ -328,41 +387,79 @@ const MerchantDashboard = () => {
                   {bookings.slice(0, 5).map((booking, index) => (
                     <Card key={booking.id} className="animate-fade-in hover:shadow-lg transition-all duration-300" style={{ animationDelay: `${index * 100}ms` }}>
                       <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                          {/* User Details */}
                           <div className="space-y-2">
                             <div className="flex items-center space-x-2">
-                              <h4 className="font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
-                              <Badge variant={getStatusColor(booking.status)}>
-                                {booking.status.toUpperCase()}
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Customer</span>
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              <div className="font-medium">{booking.user?.full_name || 'N/A'}</div>
+                              <div className="text-muted-foreground text-xs">{booking.user?.email}</div>
+                              <Badge variant="outline" className="text-xs">
+                                {booking.booking_period.toUpperCase()}
                               </Badge>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              <span className="font-medium">{booking.user?.full_name || booking.user?.email}</span> • 
-                              Seat {booking.seat?.seat_id} ({booking.seat?.row_name}{booking.seat?.seat_number}) • 
-                              {booking.booking_period} booking
+                          </div>
+
+                          {/* Booking Details */}
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Booking</span>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              <div>Booking ID: {booking.id.substring(0, 8)}...</div>
-                              <div>Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}</div>
-                              <div>Created: {formatDate(booking.created_at)}</div>
+                            <div className="space-y-1 text-sm">
+                              <div className="font-medium">{booking.study_hall?.name || 'Study Hall'}</div>
+                              <div className="text-muted-foreground">
+                                Seat {booking.seat?.seat_id} ({booking.seat?.row_name}{booking.seat?.seat_number})
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-semibold">₹{Number(booking.total_amount).toLocaleString()}</p>
-                            <div className="flex space-x-2 mt-2">
+
+                          {/* Status & Payment */}
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Payment</span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-lg font-bold">₹{Number(booking.total_amount).toLocaleString()}</div>
+                              <Badge variant={getStatusColor(booking.status)} className="text-xs">
+                                {booking.status.toUpperCase()}
+                              </Badge>
+                              <Badge variant={booking.status === 'confirmed' || booking.status === 'completed' ? 'default' : 'secondary'} className="text-xs ml-1">
+                                {booking.status === 'confirmed' || booking.status === 'completed' ? 'PAID' : 'PENDING'}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Actions</span>
+                            </div>
+                            <div className="flex flex-col space-y-2">
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleViewBookingDetails(booking)}
+                                className="w-full"
                               >
+                                <Eye className="h-3 w-3 mr-1" />
                                 View Details
                               </Button>
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleEditBooking(booking)}
+                                className="w-full"
                               >
-                                <Edit className="h-4 w-4 mr-1" />
+                                <Edit className="h-3 w-3 mr-1" />
                                 Edit
                               </Button>
                               {booking.status === 'pending' && (
@@ -371,10 +468,14 @@ const MerchantDashboard = () => {
                                   size="sm"
                                   onClick={() => handleConfirmBooking(booking.id)}
                                   disabled={actionLoading}
+                                  className="w-full"
                                 >
                                   {actionLoading ? "Confirming..." : "Confirm"}
                                 </Button>
                               )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Created: {formatDate(booking.created_at)}
                             </div>
                           </div>
                         </div>
@@ -390,6 +491,208 @@ const MerchantDashboard = () => {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* Booking History Tab */}
+          <TabsContent value="history" className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold">Booking History</h3>
+              <Button onClick={handleExportBookings} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
+
+            {/* Filters */}
+            <Card className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Filter by Status</label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">From Date</label>
+                  <Input
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={(e) => setFilterDateFrom(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">To Date</label>
+                  <Input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={(e) => setFilterDateTo(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Search User</label>
+                  <Input
+                    placeholder="Search by name or email"
+                    value={searchUser}
+                    onChange={(e) => setSearchUser(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                <span>Showing {filteredBookings.length} of {bookings.length} bookings</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setFilterStatus("all");
+                    setFilterDateFrom("");
+                    setFilterDateTo("");
+                    setSearchUser("");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            </Card>
+
+            {/* Booking List */}
+            {bookingsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-32 bg-muted rounded-lg"></div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredBookings.length > 0 ? (
+              <div className="space-y-4">
+                {filteredBookings.map((booking, index) => (
+                  <Card key={booking.id} className="hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* User Details Section */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">Customer Details</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Name:</span>
+                              <span className="font-medium">{booking.user?.full_name || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Email:</span>
+                              <span className="font-medium text-xs">{booking.user?.email}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Booking ID:</span>
+                              <span className="font-mono text-xs">{booking.id.substring(0, 12)}...</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Booking Details Section */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">Booking Details</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Study Hall:</span>
+                              <span className="font-medium">{booking.study_hall?.name}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Seat:</span>
+                              <span className="font-medium">{booking.seat?.seat_id} ({booking.seat?.row_name}{booking.seat?.seat_number})</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Period:</span>
+                              <span className="font-medium capitalize">{booking.booking_period}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Dates:</span>
+                              <span className="font-medium text-xs">{formatDate(booking.start_date)} - {formatDate(booking.end_date)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Payment & Status Section */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">Payment & Status</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Amount:</span>
+                              <span className="font-bold text-lg">₹{Number(booking.total_amount).toLocaleString()}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Status:</span>
+                              <Badge variant={getStatusColor(booking.status)}>
+                                {booking.status.toUpperCase()}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Payment:</span>
+                              <Badge variant={booking.status === 'confirmed' || booking.status === 'completed' ? 'default' : 'secondary'}>
+                                {booking.status === 'confirmed' || booking.status === 'completed' ? 'PAID' : 'PENDING'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Created:</span>
+                              <span className="font-medium text-xs">{formatDate(booking.created_at)}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex space-x-2 mt-4">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewBookingDetails(booking)}
+                              className="flex-1"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Details
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditBooking(booking)}
+                              className="flex-1"
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">No bookings found</p>
+                <p className="text-sm">Try adjusting your filters to see more results</p>
+              </div>
+            )}
           </TabsContent>
 
           {/* Analytics Tab */}

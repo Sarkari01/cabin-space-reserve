@@ -169,7 +169,7 @@ const Landing = () => {
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-2xl font-bold text-foreground">${cabin.price}</span>
+                      <span className="text-2xl font-bold text-foreground">₹{cabin.price}</span>
                       <span className="text-sm text-muted-foreground">/day</span>
                     </div>
                   </div>

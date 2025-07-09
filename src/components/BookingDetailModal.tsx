@@ -175,9 +175,15 @@ export function BookingDetailModal({
                     <span className="font-medium text-lg">₹{Number(booking.total_amount).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status:</span>
+                    <span className="text-muted-foreground">Booking Status:</span>
                     <Badge variant={getStatusColor(booking.status)} className="h-5">
                       {booking.status.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Payment Status:</span>
+                    <Badge variant={booking.status === 'confirmed' || booking.status === 'completed' ? 'default' : 'secondary'} className="h-5">
+                      {booking.status === 'confirmed' || booking.status === 'completed' ? 'PAID' : 'PENDING'}
                     </Badge>
                   </div>
                 </div>
