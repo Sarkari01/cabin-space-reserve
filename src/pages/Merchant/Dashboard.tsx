@@ -7,6 +7,7 @@ import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, 
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { StudyHallModal } from "@/components/StudyHallModal";
+import { BannerCarousel } from "@/components/BannerCarousel";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudyHalls } from "@/hooks/useStudyHalls";
@@ -130,6 +131,9 @@ const MerchantDashboard = () => {
           activeTab={activeTab}
         >
       <div className="p-6">
+        {/* Banner Carousel */}
+        <BannerCarousel targetAudience="merchant" className="mb-6" />
+
         {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">
           <div>

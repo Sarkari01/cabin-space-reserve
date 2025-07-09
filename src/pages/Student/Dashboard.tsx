@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { useStudyHalls } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
 import { useFavorites } from "@/hooks/useFavorites";
 import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
+import { BannerCarousel } from "@/components/BannerCarousel";
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading } = useStudyHalls();
@@ -107,6 +108,10 @@ const StudentDashboard = () => {
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-6">
+              {/* Banner Carousel */}
+              <BannerCarousel targetAudience="user" className="mb-6" />
+              
+              {/* Rest of overview content */}
               {/* Welcome Section */}
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back!</h2>

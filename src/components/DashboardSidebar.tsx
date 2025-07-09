@@ -54,6 +54,7 @@ const sidebarItems = {
     { title: "Merchants", url: "/admin/dashboard", icon: Users, tab: "merchants" },
     { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
+    { title: "Banners", url: "/admin/dashboard", icon: BookOpen, tab: "banners" },
     { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
   ],
 };

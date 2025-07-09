@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          image_url: string
+          priority: number
+          start_date: string
+          status: Database["public"]["Enums"]["banner_status"]
+          target_audience: Database["public"]["Enums"]["banner_target_audience"]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url: string
+          priority?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["banner_status"]
+          target_audience?: Database["public"]["Enums"]["banner_target_audience"]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string
+          priority?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["banner_status"]
+          target_audience?: Database["public"]["Enums"]["banner_target_audience"]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           booking_period: Database["public"]["Enums"]["booking_period"]
@@ -222,6 +264,8 @@ export type Database = {
       }
     }
     Enums: {
+      banner_status: "active" | "inactive"
+      banner_target_audience: "user" | "merchant" | "both"
       booking_period: "daily" | "weekly" | "monthly"
       user_role: "admin" | "merchant" | "student"
     }
@@ -351,6 +395,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      banner_status: ["active", "inactive"],
+      banner_target_audience: ["user", "merchant", "both"],
       booking_period: ["daily", "weekly", "monthly"],
       user_role: ["admin", "merchant", "student"],
     },

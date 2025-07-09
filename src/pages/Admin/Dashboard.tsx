@@ -8,6 +8,7 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
 import { UserModal } from "@/components/admin/UserModal";
+import { BannersTab } from "@/components/admin/BannersTab";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -495,6 +496,10 @@ const AdminDashboard = () => {
           )}
 
           {/* Analytics Tab */}
+          {activeTab === "banners" && (
+            <BannersTab />
+          )}
+
           {activeTab === "analytics" && (
             <div className="space-y-6">
               <h3 className="text-2xl font-semibold">Analytics & Reports</h3>
