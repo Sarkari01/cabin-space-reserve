@@ -12,17 +12,21 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudyHalls } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
+import { BookingDetailModal } from "@/components/BookingDetailModal";
 
 const MerchantDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
-  const { bookings, loading: bookingsLoading } = useBookings();
+  const { bookings, loading: bookingsLoading, updateBookingStatus } = useBookings();
   
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
   const [selectedStudyHall, setSelectedStudyHall] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -116,6 +120,23 @@ const MerchantDashboard = () => {
       default:
         return 'secondary';
     }
+  };
+
+  const handleViewBookingDetails = (booking: any) => {
+    setSelectedBooking(booking);
+    setBookingDetailOpen(true);
+  };
+
+  const handleConfirmBooking = async (bookingId: string) => {
+    setActionLoading(true);
+    await updateBookingStatus(bookingId, 'confirmed');
+    setActionLoading(false);
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    setActionLoading(true);
+    await updateBookingStatus(bookingId, 'cancelled');
+    setActionLoading(false);
   };
 
   return (
@@ -297,12 +318,21 @@ const MerchantDashboard = () => {
                           <div className="text-right">
                             <p className="text-lg font-semibold">₹{Number(booking.total_amount).toLocaleString()}</p>
                             <div className="flex space-x-2 mt-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewBookingDetails(booking)}
+                              >
                                 View Details
                               </Button>
                               {booking.status === 'pending' && (
-                                <Button variant="default" size="sm">
-                                  Confirm
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  onClick={() => handleConfirmBooking(booking.id)}
+                                  disabled={actionLoading}
+                                >
+                                  {actionLoading ? "Confirming..." : "Confirm"}
                                 </Button>
                               )}
                             </div>
@@ -480,12 +510,21 @@ const MerchantDashboard = () => {
                           <div className="text-right">
                             <p className="text-lg font-semibold">₹{Number(booking.total_amount).toLocaleString()}</p>
                             <div className="flex space-x-2 mt-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewBookingDetails(booking)}
+                              >
                                 View Details
                               </Button>
                               {booking.status === 'pending' && (
-                                <Button variant="default" size="sm">
-                                  Confirm
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  onClick={() => handleConfirmBooking(booking.id)}
+                                  disabled={actionLoading}
+                                >
+                                  {actionLoading ? "Confirming..." : "Confirm"}
                                 </Button>
                               )}
                             </div>
@@ -542,6 +581,16 @@ const MerchantDashboard = () => {
           onSave={handleSaveStudyHall}
           studyHall={selectedStudyHall}
           mode={studyHallModalMode}
+        />
+
+        {/* Booking Detail Modal */}
+        <BookingDetailModal
+          open={bookingDetailOpen}
+          onOpenChange={setBookingDetailOpen}
+          booking={selectedBooking}
+          userRole="merchant"
+          onConfirm={handleConfirmBooking}
+          loading={actionLoading}
         />
       </div>
     </DashboardSidebar>

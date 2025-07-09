@@ -11,6 +11,7 @@ import { useBookings } from "@/hooks/useBookings";
 import { UserModal } from "@/components/admin/UserModal";
 import { BannersTab } from "@/components/admin/BannersTab";
 import { useToast } from "@/hooks/use-toast";
+import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const AdminDashboard = () => {
@@ -35,6 +36,9 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Redirect to login if not authenticated or not admin
   useEffect(() => {
@@ -108,6 +112,11 @@ const AdminDashboard = () => {
       default:
         return 'secondary';
     }
+  };
+
+  const handleViewBookingDetails = (booking: any) => {
+    setSelectedBooking(booking);
+    setBookingDetailOpen(true);
   };
 
   const filteredUsers = users.filter(user => 
@@ -584,11 +593,19 @@ const AdminDashboard = () => {
                           <div className="text-right">
                             <p className="text-lg font-semibold mb-2">₹{Number(booking.total_amount).toLocaleString()}</p>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewBookingDetails(booking)}
+                              >
                                 <Eye className="h-4 w-4 mr-1" />
                                 View Details
                               </Button>
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                disabled={actionLoading}
+                              >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Manage
                               </Button>
@@ -671,6 +688,14 @@ const AdminDashboard = () => {
           )}
         </div>
       </DashboardSidebar>
+
+      <BookingDetailModal
+        open={bookingDetailOpen}
+        onOpenChange={setBookingDetailOpen}
+        booking={selectedBooking}
+        userRole="admin"
+        loading={actionLoading}
+      />
     </>
   );
 };

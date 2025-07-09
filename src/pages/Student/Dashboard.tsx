@@ -11,16 +11,20 @@ import { useBookings } from "@/hooks/useBookings";
 import { useFavorites } from "@/hooks/useFavorites";
 import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
 import { BannerCarousel } from "@/components/BannerCarousel";
+import { BookingDetailModal } from "@/components/BookingDetailModal";
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading } = useStudyHalls();
-  const { bookings, loading: bookingsLoading } = useBookings();
+  const { bookings, loading: bookingsLoading, cancelBooking } = useBookings();
   const { favorites, addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   
   const [activeTab, setActiveTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudyHall, setSelectedStudyHall] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const { seats, fetchSeats } = useSeats();
 
   // Filter active study halls for browsing
@@ -60,6 +64,17 @@ const StudentDashboard = () => {
     } else {
       addToFavorites(studyHallId);
     }
+  };
+
+  const handleViewBookingDetails = (booking: any) => {
+    setSelectedBooking(booking);
+    setBookingDetailOpen(true);
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    setActionLoading(true);
+    await cancelBooking(bookingId);
+    setActionLoading(false);
   };
 
   const formatDate = (dateString) => {
@@ -364,12 +379,21 @@ const StudentDashboard = () => {
                           <div className="text-right">
                             <p className="text-lg font-semibold mb-2">₹{Number(booking.total_amount).toLocaleString()}</p>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewBookingDetails(booking)}
+                              >
                                 View Details
                               </Button>
                               {booking.status === 'pending' && (
-                                <Button variant="outline" size="sm">
-                                  Cancel
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleCancelBooking(booking.id)}
+                                  disabled={actionLoading}
+                                >
+                                  {actionLoading ? "Cancelling..." : "Cancel"}
                                 </Button>
                               )}
                             </div>
@@ -463,6 +487,15 @@ const StudentDashboard = () => {
         studyHall={selectedStudyHall}
         seats={seats}
         userRole="student"
+      />
+
+      <BookingDetailModal
+        open={bookingDetailOpen}
+        onOpenChange={setBookingDetailOpen}
+        booking={selectedBooking}
+        userRole="student"
+        onCancel={handleCancelBooking}
+        loading={actionLoading}
       />
     </>
   );
