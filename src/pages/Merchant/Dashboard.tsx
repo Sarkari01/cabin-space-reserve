@@ -277,10 +277,11 @@ const MerchantDashboard = () => {
         {/* Main Content based on active tab */}
         {activeTab === "overview" && (
           <Tabs defaultValue="studyhalls" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="studyhalls">My Study Halls</TabsTrigger>
               <TabsTrigger value="bookings">Recent Bookings</TabsTrigger>
               <TabsTrigger value="history">Booking History</TabsTrigger>
+              <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
 
@@ -695,6 +696,214 @@ const MerchantDashboard = () => {
             )}
           </TabsContent>
 
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold">Users</h3>
+              <div className="text-sm text-muted-foreground">
+                Users who have booked in your study halls
+              </div>
+            </div>
+
+            {/* User Filters */}
+            <Card className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Search Users</label>
+                  <Input
+                    placeholder="Search by name or email"
+                    value={searchUser}
+                    onChange={(e) => setSearchUser(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Filter by Status</label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-end">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      setFilterStatus("all");
+                      setSearchUser("");
+                    }}
+                    className="w-full"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Users List */}
+            {bookingsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-24 bg-muted rounded-lg"></div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredBookings.length > 0 ? (
+              <div className="space-y-4">
+                {/* Group bookings by user */}
+                {Object.entries(
+                  filteredBookings.reduce((acc, booking) => {
+                    const userId = booking.user_id;
+                    if (!acc[userId]) {
+                      acc[userId] = {
+                        user: booking.user,
+                        bookings: []
+                      };
+                    }
+                    acc[userId].bookings.push(booking);
+                    return acc;
+                  }, {} as Record<string, { user: any; bookings: any[] }>)
+                ).map(([userId, userData]) => (
+                  <Card key={userId} className="hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* User Info */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <User className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold">User Information</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Name:</span>
+                              <p className="font-medium">{userData.user?.full_name || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Email:</span>
+                              <p className="font-medium text-xs">{userData.user?.email}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total Bookings:</span>
+                              <p className="font-bold text-lg">{userData.bookings.length}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Latest Booking */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold">Latest Booking</span>
+                          </div>
+                          {userData.bookings.length > 0 && (
+                            <div className="space-y-2 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">Study Hall:</span>
+                                <p className="font-medium">{userData.bookings[0].study_hall?.name}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Seat:</span>
+                                <p className="font-medium">{userData.bookings[0].seat?.seat_id}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Date:</span>
+                                <p className="font-medium">{formatDate(userData.bookings[0].start_date)}</p>
+                              </div>
+                              <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
+                                {userData.bookings[0].status.toUpperCase()}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Statistics */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold">Statistics</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Total Spent:</span>
+                              <p className="font-bold text-lg">₹{userData.bookings.reduce((sum, booking) => sum + Number(booking.total_amount), 0).toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Active Bookings:</span>
+                              <p className="font-medium">{userData.bookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Completed:</span>
+                              <p className="font-medium">{userData.bookings.filter(b => b.status === 'completed').length}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold">Actions</span>
+                          </div>
+                          <div className="space-y-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                // Set filter to show only this user's bookings in history tab
+                                setSearchUser(userData.user?.email || '');
+                                setActiveTab("overview");
+                                // Switch to history tab
+                                setTimeout(() => {
+                                  const historyTab = document.querySelector('[value="history"]') as HTMLElement;
+                                  historyTab?.click();
+                                }, 100);
+                              }}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View All Bookings
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                if (userData.bookings.length > 0) {
+                                  handleViewBookingDetails(userData.bookings[0]);
+                                }
+                              }}
+                            >
+                              <User className="h-3 w-3 mr-1" />
+                              Latest Booking Details
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Member since: {formatDate(userData.bookings[userData.bookings.length - 1]?.created_at)}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">No users found</p>
+                <p className="text-sm">Users who book in your study halls will appear here</p>
+              </div>
+            )}
+          </TabsContent>
+
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
@@ -724,6 +933,216 @@ const MerchantDashboard = () => {
             </div>
             </TabsContent>
           </Tabs>
+        )}
+
+        {/* Direct tab content for sidebar navigation */}
+        {activeTab === "users" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold">Users</h3>
+              <div className="text-sm text-muted-foreground">
+                Users who have booked in your study halls
+              </div>
+            </div>
+
+            {/* User Filters */}
+            <Card className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Search Users</label>
+                  <Input
+                    placeholder="Search by name or email"
+                    value={searchUser}
+                    onChange={(e) => setSearchUser(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Filter by Status</label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-end">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      setFilterStatus("all");
+                      setSearchUser("");
+                    }}
+                    className="w-full"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Users List */}
+            {bookingsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-24 bg-muted rounded-lg"></div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredBookings.length > 0 ? (
+              <div className="space-y-4">
+                {/* Group bookings by user */}
+                {Object.entries(
+                  filteredBookings.reduce((acc, booking) => {
+                    const userId = booking.user_id;
+                    if (!acc[userId]) {
+                      acc[userId] = {
+                        user: booking.user,
+                        bookings: []
+                      };
+                    }
+                    acc[userId].bookings.push(booking);
+                    return acc;
+                  }, {} as Record<string, { user: any; bookings: any[] }>)
+                ).map(([userId, userData]) => (
+                  <Card key={userId} className="hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* User Info */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <User className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold">User Information</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Name:</span>
+                              <p className="font-medium">{userData.user?.full_name || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Email:</span>
+                              <p className="font-medium text-xs">{userData.user?.email}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total Bookings:</span>
+                              <p className="font-bold text-lg">{userData.bookings.length}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Latest Booking */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold">Latest Booking</span>
+                          </div>
+                          {userData.bookings.length > 0 && (
+                            <div className="space-y-2 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">Study Hall:</span>
+                                <p className="font-medium">{userData.bookings[0].study_hall?.name}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Seat:</span>
+                                <p className="font-medium">{userData.bookings[0].seat?.seat_id}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Date:</span>
+                                <p className="font-medium">{formatDate(userData.bookings[0].start_date)}</p>
+                              </div>
+                              <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
+                                {userData.bookings[0].status.toUpperCase()}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Statistics */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold">Statistics</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Total Spent:</span>
+                              <p className="font-bold text-lg">₹{userData.bookings.reduce((sum, booking) => sum + Number(booking.total_amount), 0).toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Active Bookings:</span>
+                              <p className="font-medium">{userData.bookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Completed:</span>
+                              <p className="font-medium">{userData.bookings.filter(b => b.status === 'completed').length}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold">Actions</span>
+                          </div>
+                          <div className="space-y-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                // Set filter to show only this user's bookings in history tab
+                                setSearchUser(userData.user?.email || '');
+                                setActiveTab("overview");
+                                // Switch to history tab
+                                setTimeout(() => {
+                                  const historyTab = document.querySelector('[value="history"]') as HTMLElement;
+                                  historyTab?.click();
+                                }, 100);
+                              }}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View All Bookings
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="w-full"
+                              onClick={() => {
+                                if (userData.bookings.length > 0) {
+                                  handleViewBookingDetails(userData.bookings[0]);
+                                }
+                              }}
+                            >
+                              <User className="h-3 w-3 mr-1" />
+                              Latest Booking Details
+                            </Button>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Member since: {formatDate(userData.bookings[userData.bookings.length - 1]?.created_at)}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">No users found</p>
+                <p className="text-sm">Users who book in your study halls will appear here</p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Direct tab content for sidebar navigation */}
