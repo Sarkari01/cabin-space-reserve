@@ -49,6 +49,21 @@ const AdminDashboard = () => {
     setUserModalOpen(false);
   };
 
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user);
+    setUserModalOpen(true);
+  };
+
+  const handleUpdateUser = async (userData: any) => {
+    if (selectedUser) {
+      setIsSubmitting(true);
+      await updateUserRole(selectedUser.id, userData.role);
+      setIsSubmitting(false);
+      setSelectedUser(null);
+      setUserModalOpen(false);
+    }
+  };
+
   const handleDeleteUser = async (userId: string) => {
     await deleteUser(userId);
   };
@@ -122,8 +137,11 @@ const AdminDashboard = () => {
     <>
       <UserModal
         open={userModalOpen}
-        onOpenChange={setUserModalOpen}
-        onSubmit={handleCreateUser}
+        onOpenChange={(open) => {
+          setUserModalOpen(open);
+          if (!open) setSelectedUser(null);
+        }}
+        onSubmit={selectedUser ? handleUpdateUser : handleCreateUser}
         user={selectedUser}
         loading={isSubmitting}
       />
@@ -266,7 +284,7 @@ const AdminDashboard = () => {
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleEditUser(userData)}>
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
                           </Button>

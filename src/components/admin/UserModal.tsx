@@ -13,7 +13,7 @@ interface UserModalProps {
     email: string;
     password: string;
     full_name: string;
-    role: 'merchant' | 'student';
+    role: 'admin' | 'merchant' | 'student';
     phone?: string;
   }) => void;
   user?: UserProfile | null;
@@ -25,7 +25,7 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading }: UserM
     email: user?.email || '',
     password: '',
     full_name: user?.full_name || '',
-    role: (user?.role as 'merchant' | 'student') || 'student',
+    role: (user?.role as 'admin' | 'merchant' | 'student') || 'student',
     phone: user?.phone || '',
   });
 
@@ -98,6 +98,7 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading }: UserM
               <SelectContent>
                 <SelectItem value="student">Student</SelectItem>
                 <SelectItem value="merchant">Merchant</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
