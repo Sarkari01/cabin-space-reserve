@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, MapPin, Clock, Users, Heart, Search, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
 
 const StudentDashboard = () => {
   const [user] = useState(() => {
@@ -63,34 +64,9 @@ const StudentDashboard = () => {
     }
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg"></div>
-              <h1 className="text-xl font-bold text-foreground">CabinSpace</h1>
-            </Link>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">Welcome, {user.name}</span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
+    <DashboardSidebar userRole="student" userName={user.name}>
+      <div className="p-6">
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back, {user.name}!</h2>
@@ -289,7 +265,7 @@ const StudentDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </DashboardSidebar>
   );
 };
 

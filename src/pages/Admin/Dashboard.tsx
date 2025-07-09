@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Home, DollarSign, TrendingUp, User, Building, LogOut, Settings, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
 
 const AdminDashboard = () => {
   const [user] = useState(() => {
@@ -120,32 +121,8 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg"></div>
-              <h1 className="text-xl font-bold text-foreground">CabinSpace Admin</h1>
-            </Link>
-            
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-              <span className="text-sm text-muted-foreground">Welcome, {user.name}</span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
+    <DashboardSidebar userRole="admin" userName={user.name}>
+      <div className="p-6">
         {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -378,7 +355,7 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </DashboardSidebar>
   );
 };
 

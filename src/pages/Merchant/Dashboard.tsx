@@ -3,14 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3 } from "lucide-react";
+import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit } from "lucide-react";
 import { Link } from "react-router-dom";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { CabinModal } from "@/components/CabinModal";
+import { useToast } from "@/hooks/use-toast";
 
 const MerchantDashboard = () => {
   const [user] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : { name: "Merchant", email: "merchant@demo.com" };
   });
+  
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
+  const [selectedCabin, setSelectedCabin] = useState<any>(null);
+  const { toast } = useToast();
 
   const stats = [
     {
@@ -39,7 +47,7 @@ const MerchantDashboard = () => {
     }
   ];
 
-  const myCabins = [
+  const [myCabins, setMyCabins] = useState([
     {
       id: 1,
       name: "Forest Retreat",
@@ -70,7 +78,59 @@ const MerchantDashboard = () => {
       rating: 0,
       revenue: "$0"
     }
-  ];
+  ]);
+
+  const handleAddCabin = () => {
+    setSelectedCabin(null);
+    setModalMode("add");
+    setModalOpen(true);
+  };
+
+  const handleViewCabin = (cabin: any) => {
+    setSelectedCabin(cabin);
+    setModalMode("view");
+    setModalOpen(true);
+  };
+
+  const handleEditCabin = (cabin: any) => {
+    setSelectedCabin(cabin);
+    setModalMode("edit");
+    setModalOpen(true);
+  };
+
+  const handleSaveCabin = (cabinData: any) => {
+    if (modalMode === "add") {
+      const newCabin = {
+        ...cabinData,
+        id: Date.now(), // Simple ID generation
+        bookings: 0,
+        rating: 0,
+        revenue: "$0"
+      };
+      setMyCabins([...myCabins, newCabin]);
+      toast({
+        title: "Cabin Added",
+        description: "Your cabin has been successfully added.",
+      });
+    } else if (modalMode === "edit") {
+      setMyCabins(myCabins.map(cabin => 
+        cabin.id === cabinData.id ? cabinData : cabin
+      ));
+      toast({
+        title: "Cabin Updated",
+        description: "Your cabin has been successfully updated.",
+      });
+    }
+  };
+
+  const handleDeleteCabin = (id: number) => {
+    setMyCabins(myCabins.filter(cabin => cabin.id !== id));
+    toast({
+      title: "Cabin Deleted",
+      description: "Your cabin has been successfully deleted.",
+      variant: "destructive",
+    });
+  };
 
   const recentBookings = [
     {
@@ -102,41 +162,16 @@ const MerchantDashboard = () => {
     }
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg"></div>
-              <h1 className="text-xl font-bold text-foreground">CabinSpace</h1>
-            </Link>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">Welcome, {user.name}</span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
+    <DashboardSidebar userRole="merchant" userName={user.name}>
+      <div className="p-6">
         {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold text-foreground mb-2">Merchant Dashboard</h2>
             <p className="text-muted-foreground">Manage your cabins and track your business</p>
           </div>
-          <Button>
+          <Button onClick={handleAddCabin}>
             <Plus className="h-4 w-4 mr-2" />
             Add New Cabin
           </Button>
@@ -174,7 +209,7 @@ const MerchantDashboard = () => {
           <TabsContent value="cabins" className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold">Your Cabins</h3>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleAddCabin}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Cabin
               </Button>
@@ -221,10 +256,22 @@ const MerchantDashboard = () => {
                     </div>
                     
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEditCabin(cabin)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleViewCabin(cabin)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
                       <Button variant="outline" size="sm">
@@ -305,8 +352,17 @@ const MerchantDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        <CabinModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          cabin={selectedCabin}
+          mode={modalMode}
+          onSave={handleSaveCabin}
+          onDelete={handleDeleteCabin}
+        />
       </div>
-    </div>
+    </DashboardSidebar>
   );
 };
 
