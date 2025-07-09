@@ -2,9 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Home, DollarSign, TrendingUp, User, Building, LogOut, Settings, Shield } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 
 const AdminDashboard = () => {
@@ -15,7 +14,7 @@ const AdminDashboard = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
 
-  const systemStats = [
+  const stats = [
     {
       title: "Total Users",
       value: "1,234",
@@ -23,22 +22,22 @@ const AdminDashboard = () => {
       change: "+12% from last month"
     },
     {
-      title: "Total Cabins",
+      title: "Active Cabins",
       value: "89",
-      icon: Home,
-      change: "+5 this month"
+      icon: Building,
+      change: "+3 this week"
     },
     {
-      title: "Total Revenue",
+      title: "Monthly Revenue",
       value: "$45,230",
       icon: DollarSign,
-      change: "+23% from last month"
+      change: "+18% from last month"
     },
     {
-      title: "Active Bookings",
-      value: "156",
+      title: "Growth Rate",
+      value: "23.5%",
       icon: TrendingUp,
-      change: "+8% this week"
+      change: "+2.4% from last month"
     }
   ];
 
@@ -47,80 +46,80 @@ const AdminDashboard = () => {
       id: 1,
       name: "John Smith",
       email: "john@example.com",
-      role: "student",
-      joinDate: "2024-01-10",
-      status: "active"
+      role: "Student",
+      status: "active",
+      joinDate: "2024-01-15"
     },
     {
       id: 2,
       name: "Sarah Johnson",
       email: "sarah@example.com",
-      role: "merchant",
-      joinDate: "2024-01-09",
-      status: "active"
+      role: "Merchant",
+      status: "active",
+      joinDate: "2024-01-14"
     },
     {
       id: 3,
       name: "Mike Davis",
       email: "mike@example.com",
-      role: "student",
-      joinDate: "2024-01-08",
-      status: "pending"
+      role: "Student",
+      status: "pending",
+      joinDate: "2024-01-13"
     }
   ];
 
-  const pendingCabins = [
+  const allCabins = [
     {
       id: 1,
-      name: "Riverside Cabin",
+      name: "Forest Retreat",
       owner: "Alice Cooper",
-      location: "River Valley",
-      price: 55,
-      submissionDate: "2024-01-12",
-      status: "pending"
+      location: "Woodland Hills",
+      price: 45,
+      status: "active",
+      bookings: 12,
+      revenue: "$1,800"
     },
     {
       id: 2,
-      name: "Desert Oasis",
+      name: "Mountain View",
       owner: "Bob Wilson",
-      location: "Desert Springs",
-      price: 40,
-      submissionDate: "2024-01-11",
-      status: "under_review"
-    }
-  ];
-
-  const recentPayments = [
-    {
-      id: 1,
-      booking: "Forest Retreat",
-      user: "John Smith",
-      amount: "$270",
-      date: "2024-01-15",
-      status: "completed"
-    },
-    {
-      id: 2,
-      booking: "Mountain View",
-      user: "Sarah Johnson",
-      amount: "$195",
-      date: "2024-01-14",
-      status: "completed"
+      location: "Alpine Valley",
+      price: 65,
+      status: "active",
+      bookings: 8,
+      revenue: "$1,200"
     },
     {
       id: 3,
-      booking: "Lakeside Cabin",
-      user: "Mike Davis",
-      amount: "$175",
-      date: "2024-01-13",
-      status: "pending"
+      name: "City Center",
+      owner: "Carol Brown",
+      location: "Downtown",
+      price: 85,
+      status: "pending",
+      bookings: 0,
+      revenue: "$0"
     }
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  };
+  const allUsers = [
+    ...recentUsers,
+    {
+      id: 4,
+      name: "Emily Davis",
+      email: "emily@example.com",
+      role: "Student",
+      status: "active",
+      joinDate: "2024-01-12"
+    },
+    {
+      id: 5,
+      name: "David Wilson",
+      email: "david@example.com",
+      role: "Merchant",
+      status: "suspended",
+      joinDate: "2024-01-10"
+    }
+  ];
 
   return (
     <DashboardSidebar 
@@ -130,195 +129,229 @@ const AdminDashboard = () => {
       activeTab={activeTab}
     >
       <div className="p-6">
-        {/* Welcome Section */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h2>
-            <p className="text-muted-foreground">Monitor and manage the CabinSpace platform</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <span className="text-sm font-medium">Administrator Access</span>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {systemStats.map((stat, index) => (
-            <Card key={index}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
-                  </div>
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <stat.icon className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Main Content */}
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="cabins">Cabins</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">User Management</h3>
-              <Button variant="outline">
-                <User className="h-4 w-4 mr-2" />
-                Add User
-              </Button>
+        {/* Overview Tab */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {/* Welcome Section */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h2>
+              <p className="text-muted-foreground">Monitor and manage the entire platform</p>
             </div>
-            
-            <div className="space-y-4">
-              {recentUsers.map((user) => (
-                <Card key={user.id}>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {stats.map((stat, index) => (
+                <Card key={index}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-semibold">{user.name}</h4>
-                          <Badge variant={user.role === "merchant" ? "default" : "secondary"}>
-                            {user.role}
-                          </Badge>
-                          <Badge variant={user.status === "active" ? "default" : "secondary"}>
-                            {user.status}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {user.email} • Joined {user.joinDate}
-                        </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                        <p className="text-2xl font-bold">{stat.value}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
                       </div>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          View Profile
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
-                        {user.status === "pending" && (
-                          <Button size="sm">
-                            Approve
-                          </Button>
-                        )}
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <stat.icon className="h-5 w-5 text-primary" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </TabsContent>
 
-          {/* Cabins Tab */}
-          <TabsContent value="cabins" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">Cabin Management</h3>
-              <Button variant="outline">
-                <Building className="h-4 w-4 mr-2" />
-                View All Cabins
-              </Button>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-medium mb-4">Pending Approvals</h4>
-              <div className="space-y-4">
-                {pendingCabins.map((cabin) => (
-                  <Card key={cabin.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-semibold">{cabin.name}</h4>
-                            <Badge variant={cabin.status === "pending" ? "secondary" : "outline"}>
-                              {cabin.status.replace("_", " ")}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            By {cabin.owner} • {cabin.location} • ${cabin.price}/day • Submitted {cabin.submissionDate}
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            View Details
-                          </Button>
-                          <Button size="sm">
-                            Approve
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Payments Tab */}
-          <TabsContent value="payments" className="space-y-6">
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Payment Management</h3>
-              <div className="space-y-4">
-                {recentPayments.map((payment) => (
-                  <Card key={payment.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-semibold">{payment.booking}</h4>
-                            <Badge variant={payment.status === "completed" ? "default" : "secondary"}>
-                              {payment.status}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {payment.user} • {payment.date}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-semibold">{payment.amount}</p>
-                          <div className="flex space-x-2 mt-2">
-                            <Button variant="outline" size="sm">
-                              View Transaction
-                            </Button>
-                            {payment.status === "pending" && (
-                              <Button size="sm">
-                                Process
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
+            {/* Recent Activity */}
             <div className="grid lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Platform Revenue</CardTitle>
-                  <CardDescription>Total revenue across all transactions</CardDescription>
+                  <CardTitle>Recent Users</CardTitle>
+                  <CardDescription>Newly registered users</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentUsers.map((user) => (
+                      <div key={user.id} className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{user.name}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={user.status === "active" ? "default" : "secondary"}>
+                            {user.role}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground mt-1">{user.joinDate}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Cabins</CardTitle>
+                  <CardDescription>Latest cabin submissions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {allCabins.slice(0, 3).map((cabin) => (
+                      <div key={cabin.id} className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{cabin.name}</p>
+                          <p className="text-sm text-muted-foreground">{cabin.location}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={cabin.status === "active" ? "default" : "secondary"}>
+                            {cabin.status}
+                          </Badge>
+                          <p className="text-sm font-medium">${cabin.price}/day</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Users Tab */}
+        {activeTab === "users" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">User Management</h3>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users by name or email..."
+                className="pl-10"
+              />
+            </div>
+
+            {/* Users Table */}
+            <div className="space-y-4">
+              {allUsers.map((user) => (
+                <Card key={user.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-semibold">{user.name}</h4>
+                          <Badge variant={user.status === "active" ? "default" : user.status === "suspended" ? "destructive" : "secondary"}>
+                            {user.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">Role: {user.role} • Joined: {user.joinDate}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Ban className="h-4 w-4 mr-1" />
+                          Suspend
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Cabins Tab */}
+        {activeTab === "cabins" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">Cabin Management</h3>
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Cabin
+              </Button>
+            </div>
+
+            {/* Cabins Grid */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              {allCabins.map((cabin) => (
+                <Card key={cabin.id} className="hover:shadow-md transition-shadow">
+                  <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                      <span className="text-muted-foreground">{cabin.name}</span>
+                    </div>
+                  </div>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="text-lg font-semibold mb-1">{cabin.name}</h4>
+                        <p className="text-sm text-muted-foreground">{cabin.location}</p>
+                        <p className="text-sm text-muted-foreground">Owner: {cabin.owner}</p>
+                      </div>
+                      <Badge variant={cabin.status === "active" ? "default" : "secondary"}>
+                        {cabin.status}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Price/day</p>
+                        <p className="font-semibold">${cabin.price}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Bookings</p>
+                        <p className="font-semibold">{cabin.bookings}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Revenue</p>
+                        <p className="font-semibold">{cabin.revenue}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button variant={cabin.status === "active" ? "destructive" : "default"} size="sm">
+                        {cabin.status === "active" ? "Disable" : "Approve"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+            <h3 className="text-2xl font-semibold">Analytics & Reports</h3>
+            
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue Analytics</CardTitle>
+                  <CardDescription>Platform revenue over time</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground">Revenue Analytics Chart</p>
+                    <p className="text-muted-foreground">Revenue Chart Placeholder</p>
                   </div>
                 </CardContent>
               </Card>
@@ -326,41 +359,41 @@ const AdminDashboard = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>User Growth</CardTitle>
-                  <CardDescription>New user registrations over time</CardDescription>
+                  <CardDescription>New user registrations</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground">User Growth Chart</p>
+                    <p className="text-muted-foreground">User Growth Chart Placeholder</p>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
-                  <CardTitle>Booking Statistics</CardTitle>
-                  <CardDescription>Booking trends and patterns</CardDescription>
+                  <CardTitle>Booking Trends</CardTitle>
+                  <CardDescription>Platform booking patterns</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground">Booking Statistics Chart</p>
+                    <p className="text-muted-foreground">Booking Chart Placeholder</p>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
-                  <CardTitle>Cabin Performance</CardTitle>
-                  <CardDescription>Most popular cabins and occupancy rates</CardDescription>
+                  <CardTitle>Popular Locations</CardTitle>
+                  <CardDescription>Most booked cabin locations</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                    <p className="text-muted-foreground">Cabin Performance Chart</p>
+                    <p className="text-muted-foreground">Location Chart Placeholder</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
     </DashboardSidebar>
   );
