@@ -148,6 +148,8 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
       if (bookingError) throw bookingError;
 
       // Update seat availability to false (booked)
+      console.log(`Marking seat ${bookingData.seat_id} as unavailable after booking creation`);
+      
       const { error: seatError } = await supabase
         .from("seats")
         .update({ is_available: false })
@@ -155,7 +157,13 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
 
       if (seatError) {
         console.error("Error updating seat availability:", seatError);
-        // Still proceed with booking even if seat update fails
+        // Still proceed with booking success message
+        toast({
+          title: "Booking Created",
+          description: "Booking created successfully, but seat status may need refresh",
+        });
+      } else {
+        console.log("Seat availability updated successfully after booking creation");
       }
 
       toast({
