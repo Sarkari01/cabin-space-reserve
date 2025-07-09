@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,29 +7,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Minus, Grid3X3, DollarSign } from "lucide-react";
+import { Plus, Minus, Grid3X3, DollarSign, Upload, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useSeats } from "@/hooks/useStudyHalls";
 
 interface Seat {
   id: string;
-  row: string;
-  number: number;
-  isAvailable: boolean;
+  seat_id: string;
+  row_name: string;
+  seat_number: number;
+  is_available: boolean;
 }
 
 interface StudyHall {
-  id?: number;
+  id?: string;
   name: string;
   description: string;
   location: string;
-  totalSeats: number;
+  total_seats: number;
   rows: number;
-  seatsPerRow: number;
-  seats: Seat[];
-  pricing: {
-    daily: number;
-    weekly: number;
-    monthly: number;
-  };
+  seats_per_row: number;
+  custom_row_names: string[];
+  daily_price: number;
+  weekly_price: number;
+  monthly_price: number;
+  image_url?: string;
   status: "active" | "pending" | "suspended";
 }
 
@@ -42,53 +45,109 @@ interface StudyHallModalProps {
 }
 
 export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: StudyHallModalProps) {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  
   const [formData, setFormData] = useState<StudyHall>({
     name: "",
     description: "",
     location: "",
-    totalSeats: 20,
+    total_seats: 20,
     rows: 4,
-    seatsPerRow: 5,
-    seats: [],
-    pricing: {
-      daily: 100,
-      weekly: 500,
-      monthly: 1500
-    },
+    seats_per_row: 5,
+    custom_row_names: ["A", "B", "C", "D"],
+    daily_price: 100,
+    weekly_price: 500,
+    monthly_price: 1500,
     status: "pending"
   });
+
+  const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
 
   useEffect(() => {
     if (studyHall) {
       setFormData(studyHall);
+      if (studyHall.id) {
+        fetchSeats(studyHall.id);
+      }
     } else {
-      // Generate default seat layout
-      generateSeats(4, 5);
+      setFormData({
+        name: "",
+        description: "",
+        location: "",
+        total_seats: 20,
+        rows: 4,
+        seats_per_row: 5,
+        custom_row_names: ["A", "B", "C", "D"],
+        daily_price: 100,
+        weekly_price: 500,
+        monthly_price: 1500,
+        status: "pending"
+      });
     }
   }, [studyHall, isOpen]);
 
-  const generateSeats = (rows: number, seatsPerRow: number) => {
-    const seats: Seat[] = [];
-    const rowLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-    
-    for (let r = 0; r < rows; r++) {
-      for (let s = 1; s <= seatsPerRow; s++) {
-        seats.push({
-          id: `${rowLabels[r]}${s}`,
-          row: rowLabels[r],
-          number: s,
-          isAvailable: true
-        });
-      }
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
     }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "Image size should be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
     
-    setFormData(prev => ({
-      ...prev,
-      seats,
-      totalSeats: rows * seatsPerRow,
-      rows,
-      seatsPerRow
-    }));
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `study-hall-images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('study-hall-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('study-hall-images')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, image_url: publicUrl }));
+      
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData(prev => ({ ...prev, image_url: undefined }));
   };
 
   const formatCurrency = (amount: number) => {
@@ -99,16 +158,38 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     }).format(amount);
   };
 
-  const handleLayoutChange = (field: 'rows' | 'seatsPerRow', value: number) => {
+  const handleLayoutChange = (field: 'rows' | 'seats_per_row', value: number) => {
     const newRows = field === 'rows' ? value : formData.rows;
-    const newSeatsPerRow = field === 'seatsPerRow' ? value : formData.seatsPerRow;
+    const newSeatsPerRow = field === 'seats_per_row' ? value : formData.seats_per_row;
     
+    // Update custom row names array when rows change
+    if (field === 'rows') {
+      const newCustomRowNames = Array.from({ length: value }, (_, i) => {
+        return formData.custom_row_names[i] || String.fromCharCode(65 + i);
+      });
+      
+      setFormData(prev => ({
+        ...prev,
+        rows: value,
+        total_seats: value * prev.seats_per_row,
+        custom_row_names: newCustomRowNames
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        seats_per_row: value,
+        total_seats: prev.rows * value
+      }));
+    }
+  };
+
+  const handleRowNameChange = (index: number, newName: string) => {
+    const newCustomRowNames = [...formData.custom_row_names];
+    newCustomRowNames[index] = newName;
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      custom_row_names: newCustomRowNames
     }));
-    
-    generateSeats(newRows, newSeatsPerRow);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -181,54 +262,106 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                   Study Hall Pricing (₹)
                 </h4>
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="dailyPrice">Daily Rate (₹)</Label>
-                    <Input
-                      id="dailyPrice"
-                      type="number"
-                      value={formData.pricing.daily}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        pricing: { ...prev.pricing, daily: Number(e.target.value) }
-                      }))}
-                      placeholder="100"
-                      min="1"
-                      disabled={isReadOnly}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="weeklyPrice">Weekly Rate (₹)</Label>
-                    <Input
-                      id="weeklyPrice"
-                      type="number"
-                      value={formData.pricing.weekly}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        pricing: { ...prev.pricing, weekly: Number(e.target.value) }
-                      }))}
-                      placeholder="500"
-                      min="1"
-                      disabled={isReadOnly}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="monthlyPrice">Monthly Rate (₹)</Label>
-                    <Input
-                      id="monthlyPrice"
-                      type="number"
-                      value={formData.pricing.monthly}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        pricing: { ...prev.pricing, monthly: Number(e.target.value) }
-                      }))}
-                      placeholder="1500"
-                      min="1"
-                      disabled={isReadOnly}
-                      required
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="dailyPrice">Daily Rate (₹)</Label>
+                  <Input
+                    id="dailyPrice"
+                    type="number"
+                    value={formData.daily_price}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      daily_price: Number(e.target.value)
+                    }))}
+                    placeholder="100"
+                    min="1"
+                    disabled={isReadOnly}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="weeklyPrice">Weekly Rate (₹)</Label>
+                  <Input
+                    id="weeklyPrice"
+                    type="number"
+                    value={formData.weekly_price}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      weekly_price: Number(e.target.value)
+                    }))}
+                    placeholder="500"
+                    min="1"
+                    disabled={isReadOnly}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="monthlyPrice">Monthly Rate (₹)</Label>
+                  <Input
+                    id="monthlyPrice"
+                    type="number"
+                    value={formData.monthly_price}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      monthly_price: Number(e.target.value)
+                    }))}
+                    placeholder="1500"
+                    min="1"
+                    disabled={isReadOnly}
+                    required
+                  />
+                </div>
+                </div>
+              </div>
+
+              {/* Image Upload Section */}
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <h4 className="font-semibold mb-3 flex items-center">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Study Hall Image
+                </h4>
+                <div className="space-y-4">
+                  {formData.image_url ? (
+                    <div className="relative">
+                      <img 
+                        src={formData.image_url} 
+                        alt="Study hall" 
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      {!isReadOnly && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={removeImage}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-2">Upload study hall image</p>
+                      {!isReadOnly && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                        >
+                          {uploading ? "Uploading..." : "Choose Image"}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
                 </div>
               </div>
 
@@ -264,17 +397,17 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleLayoutChange('seatsPerRow', Math.max(1, formData.seatsPerRow - 1))}
+                      onClick={() => handleLayoutChange('seats_per_row', Math.max(1, formData.seats_per_row - 1))}
                       disabled={isReadOnly}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
-                    <span className="w-8 text-center">{formData.seatsPerRow}</span>
+                    <span className="w-8 text-center">{formData.seats_per_row}</span>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleLayoutChange('seatsPerRow', Math.min(20, formData.seatsPerRow + 1))}
+                      onClick={() => handleLayoutChange('seats_per_row', Math.min(20, formData.seats_per_row + 1))}
                       disabled={isReadOnly}
                     >
                       <Plus className="h-4 w-4" />
@@ -284,8 +417,27 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 <div>
                   <Label>Total Seats</Label>
                   <div className="text-2xl font-bold text-center py-2">
-                    {formData.totalSeats}
+                    {formData.total_seats}
                   </div>
+                </div>
+              </div>
+
+              {/* Custom Row Names */}
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <h4 className="font-semibold mb-3">Custom Row Names</h4>
+                <div className="grid grid-cols-5 gap-2">
+                  {formData.custom_row_names.map((rowName, index) => (
+                    <div key={index}>
+                      <Label className="text-xs">Row {index + 1}</Label>
+                      <Input
+                        value={rowName}
+                        onChange={(e) => handleRowNameChange(index, e.target.value.toUpperCase())}
+                        disabled={isReadOnly}
+                        maxLength={2}
+                        className="text-center"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             </TabsContent>
@@ -311,45 +463,72 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 
                 {/* Seat Grid */}
                 <div className="flex flex-col items-center space-y-3">
-                  {Array.from({ length: formData.rows }, (_, rowIndex) => (
-                    <div key={rowIndex} className="flex items-center space-x-3">
-                      {/* Row Label */}
-                      <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
-                        {String.fromCharCode(65 + rowIndex)}
-                      </div>
-                      
-                      {/* Seat Numbers */}
-                      <div className="flex space-x-2">
-                        {Array.from({ length: formData.seatsPerRow }, (_, seatIndex) => {
-                          const seatId = `${String.fromCharCode(65 + rowIndex)}${seatIndex + 1}`;
-                          const seat = formData.seats.find(s => s.id === seatId);
-                          return (
-                            <div key={seatId} className="relative group">
-                              <Button
-                                type="button"
-                                variant={seat?.isAvailable ? "outline" : "secondary"}
-                                size="sm"
-                                className="w-12 h-12 p-0 relative hover:bg-primary/10 transition-colors"
-                                disabled={true}
-                              >
-                                <div className="text-center">
-                                  <div className="text-xs font-medium">{seatIndex + 1}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {String.fromCharCode(65 + rowIndex)}
+                  {Array.from({ length: formData.rows }, (_, rowIndex) => {
+                    const rowName = formData.custom_row_names[rowIndex] || String.fromCharCode(65 + rowIndex);
+                    return (
+                      <div key={rowIndex} className="flex items-center space-x-3">
+                        {/* Row Label */}
+                        <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
+                          {rowName}
+                        </div>
+                        
+                        {/* Seat Numbers */}
+                        <div className="flex space-x-2">
+                          {Array.from({ length: formData.seats_per_row }, (_, seatIndex) => {
+                            const seatId = `${rowName}${seatIndex + 1}`;
+                            const seat = seats.find(s => s.seat_id === seatId);
+                            const isAvailable = seat?.is_available ?? true;
+                            
+                            return (
+                              <div key={seatId} className="relative group">
+                                <Button
+                                  type="button"
+                                  variant={isAvailable ? "outline" : "secondary"}
+                                  size="sm"
+                                  className={`w-12 h-12 p-0 relative transition-colors ${
+                                    isAvailable 
+                                      ? "border-green-500 text-green-700 hover:bg-green-50" 
+                                      : "bg-red-100 border-red-300 text-red-700"
+                                  }`}
+                                  disabled={true}
+                                >
+                                  <div className="text-center">
+                                    <div className="text-xs font-medium">{seatIndex + 1}</div>
+                                    <div className="text-xs">
+                                      {rowName}
+                                    </div>
                                   </div>
+                                  {!isAvailable && (
+                                    <div className="absolute inset-0 bg-red-500/20 rounded" />
+                                  )}
+                                </Button>
+                                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                  {isAvailable ? "Available" : "Occupied"}
                                 </div>
-                              </Button>
-                            </div>
-                          );
-                        })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Row Number */}
+                        <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
+                          {rowName}
+                        </div>
                       </div>
-                      
-                      {/* Row Number */}
-                      <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
-                        {String.fromCharCode(65 + rowIndex)}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+
+                {/* Seat Status Legend */}
+                <div className="flex justify-center space-x-6 mt-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-green-500 rounded"></div>
+                    <span className="text-sm text-muted-foreground">Available</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+                    <span className="text-sm text-muted-foreground">Occupied</span>
+                  </div>
                 </div>
               </div>
 
@@ -364,19 +543,19 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                     <div className="text-center">
                       <div className="text-muted-foreground mb-1">Daily Rate</div>
                       <div className="font-medium text-lg">
-                        {formatCurrency(formData.pricing.daily)}
+                        {formatCurrency(formData.daily_price)}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-muted-foreground mb-1">Weekly Rate</div>
                       <div className="font-medium text-lg">
-                        {formatCurrency(formData.pricing.weekly)}
+                        {formatCurrency(formData.weekly_price)}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-muted-foreground mb-1">Monthly Rate</div>
                       <div className="font-medium text-lg">
-                        {formatCurrency(formData.pricing.monthly)}
+                        {formatCurrency(formData.monthly_price)}
                       </div>
                     </div>
                   </div>

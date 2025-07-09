@@ -1,101 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { CabinModal } from "@/components/CabinModal";
 import { StudyHallModal } from "@/components/StudyHallModal";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useStudyHalls } from "@/hooks/useStudyHalls";
 
 const MerchantDashboard = () => {
-  const [user] = useState(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : { name: "Merchant", email: "merchant@demo.com" };
-  });
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
   
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
-  const [selectedCabin, setSelectedCabin] = useState<any>(null);
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
   const [selectedStudyHall, setSelectedStudyHall] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
   const stats = [
     {
       title: "Total Study Halls",
-      value: "3",
+      value: studyHalls.length.toString(),
       icon: Home,
       change: "+1 this month"
     },
     {
       title: "Total Seats",
-      value: "85",
+      value: studyHalls.reduce((acc, hall) => acc + hall.total_seats, 0).toString(),
       icon: Users,
       change: "+20 this month"
     },
     {
-      title: "Active Bookings",
-      value: "47",
+      title: "Active Study Halls",
+      value: studyHalls.filter(hall => hall.status === 'active').length.toString(),
       icon: Calendar,
       change: "+12 this week"
     },
     {
-      title: "Total Revenue",
-      value: "₹24,500",
+      title: "Pending Approval",
+      value: studyHalls.filter(hall => hall.status === 'pending').length.toString(),
       icon: DollarSign,
-      change: "+18% from last month"
+      change: "Awaiting admin approval"
     }
   ];
 
-  const [myStudyHalls, setMyStudyHalls] = useState([
-    {
-      id: 1,
-      name: "Central Study Hub",
-      description: "Premium study environment with modern amenities",
-      location: "Downtown",
-      totalSeats: 25,
-      occupiedSeats: 18,
-      rows: 5,
-      seatsPerRow: 5,
-      status: "active",
-      bookings: 8,
-      revenue: "₹12,000",
-      seats: []
-    },
-    {
-      id: 2,
-      name: "Tech Campus Library",
-      description: "High-tech study spaces for technical courses",
-      location: "Tech Park",
-      totalSeats: 40,
-      occupiedSeats: 32,
-      rows: 8,
-      seatsPerRow: 5,
-      status: "active",
-      bookings: 12,
-      revenue: "₹18,000",
-      seats: []
-    },
-    {
-      id: 3,
-      name: "Quiet Zone Study",
-      description: "Silent study environment for focused learning",
-      location: "University Area",
-      totalSeats: 20,
-      occupiedSeats: 0,
-      rows: 4,
-      seatsPerRow: 5,
-      status: "pending",
-      bookings: 0,
-      revenue: "₹0",
-      seats: []
-    }
-  ]);
+  if (authLoading || loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
 
   const handleAddStudyHall = () => {
     setSelectedStudyHall(null);
@@ -115,38 +77,16 @@ const MerchantDashboard = () => {
     setStudyHallModalOpen(true);
   };
 
-  const handleSaveStudyHall = (studyHallData: any) => {
+  const handleSaveStudyHall = async (studyHallData: any) => {
     if (studyHallModalMode === "add") {
-      const newStudyHall = {
-        ...studyHallData,
-        id: Date.now(),
-        bookings: 0,
-        occupiedSeats: 0,
-        revenue: "₹0"
-      };
-      setMyStudyHalls([...myStudyHalls, newStudyHall]);
-      toast({
-        title: "Study Hall Created",
-        description: "Your study hall has been successfully created.",
-      });
+      await createStudyHall(studyHallData);
     } else if (studyHallModalMode === "edit") {
-      setMyStudyHalls(myStudyHalls.map(studyHall => 
-        studyHall.id === studyHallData.id ? studyHallData : studyHall
-      ));
-      toast({
-        title: "Study Hall Updated",
-        description: "Your study hall has been successfully updated.",
-      });
+      await updateStudyHall(studyHallData.id, studyHallData);
     }
   };
 
-  const handleDeleteStudyHall = (id: number) => {
-    setMyStudyHalls(myStudyHalls.filter(studyHall => studyHall.id !== id));
-    toast({
-      title: "Study Hall Deleted",
-      description: "Your study hall has been successfully deleted.",
-      variant: "destructive",
-    });
+  const handleDeleteStudyHall = async (id: string) => {
+    await deleteStudyHall(id);
   };
 
   const recentBookings = [
@@ -183,18 +123,18 @@ const MerchantDashboard = () => {
   ];
 
   return (
-    <DashboardSidebar 
-      userRole="merchant" 
-      userName={user.name}
-      onTabChange={setActiveTab}
-      activeTab={activeTab}
-    >
+        <DashboardSidebar 
+          userRole="merchant" 
+          userName={user?.email || 'Merchant'}
+          onTabChange={setActiveTab}
+          activeTab={activeTab}
+        >
       <div className="p-6">
         {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold text-foreground mb-2">Merchant Dashboard</h2>
-            <p className="text-muted-foreground">Manage your study halls and track your business</p>
+            <p className="text-muted-foreground">Welcome back, {user?.email || 'Merchant'}</p>
           </div>
           <Button onClick={handleAddStudyHall}>
             <Plus className="h-4 w-4 mr-2" />
@@ -244,12 +184,20 @@ const MerchantDashboard = () => {
             </div>
             
             <div className="grid lg:grid-cols-2 gap-6">
-              {myStudyHalls.map((studyHall) => (
+              {studyHalls.map((studyHall) => (
                 <Card key={studyHall.id} className="hover:shadow-md transition-shadow">
                   <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                      <span className="text-muted-foreground">{studyHall.name}</span>
-                    </div>
+                    {studyHall.image_url ? (
+                      <img 
+                        src={studyHall.image_url} 
+                        alt={studyHall.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                        <span className="text-muted-foreground">{studyHall.name}</span>
+                      </div>
+                    )}
                   </div>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
@@ -266,19 +214,19 @@ const MerchantDashboard = () => {
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Total Seats</p>
-                        <p className="font-semibold">{studyHall.totalSeats}</p>
+                        <p className="font-semibold">{studyHall.total_seats}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Occupied</p>
-                        <p className="font-semibold">{studyHall.occupiedSeats}</p>
+                        <p className="text-sm text-muted-foreground">Daily Rate</p>
+                        <p className="font-semibold">₹{studyHall.daily_price}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Layout</p>
-                        <p className="font-semibold">{studyHall.rows}×{studyHall.seatsPerRow}</p>
+                        <p className="font-semibold">{studyHall.rows}×{studyHall.seats_per_row}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Revenue</p>
-                        <p className="font-semibold">{studyHall.revenue}</p>
+                        <p className="text-sm text-muted-foreground">Row Names</p>
+                        <p className="font-semibold text-xs">{studyHall.custom_row_names.slice(0, 3).join(', ')}{studyHall.custom_row_names.length > 3 ? '...' : ''}</p>
                       </div>
                     </div>
                     
@@ -396,12 +344,20 @@ const MerchantDashboard = () => {
             </div>
             
             <div className="grid lg:grid-cols-2 gap-6">
-              {myStudyHalls.map((studyHall) => (
+              {studyHalls.map((studyHall) => (
                 <Card key={studyHall.id} className="hover:shadow-md transition-shadow">
                   <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                      <span className="text-muted-foreground">{studyHall.name}</span>
-                    </div>
+                    {studyHall.image_url ? (
+                      <img 
+                        src={studyHall.image_url} 
+                        alt={studyHall.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                        <span className="text-muted-foreground">{studyHall.name}</span>
+                      </div>
+                    )}
                   </div>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
@@ -418,19 +374,19 @@ const MerchantDashboard = () => {
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Total Seats</p>
-                        <p className="font-semibold">{studyHall.totalSeats}</p>
+                        <p className="font-semibold">{studyHall.total_seats}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Occupied</p>
-                        <p className="font-semibold">{studyHall.occupiedSeats}</p>
+                        <p className="text-sm text-muted-foreground">Daily Rate</p>
+                        <p className="font-semibold">₹{studyHall.daily_price}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Layout</p>
-                        <p className="font-semibold">{studyHall.rows}×{studyHall.seatsPerRow}</p>
+                        <p className="font-semibold">{studyHall.rows}×{studyHall.seats_per_row}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Revenue</p>
-                        <p className="font-semibold">{studyHall.revenue}</p>
+                        <p className="text-sm text-muted-foreground">Row Names</p>
+                        <p className="font-semibold text-xs">{studyHall.custom_row_names.slice(0, 3).join(', ')}{studyHall.custom_row_names.length > 3 ? '...' : ''}</p>
                       </div>
                     </div>
                     

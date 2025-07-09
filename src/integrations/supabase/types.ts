@@ -14,7 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          booking_period: Database["public"]["Enums"]["booking_period"]
+          created_at: string
+          end_date: string
+          id: string
+          seat_id: string
+          start_date: string
+          status: string
+          study_hall_id: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_period: Database["public"]["Enums"]["booking_period"]
+          created_at?: string
+          end_date: string
+          id?: string
+          seat_id: string
+          start_date: string
+          status?: string
+          study_hall_id: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_period?: Database["public"]["Enums"]["booking_period"]
+          created_at?: string
+          end_date?: string
+          id?: string
+          seat_id?: string
+          start_date?: string
+          status?: string
+          study_hall_id?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_seat_id_fkey"
+            columns: ["seat_id"]
+            isOneToOne: false
+            referencedRelation: "seats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_study_hall_id_fkey"
+            columns: ["study_hall_id"]
+            isOneToOne: false
+            referencedRelation: "study_halls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seats: {
+        Row: {
+          created_at: string
+          id: string
+          is_available: boolean
+          row_name: string
+          seat_id: string
+          seat_number: number
+          study_hall_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          row_name: string
+          seat_id: string
+          seat_number: number
+          study_hall_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          row_name?: string
+          seat_id?: string
+          seat_number?: number
+          study_hall_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seats_study_hall_id_fkey"
+            columns: ["study_hall_id"]
+            isOneToOne: false
+            referencedRelation: "study_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_halls: {
+        Row: {
+          created_at: string
+          custom_row_names: string[]
+          daily_price: number
+          description: string | null
+          id: string
+          image_url: string | null
+          location: string
+          merchant_id: string
+          monthly_price: number
+          name: string
+          rows: number
+          seats_per_row: number
+          status: string
+          total_seats: number
+          updated_at: string
+          weekly_price: number
+        }
+        Insert: {
+          created_at?: string
+          custom_row_names?: string[]
+          daily_price?: number
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          location: string
+          merchant_id: string
+          monthly_price?: number
+          name: string
+          rows: number
+          seats_per_row: number
+          status?: string
+          total_seats: number
+          updated_at?: string
+          weekly_price?: number
+        }
+        Update: {
+          created_at?: string
+          custom_row_names?: string[]
+          daily_price?: number
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string
+          merchant_id?: string
+          monthly_price?: number
+          name?: string
+          rows?: number
+          seats_per_row?: number
+          status?: string
+          total_seats?: number
+          updated_at?: string
+          weekly_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_halls_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +219,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      booking_period: "daily" | "weekly" | "monthly"
+      user_role: "admin" | "merchant" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +347,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      booking_period: ["daily", "weekly", "monthly"],
+      user_role: ["admin", "merchant", "student"],
+    },
   },
 } as const
