@@ -197,7 +197,12 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
 
       // Update seat availability based on status
       if (booking?.seat_id) {
+        // For confirmed bookings, mark seat as unavailable
+        // For cancelled/refunded bookings, mark seat as available
         const is_available = status === 'cancelled' || status === 'refunded';
+        
+        console.log(`Updating seat ${booking.seat_id} availability to:`, is_available);
+        
         const { error: seatError } = await supabase
           .from("seats")
           .update({ is_available })
@@ -205,6 +210,13 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
 
         if (seatError) {
           console.error("Error updating seat availability:", seatError);
+          toast({
+            title: "Warning",
+            description: "Booking updated but seat status may not be current",
+            variant: "destructive",
+          });
+        } else {
+          console.log("Seat availability updated successfully");
         }
       }
 
