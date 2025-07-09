@@ -3,9 +3,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Users, Clock, Calendar } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { getRoleBasedDashboard } from "@/utils/roleRedirects";
+import { useEffect } from "react";
 
 const Landing = () => {
+  const { user, userRole, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (!loading && user && userRole) {
+      const dashboard = getRoleBasedDashboard(userRole);
+      navigate(dashboard, { replace: true });
+    }
+  }, [user, userRole, loading, navigate]);
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render the landing page if user is authenticated
+  if (user && userRole) {
+    return null;
+  }
+
   const featuredCabins = [
     {
       id: 1,

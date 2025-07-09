@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,12 +7,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { getRoleBasedDashboard } from '@/utils/roleRedirects';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, userRole } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (user && userRole) {
+      const dashboard = getRoleBasedDashboard(userRole);
+      navigate(dashboard, { replace: true });
+    }
+  }, [user, userRole, navigate]);
 
   const [loginForm, setLoginForm] = useState({
     email: '',
@@ -48,7 +57,7 @@ const Login = () => {
         description: "Logged in successfully",
       });
       
-      navigate('/');
+      // Redirect will be handled by useEffect when user and role are available
     } catch (error: any) {
       toast({
         title: "Error",
