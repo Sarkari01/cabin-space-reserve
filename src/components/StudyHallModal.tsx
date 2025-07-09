@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Minus, Edit3 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Minus, Edit3, Grid3X3, DollarSign } from "lucide-react";
 
 interface Seat {
   id: string;
@@ -92,6 +93,14 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
       rows,
       seatsPerRow
     }));
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0
+    }).format(amount);
   };
 
   const handleLayoutChange = (field: 'rows' | 'seatsPerRow', value: number) => {
@@ -251,76 +260,100 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
               </TabsContent>
 
               <TabsContent value="layout" className="space-y-4">
-                <div className="text-center">
-                  <div className="bg-muted p-4 rounded-lg mb-4">
-                    <h4 className="font-semibold mb-2">Study Hall Layout</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Click on any seat to set individual pricing
-                    </p>
+                <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Grid3X3 className="h-5 w-5" />
+                    <h4 className="font-semibold">Study Hall Seat Layout</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Click on any seat to set individual pricing. Layout updates in real-time.
+                  </p>
+                </div>
+                
+                <div className="bg-background border-2 border-dashed border-muted-foreground/20 rounded-xl p-8">
+                  {/* Layout Controls */}
+                  <div className="flex justify-center mb-6">
+                    <div className="bg-muted px-4 py-2 rounded-full text-sm font-medium">
+                      Screen / Front of Hall
+                    </div>
                   </div>
                   
-                  <div className="inline-block bg-background border rounded-lg p-6">
-                    <div className="space-y-2">
-                      {Array.from({ length: formData.rows }, (_, rowIndex) => (
-                        <div key={rowIndex} className="flex items-center justify-center space-x-2">
-                          <span className="w-6 text-sm font-medium text-muted-foreground">
-                            {String.fromCharCode(65 + rowIndex)}
-                          </span>
+                  {/* Seat Grid */}
+                  <div className="flex flex-col items-center space-y-3">
+                    {Array.from({ length: formData.rows }, (_, rowIndex) => (
+                      <div key={rowIndex} className="flex items-center space-x-3">
+                        {/* Row Label */}
+                        <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
+                          {String.fromCharCode(65 + rowIndex)}
+                        </div>
+                        
+                        {/* Seat Numbers */}
+                        <div className="flex space-x-2">
                           {Array.from({ length: formData.seatsPerRow }, (_, seatIndex) => {
                             const seatId = `${String.fromCharCode(65 + rowIndex)}${seatIndex + 1}`;
                             const seat = formData.seats.find(s => s.id === seatId);
                             return (
-                              <Button
-                                key={seatId}
-                                type="button"
-                                variant={seat?.isAvailable ? "outline" : "secondary"}
-                                size="sm"
-                                className="w-10 h-10 p-0 relative"
-                                onClick={() => seat && handleSeatClick(seat)}
-                                disabled={isReadOnly}
-                              >
-                                <span className="text-xs">{seatIndex + 1}</span>
-                                {!isReadOnly && (
-                                  <Edit3 className="h-2 w-2 absolute top-0 right-0" />
-                                )}
-                              </Button>
+                              <div key={seatId} className="relative group">
+                                <Button
+                                  type="button"
+                                  variant={seat?.isAvailable ? "outline" : "secondary"}
+                                  size="sm"
+                                  className="w-12 h-12 p-0 relative hover:bg-primary/10 transition-colors"
+                                  onClick={() => seat && handleSeatClick(seat)}
+                                  disabled={isReadOnly}
+                                >
+                                  <div className="text-center">
+                                    <div className="text-xs font-medium">{seatIndex + 1}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {seat ? `₹${seat.pricing.daily}` : '₹100'}
+                                    </div>
+                                  </div>
+                                  {!isReadOnly && (
+                                    <Edit3 className="h-3 w-3 absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  )}
+                                </Button>
+                              </div>
                             );
                           })}
                         </div>
-                      ))}
-                    </div>
-                    
-                    <div className="mt-4 pt-4 border-t">
-                      <span className="text-sm text-muted-foreground">Front of Hall</span>
-                    </div>
+                        
+                        {/* Row Number */}
+                        <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
+                          {String.fromCharCode(65 + rowIndex)}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Pricing Summary */}
-                <Card>
+                <Card className="bg-muted/30">
                   <CardContent className="p-4">
-                    <h4 className="font-semibold mb-2">Pricing Summary</h4>
+                    <h4 className="font-semibold mb-3 flex items-center">
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Pricing Summary
+                    </h4>
                     <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Daily Range:</span>
-                        <span className="ml-1 font-medium">
-                          ₹{Math.min(...formData.seats.map(s => s.pricing.daily))} - 
-                          ₹{Math.max(...formData.seats.map(s => s.pricing.daily))}
-                        </span>
+                      <div className="text-center">
+                        <div className="text-muted-foreground mb-1">Daily Range</div>
+                        <div className="font-medium">
+                          {formatCurrency(Math.min(...formData.seats.map(s => s.pricing.daily)))} - 
+                          {formatCurrency(Math.max(...formData.seats.map(s => s.pricing.daily)))}
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Weekly Range:</span>
-                        <span className="ml-1 font-medium">
-                          ₹{Math.min(...formData.seats.map(s => s.pricing.weekly))} - 
-                          ₹{Math.max(...formData.seats.map(s => s.pricing.weekly))}
-                        </span>
+                      <div className="text-center">
+                        <div className="text-muted-foreground mb-1">Weekly Range</div>
+                        <div className="font-medium">
+                          {formatCurrency(Math.min(...formData.seats.map(s => s.pricing.weekly)))} - 
+                          {formatCurrency(Math.max(...formData.seats.map(s => s.pricing.weekly)))}
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Monthly Range:</span>
-                        <span className="ml-1 font-medium">
-                          ₹{Math.min(...formData.seats.map(s => s.pricing.monthly))} - 
-                          ₹{Math.max(...formData.seats.map(s => s.pricing.monthly))}
-                        </span>
+                      <div className="text-center">
+                        <div className="text-muted-foreground mb-1">Monthly Range</div>
+                        <div className="font-medium">
+                          {formatCurrency(Math.min(...formData.seats.map(s => s.pricing.monthly)))} - 
+                          {formatCurrency(Math.max(...formData.seats.map(s => s.pricing.monthly)))}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
