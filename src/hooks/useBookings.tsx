@@ -55,12 +55,17 @@ export const useBookings = () => {
         query = query.eq("user_id", user.id);
       } else if (userRole === "merchant") {
         // Get study hall IDs for merchant first
-        const { data: merchantStudyHalls } = await supabase
+        const { data: merchantStudyHalls, error: studyHallError } = await supabase
           .from("study_halls")
           .select("id")
           .eq("merchant_id", user.id);
         
+        if (studyHallError) {
+          console.error("Error fetching merchant study halls:", studyHallError);
+        }
+        
         const studyHallIds = merchantStudyHalls?.map(sh => sh.id) || [];
+        
         if (studyHallIds.length > 0) {
           query = query.in("study_hall_id", studyHallIds);
         } else {

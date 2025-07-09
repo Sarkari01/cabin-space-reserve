@@ -272,34 +272,39 @@ const MerchantDashboard = () => {
                 </div>
               ) : bookings.length > 0 ? (
                 <div className="space-y-4">
-                  {bookings.slice(0, 5).map((booking) => (
-                    <Card key={booking.id}>
+                  {bookings.slice(0, 5).map((booking, index) => (
+                    <Card key={booking.id} className="animate-fade-in hover:shadow-lg transition-all duration-300" style={{ animationDelay: `${index * 100}ms` }}>
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div className="space-y-2">
                             <div className="flex items-center space-x-2">
                               <h4 className="font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
                               <Badge variant={getStatusColor(booking.status)}>
-                                {booking.status}
+                                {booking.status.toUpperCase()}
                               </Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">
                               <span className="font-medium">{booking.user?.full_name || booking.user?.email}</span> • 
-                              Seat {booking.seat?.seat_id} • {booking.booking_period}
+                              Seat {booking.seat?.seat_id} ({booking.seat?.row_name}{booking.seat?.seat_number}) • 
+                              {booking.booking_period} booking
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              Booked: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
+                              <div>Booking ID: {booking.id.substring(0, 8)}...</div>
+                              <div>Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}</div>
+                              <div>Created: {formatDate(booking.created_at)}</div>
                             </div>
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-semibold">₹{Number(booking.total_amount).toLocaleString()}</p>
                             <div className="flex space-x-2 mt-2">
                               <Button variant="outline" size="sm">
-                                View
+                                View Details
                               </Button>
-                              <Button variant="outline" size="sm">
-                                Contact
-                              </Button>
+                              {booking.status === 'pending' && (
+                                <Button variant="default" size="sm">
+                                  Confirm
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -458,16 +463,18 @@ const MerchantDashboard = () => {
                             <div className="flex items-center space-x-2">
                               <h4 className="font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
                               <Badge variant={getStatusColor(booking.status)}>
-                                {booking.status}
+                                {booking.status.toUpperCase()}
                               </Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">
                               <span className="font-medium">{booking.user?.full_name || booking.user?.email}</span> • 
-                              Seat {booking.seat?.seat_id} • {booking.booking_period}
+                              Seat {booking.seat?.seat_id} ({booking.seat?.row_name}{booking.seat?.seat_number}) • 
+                              {booking.booking_period} booking
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)} • 
-                              Created: {formatDate(booking.created_at)}
+                              <div>Booking ID: {booking.id.substring(0, 8)}...</div>
+                              <div>Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}</div>
+                              <div>Created: {formatDate(booking.created_at)}</div>
                             </div>
                           </div>
                           <div className="text-right">
@@ -476,9 +483,11 @@ const MerchantDashboard = () => {
                               <Button variant="outline" size="sm">
                                 View Details
                               </Button>
-                              <Button variant="outline" size="sm">
-                                Contact
-                              </Button>
+                              {booking.status === 'pending' && (
+                                <Button variant="default" size="sm">
+                                  Confirm
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>

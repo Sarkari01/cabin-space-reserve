@@ -329,15 +329,15 @@ const StudentDashboard = () => {
                 </div>
               ) : bookings.length > 0 ? (
                 <div className="space-y-4">
-                  {bookings.map((booking) => (
-                    <Card key={booking.id}>
+                  {bookings.map((booking, index) => (
+                    <Card key={booking.id} className="animate-fade-in hover:shadow-lg transition-all duration-300" style={{ animationDelay: `${index * 100}ms` }}>
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
                           <div className="space-y-2">
                             <div className="flex items-center space-x-2">
                               <h4 className="text-lg font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
                               <Badge variant={getStatusColor(booking.status)}>
-                                {booking.status}
+                                {booking.status.toUpperCase()}
                               </Badge>
                             </div>
                             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
@@ -351,11 +351,14 @@ const StudentDashboard = () => {
                               </span>
                               <span className="flex items-center space-x-1">
                                 <Users className="h-4 w-4" />
-                                <span>Seat {booking.seat?.seat_id}</span>
+                                <span>Seat {booking.seat?.seat_id} ({booking.seat?.row_name}{booking.seat?.seat_number})</span>
                               </span>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Period: {booking.booking_period} • Created: {formatDate(booking.created_at)}
+                              <div>Booking ID: {booking.id.substring(0, 8)}...</div>
+                              <div>
+                                Period: {booking.booking_period} • Created: {formatDate(booking.created_at)}
+                              </div>
                             </div>
                           </div>
                           <div className="text-right">
