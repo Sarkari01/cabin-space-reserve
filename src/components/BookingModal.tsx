@@ -142,19 +142,67 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
           </Card>
 
           <div className="space-y-2">
-            <Label htmlFor="seat">Select Seat</Label>
-            <Select value={selectedSeat} onValueChange={setSelectedSeat} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a seat" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSeats.map((seat) => (
-                  <SelectItem key={seat.id} value={seat.id}>
-                    {seat.seat_id} (Row {seat.row_name})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Select Seat</Label>
+            <div className="max-h-64 overflow-y-auto border rounded-lg p-4">
+              {availableSeats.length > 0 ? (
+                <div className="space-y-3">
+                  {/* Group seats by row */}
+                  {Object.entries(
+                    availableSeats.reduce((acc, seat) => {
+                      if (!acc[seat.row_name]) acc[seat.row_name] = [];
+                      acc[seat.row_name].push(seat);
+                      return acc;
+                    }, {})
+                  ).map(([rowName, rowSeats]) => (
+                    <div key={rowName} className="space-y-2">
+                      <h4 className="text-sm font-medium text-muted-foreground">Row {rowName}</h4>
+                      <div className="grid grid-cols-6 gap-2">
+                        {(rowSeats as Seat[]).sort((a, b) => a.seat_number - b.seat_number).map((seat) => (
+                          <button
+                            key={seat.id}
+                            type="button"
+                            onClick={() => setSelectedSeat(seat.id)}
+                            className={`
+                              w-8 h-8 rounded text-xs font-medium border-2 transition-all
+                              ${selectedSeat === seat.id
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : seat.is_available
+                                ? 'border-green-300 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100'
+                                : 'border-red-300 bg-red-50 text-red-700 cursor-not-allowed'
+                              }
+                            `}
+                            disabled={!seat.is_available}
+                            title={`Seat ${seat.seat_id} - ${seat.is_available ? 'Available' : 'Occupied'}`}
+                          >
+                            {seat.seat_number}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No seats available
+                </div>
+              )}
+            </div>
+            
+            {/* Seat Legend */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded border-2 border-green-300 bg-green-50"></div>
+                <span>Available</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded border-2 border-red-300 bg-red-50"></div>
+                <span>Occupied</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded border-2 border-primary bg-primary"></div>
+                <span>Selected</span>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

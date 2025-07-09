@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { MapPin, Calendar, Users, Search, Heart, Clock, DollarSign, Eye, BookOpen, Star, Filter } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { useStudyHalls } from "@/hooks/useStudyHalls";
+import { useStudyHalls, useSeats } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
 import { useFavorites } from "@/hooks/useFavorites";
 import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
@@ -21,7 +21,7 @@ const StudentDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudyHall, setSelectedStudyHall] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [seats, setSeats] = useState([]);
+  const { seats, fetchSeats } = useSeats();
 
   // Filter active study halls for browsing
   const activeStudyHalls = studyHalls.filter(hall => hall.status === 'active');
@@ -48,8 +48,9 @@ const StudentDashboard = () => {
     .filter(booking => booking.status === 'completed')
     .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
 
-  const handleViewStudyHall = (studyHall) => {
+  const handleViewStudyHall = async (studyHall) => {
     setSelectedStudyHall(studyHall);
+    await fetchSeats(studyHall.id);
     setDetailModalOpen(true);
   };
 
