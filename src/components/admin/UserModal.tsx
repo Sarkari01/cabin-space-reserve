@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +17,11 @@ interface UserModalProps {
     phone?: string;
   }) => void;
   user?: UserProfile | null;
+  isEdit?: boolean;
   loading?: boolean;
 }
 
-export const UserModal = ({ open, onOpenChange, onSubmit, user, loading }: UserModalProps) => {
+export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit = false }: UserModalProps) => {
   const [formData, setFormData] = useState({
     email: user?.email || '',
     password: '',
@@ -28,6 +29,27 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading }: UserM
     role: (user?.role as 'admin' | 'merchant' | 'student') || 'student',
     phone: user?.phone || '',
   });
+
+  // Reset form when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        email: user.email || '',
+        password: '',
+        full_name: user.full_name || '',
+        role: (user.role as 'admin' | 'merchant' | 'student') || 'student',
+        phone: user.phone || '',
+      });
+    } else {
+      setFormData({
+        email: '',
+        password: '',
+        full_name: '',
+        role: 'student',
+        phone: '',
+      });
+    }
+  }, [user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +87,7 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading }: UserM
             />
           </div>
 
-          {!user && (
+          {!isEdit && (
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input

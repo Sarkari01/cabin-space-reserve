@@ -189,10 +189,11 @@ const AdminDashboard = () => {
         }}
         onSubmit={selectedUser ? handleUpdateUser : handleCreateUser}
         user={selectedUser}
+        isEdit={!!selectedUser}
         loading={isSubmitting}
       />
 
-      <DashboardSidebar 
+      <DashboardSidebar
         userRole="admin" 
         userName={user.email || "Admin"}
         onTabChange={setActiveTab}
