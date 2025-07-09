@@ -42,6 +42,8 @@ export const useBookings = () => {
 
     try {
       setLoading(true);
+      console.log("Fetching bookings for user:", user.id, "role:", userRole);
+      
       let query = supabase
         .from("bookings")
         .select(`
@@ -52,30 +54,38 @@ export const useBookings = () => {
         `);
 
       if (userRole === "student") {
+        console.log("Filtering bookings for student:", user.id);
         query = query.eq("user_id", user.id);
       } else if (userRole === "merchant") {
+        console.log("Fetching study halls for merchant:", user.id);
         // Get study hall IDs for merchant first
         const { data: merchantStudyHalls, error: studyHallError } = await supabase
           .from("study_halls")
           .select("id")
           .eq("merchant_id", user.id);
         
+        console.log("Merchant study halls:", merchantStudyHalls);
+        
         if (studyHallError) {
           console.error("Error fetching merchant study halls:", studyHallError);
         }
         
         const studyHallIds = merchantStudyHalls?.map(sh => sh.id) || [];
+        console.log("Study hall IDs for filtering:", studyHallIds);
         
         if (studyHallIds.length > 0) {
           query = query.in("study_hall_id", studyHallIds);
         } else {
+          console.log("No study halls found for merchant, returning empty bookings");
           setBookings([]);
           return;
         }
       }
       // Admin sees all bookings
+      console.log("Executing booking query...");
 
       const { data, error } = await query.order("created_at", { ascending: false });
+      console.log("Booking query result:", { data, error });
 
       if (error) throw error;
       setBookings((data || []) as Booking[]);
