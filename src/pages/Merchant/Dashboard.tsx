@@ -48,10 +48,10 @@ const MerchantDashboard = () => {
       change: "+12 this week"
     },
     {
-      title: "Pending Approval",
-      value: studyHalls.filter(hall => hall.status === 'pending').length.toString(),
+      title: "Total Revenue",
+      value: "₹" + studyHalls.reduce((acc, hall) => acc + (hall.daily_price * hall.total_seats), 0).toLocaleString(),
       icon: DollarSign,
-      change: "Awaiting admin approval"
+      change: "+15% this month"
     }
   ];
 

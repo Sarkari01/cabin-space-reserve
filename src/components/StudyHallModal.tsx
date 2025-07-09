@@ -33,7 +33,7 @@ interface StudyHall {
   weekly_price: number;
   monthly_price: number;
   image_url?: string;
-  status: "active" | "pending" | "suspended";
+  status: "active" | "inactive";
 }
 
 interface StudyHallModalProps {
@@ -60,7 +60,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     daily_price: 100,
     weekly_price: 500,
     monthly_price: 1500,
-    status: "pending"
+    status: "active"
   });
 
   const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
@@ -83,7 +83,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
         daily_price: 100,
         weekly_price: 500,
         monthly_price: 1500,
-        status: "pending"
+        status: "active"
       });
     }
   }, [studyHall, isOpen]);
