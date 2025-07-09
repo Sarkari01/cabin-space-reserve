@@ -31,8 +31,9 @@ export interface Booking {
   };
 }
 
-export const useBookings = () => {
+export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
   const { user, userRole } = useAuth();
+  const effectiveRole = forceRole || userRole;
   const { toast } = useToast();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,7 @@ export const useBookings = () => {
 
     try {
       setLoading(true);
-      console.log("Fetching bookings for user:", user.id, "role:", userRole);
+      console.log("Fetching bookings for user:", user.id, "role:", effectiveRole);
       
       let query = supabase
         .from("bookings")
@@ -53,10 +54,10 @@ export const useBookings = () => {
           user:profiles(full_name, email)
         `);
 
-      if (userRole === "student") {
+      if (effectiveRole === "student") {
         console.log("Filtering bookings for student:", user.id);
         query = query.eq("user_id", user.id);
-      } else if (userRole === "merchant") {
+      } else if (effectiveRole === "merchant") {
         console.log("Fetching study halls for merchant:", user.id);
         // Get study hall IDs for merchant first
         const { data: merchantStudyHalls, error: studyHallError } = await supabase
@@ -217,7 +218,7 @@ export const useBookings = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, [user, userRole]);
+  }, [user, effectiveRole]);
 
   // Real-time subscription for bookings
   useEffect(() => {

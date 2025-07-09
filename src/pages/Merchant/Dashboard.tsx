@@ -19,7 +19,7 @@ const MerchantDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
-  const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking } = useBookings();
+  const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking } = useBookings("merchant");
   
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
@@ -339,6 +339,14 @@ const MerchantDashboard = () => {
                               >
                                 View Details
                               </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditBooking(booking)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
+                              </Button>
                               {booking.status === 'pending' && (
                                 <Button 
                                   variant="default" 
@@ -530,6 +538,14 @@ const MerchantDashboard = () => {
                                 onClick={() => handleViewBookingDetails(booking)}
                               >
                                 View Details
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditBooking(booking)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
                               </Button>
                               {booking.status === 'pending' && (
                                 <Button 
