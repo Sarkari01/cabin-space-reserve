@@ -39,8 +39,17 @@ const AdminDashboard = () => {
       window.location.href = "/login";
       return;
     }
-    // TODO: Add admin role check once profile system is working
   }, [user]);
+
+  const { userRole } = useAuth();
+  
+  // Check if user has admin role
+  useEffect(() => {
+    if (user && userRole && userRole !== 'admin') {
+      window.location.href = "/login";
+      return;
+    }
+  }, [user, userRole]);
 
   const handleCreateUser = async (userData: any) => {
     setIsSubmitting(true);

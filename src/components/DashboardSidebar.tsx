@@ -67,9 +67,15 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    window.location.href = "/";
+  const handleLogout = async () => {
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase.auth.signOut();
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+      window.location.href = "/login";
+    }
   };
 
   const items = sidebarItems[userRole];
