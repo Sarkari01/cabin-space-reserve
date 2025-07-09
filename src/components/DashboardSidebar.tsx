@@ -38,20 +38,21 @@ interface DashboardSidebarProps {
 const sidebarItems = {
   student: [
     { title: "Dashboard", url: "/student/dashboard", icon: Home, tab: "overview" },
-    { title: "Browse Cabins", url: "/student/dashboard", icon: Building, tab: "browse" },
+    { title: "Browse Study Halls", url: "/student/dashboard", icon: Building, tab: "browse" },
     { title: "My Bookings", url: "/student/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Favorites", url: "/student/dashboard", icon: BookOpen, tab: "favorites" },
   ],
   merchant: [
     { title: "Dashboard", url: "/merchant/dashboard", icon: Home, tab: "overview" },
-    { title: "My Cabins", url: "/merchant/dashboard", icon: Building, tab: "cabins" },
+    { title: "My Study Halls", url: "/merchant/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/merchant/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Analytics", url: "/merchant/dashboard", icon: BarChart3, tab: "analytics" },
   ],
   admin: [
     { title: "Dashboard", url: "/admin/dashboard", icon: Home, tab: "overview" },
     { title: "Users", url: "/admin/dashboard", icon: Users, tab: "users" },
-    { title: "Cabins", url: "/admin/dashboard", icon: Building, tab: "cabins" },
+    { title: "Merchants", url: "/admin/dashboard", icon: Users, tab: "merchants" },
+    { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
   ],
 };
@@ -82,7 +83,7 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
             <div className="w-8 h-8 bg-primary rounded-lg flex-shrink-0"></div>
             {!isCollapsed && (
               <div>
-                <h2 className="text-lg font-bold">CabinSpace</h2>
+                <h2 className="text-lg font-bold">StudySpace</h2>
                 <p className="text-xs text-muted-foreground capitalize">{userRole} Panel</p>
               </div>
             )}

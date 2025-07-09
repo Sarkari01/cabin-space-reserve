@@ -22,14 +22,14 @@ const AdminDashboard = () => {
       change: "+12% from last month"
     },
     {
-      title: "Active Cabins",
+      title: "Active Study Halls",
       value: "89",
       icon: Building,
       change: "+3 this week"
     },
     {
       title: "Monthly Revenue",
-      value: "$45,230",
+      value: "₹45,230",
       icon: DollarSign,
       change: "+18% from last month"
     },
@@ -68,36 +68,72 @@ const AdminDashboard = () => {
     }
   ];
 
-  const allCabins = [
+  const allStudyHalls = [
     {
       id: 1,
-      name: "Forest Retreat",
+      name: "Central Study Hub",
       owner: "Alice Cooper",
-      location: "Woodland Hills",
-      price: 45,
+      location: "Downtown",
+      totalSeats: 25,
+      occupiedSeats: 18,
+      dailyRate: 100,
       status: "active",
       bookings: 12,
-      revenue: "$1,800"
+      revenue: "₹18,000"
     },
     {
       id: 2,
-      name: "Mountain View",
+      name: "Tech Campus Library",
       owner: "Bob Wilson",
-      location: "Alpine Valley",
-      price: 65,
+      location: "Tech Park",
+      totalSeats: 40,
+      occupiedSeats: 32,
+      dailyRate: 150,
       status: "active",
       bookings: 8,
-      revenue: "$1,200"
+      revenue: "₹32,000"
     },
     {
       id: 3,
-      name: "City Center",
+      name: "Quiet Zone Study",
       owner: "Carol Brown",
-      location: "Downtown",
-      price: 85,
+      location: "University Area",
+      totalSeats: 20,
+      occupiedSeats: 0,
+      dailyRate: 120,
       status: "pending",
       bookings: 0,
-      revenue: "$0"
+      revenue: "₹0"
+    }
+  ];
+
+  const allMerchants = [
+    {
+      id: 1,
+      name: "Alice Cooper",
+      email: "alice@example.com",
+      studyHalls: 2,
+      totalRevenue: "₹45,000",
+      status: "active",
+      joinDate: "2024-01-10"
+    },
+    {
+      id: 2,
+      name: "Bob Wilson",
+      email: "bob@example.com",
+      studyHalls: 1,
+      totalRevenue: "₹32,000",
+      status: "active",
+      joinDate: "2024-01-08"
+    },
+    {
+      id: 3,
+      name: "Carol Brown",
+      email: "carol@example.com",
+      studyHalls: 1,
+      totalRevenue: "₹0",
+      status: "pending",
+      joinDate: "2024-01-12"
     }
   ];
 
@@ -187,22 +223,22 @@ const AdminDashboard = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Cabins</CardTitle>
-                  <CardDescription>Latest cabin submissions</CardDescription>
+                  <CardTitle>Recent Study Halls</CardTitle>
+                  <CardDescription>Latest study hall submissions</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {allCabins.slice(0, 3).map((cabin) => (
-                      <div key={cabin.id} className="flex items-center justify-between">
+                    {allStudyHalls.slice(0, 3).map((studyHall) => (
+                      <div key={studyHall.id} className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">{cabin.name}</p>
-                          <p className="text-sm text-muted-foreground">{cabin.location}</p>
+                          <p className="font-medium">{studyHall.name}</p>
+                          <p className="text-sm text-muted-foreground">{studyHall.location}</p>
                         </div>
                         <div className="text-right">
-                          <Badge variant={cabin.status === "active" ? "default" : "secondary"}>
-                            {cabin.status}
+                          <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
+                            {studyHall.status}
                           </Badge>
-                          <p className="text-sm font-medium">${cabin.price}/day</p>
+                          <p className="text-sm font-medium">₹{studyHall.dailyRate}/day</p>
                         </div>
                       </div>
                     ))}
@@ -271,64 +307,113 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Cabins Tab */}
-        {activeTab === "cabins" && (
+        {/* Merchants Tab */}
+        {activeTab === "merchants" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-semibold">Cabin Management</h3>
-              <Button variant="outline">
+              <h3 className="text-2xl font-semibold">Merchant Management</h3>
+              <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Cabin
+                Add Merchant
               </Button>
             </div>
 
-            {/* Cabins Grid */}
+            <div className="space-y-4">
+              {allMerchants.map((merchant) => (
+                <Card key={merchant.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-semibold">{merchant.name}</h4>
+                          <Badge variant={merchant.status === "active" ? "default" : merchant.status === "suspended" ? "destructive" : "secondary"}>
+                            {merchant.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{merchant.email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Study Halls: {merchant.studyHalls} • Revenue: {merchant.totalRevenue} • Joined: {merchant.joinDate}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Ban className="h-4 w-4 mr-1" />
+                          Suspend
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Study Halls Tab */}
+        {activeTab === "studyhalls" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold">Study Hall Management</h3>
+            </div>
+
             <div className="grid lg:grid-cols-2 gap-6">
-              {allCabins.map((cabin) => (
-                <Card key={cabin.id} className="hover:shadow-md transition-shadow">
+              {allStudyHalls.map((studyHall) => (
+                <Card key={studyHall.id} className="hover:shadow-md transition-shadow">
                   <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
                     <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                      <span className="text-muted-foreground">{cabin.name}</span>
+                      <span className="text-muted-foreground">{studyHall.name}</span>
                     </div>
                   </div>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h4 className="text-lg font-semibold mb-1">{cabin.name}</h4>
-                        <p className="text-sm text-muted-foreground">{cabin.location}</p>
-                        <p className="text-sm text-muted-foreground">Owner: {cabin.owner}</p>
+                        <h4 className="text-lg font-semibold mb-1">{studyHall.name}</h4>
+                        <p className="text-sm text-muted-foreground">{studyHall.location}</p>
+                        <p className="text-sm text-muted-foreground">Owner: {studyHall.owner}</p>
                       </div>
-                      <Badge variant={cabin.status === "active" ? "default" : "secondary"}>
-                        {cabin.status}
+                      <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
+                        {studyHall.status}
                       </Badge>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Price/day</p>
-                        <p className="font-semibold">${cabin.price}</p>
+                        <p className="text-sm text-muted-foreground">Total Seats</p>
+                        <p className="font-semibold">{studyHall.totalSeats}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Bookings</p>
-                        <p className="font-semibold">{cabin.bookings}</p>
+                        <p className="text-sm text-muted-foreground">Occupied</p>
+                        <p className="font-semibold">{studyHall.occupiedSeats}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Daily Rate</p>
+                        <p className="font-semibold">₹{studyHall.dailyRate}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Revenue</p>
-                        <p className="font-semibold">{cabin.revenue}</p>
+                        <p className="font-semibold">{studyHall.revenue}</p>
                       </div>
                     </div>
                     
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" className="flex-1">
                         <Eye className="h-4 w-4 mr-1" />
-                        View
+                        View Layout
                       </Button>
                       <Button variant="outline" size="sm" className="flex-1">
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      <Button variant={cabin.status === "active" ? "destructive" : "default"} size="sm">
-                        {cabin.status === "active" ? "Disable" : "Approve"}
+                      <Button variant={studyHall.status === "active" ? "destructive" : "default"} size="sm">
+                        {studyHall.status === "active" ? "Disable" : "Approve"}
                       </Button>
                     </div>
                   </CardContent>
