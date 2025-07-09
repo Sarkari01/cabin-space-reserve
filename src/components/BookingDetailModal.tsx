@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Clock, DollarSign, User, Building } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, DollarSign, User, Building, Edit } from "lucide-react";
 import { Booking } from "@/hooks/useBookings";
 
 interface BookingDetailModalProps {
@@ -12,6 +12,7 @@ interface BookingDetailModalProps {
   userRole: "student" | "merchant" | "admin";
   onConfirm?: (bookingId: string) => void;
   onCancel?: (bookingId: string) => void;
+  onEdit?: (booking: Booking) => void;
   loading?: boolean;
 }
 
@@ -22,6 +23,7 @@ export function BookingDetailModal({
   userRole, 
   onConfirm, 
   onCancel, 
+  onEdit,
   loading = false 
 }: BookingDetailModalProps) {
   if (!booking) return null;
@@ -208,6 +210,20 @@ export function BookingDetailModal({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Close
             </Button>
+            
+            {userRole === 'merchant' && onEdit && (
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  onEdit(booking);
+                  onOpenChange(false);
+                }}
+                disabled={loading}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Booking
+              </Button>
+            )}
             
             {userRole === 'merchant' && booking.status === 'pending' && onConfirm && (
               <Button 

@@ -153,12 +153,35 @@ export const useBookings = () => {
 
   const updateBookingStatus = async (bookingId: string, status: string) => {
     try {
+      // First get the booking to access seat_id
+      const { data: booking, error: fetchError } = await supabase
+        .from("bookings")
+        .select("seat_id")
+        .eq("id", bookingId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update booking status
       const { error } = await supabase
         .from("bookings")
         .update({ status })
         .eq("id", bookingId);
 
       if (error) throw error;
+
+      // Update seat availability based on status
+      if (booking?.seat_id) {
+        const is_available = status === 'cancelled' || status === 'refunded';
+        const { error: seatError } = await supabase
+          .from("seats")
+          .update({ is_available })
+          .eq("id", booking.seat_id);
+
+        if (seatError) {
+          console.error("Error updating seat availability:", seatError);
+        }
+      }
 
       toast({
         title: "Success",
@@ -211,12 +234,40 @@ export const useBookings = () => {
     };
   }, [user]);
 
+  const updateBooking = async (bookingId: string, updates: Partial<Booking>) => {
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update(updates)
+        .eq("id", bookingId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Booking updated successfully",
+      });
+
+      fetchBookings();
+      return true;
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update booking",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     bookings,
     loading,
     fetchBookings,
     createBooking,
     updateBookingStatus,
+    updateBooking,
     cancelBooking,
   };
 };

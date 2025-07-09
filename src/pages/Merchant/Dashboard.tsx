@@ -13,12 +13,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useStudyHalls } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
+import { BookingEditModal } from "@/components/BookingEditModal";
 
 const MerchantDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
-  const { bookings, loading: bookingsLoading, updateBookingStatus } = useBookings();
+  const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking } = useBookings();
   
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
@@ -26,6 +27,7 @@ const MerchantDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
+  const [bookingEditOpen, setBookingEditOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const { toast } = useToast();
 
@@ -137,6 +139,18 @@ const MerchantDashboard = () => {
     setActionLoading(true);
     await updateBookingStatus(bookingId, 'cancelled');
     setActionLoading(false);
+  };
+
+  const handleEditBooking = (booking: any) => {
+    setSelectedBooking(booking);
+    setBookingEditOpen(true);
+  };
+
+  const handleSaveBooking = async (bookingId: string, updates: any) => {
+    setActionLoading(true);
+    const success = await updateBooking(bookingId, updates);
+    setActionLoading(false);
+    return success;
   };
 
   return (
@@ -590,6 +604,16 @@ const MerchantDashboard = () => {
           booking={selectedBooking}
           userRole="merchant"
           onConfirm={handleConfirmBooking}
+          onEdit={handleEditBooking}
+          loading={actionLoading}
+        />
+
+        {/* Booking Edit Modal */}
+        <BookingEditModal
+          open={bookingEditOpen}
+          onOpenChange={setBookingEditOpen}
+          booking={selectedBooking}
+          onSave={handleSaveBooking}
           loading={actionLoading}
         />
       </div>
