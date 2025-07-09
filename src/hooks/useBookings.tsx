@@ -59,6 +59,8 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         query = query.eq("user_id", user.id);
       } else if (effectiveRole === "merchant") {
         console.log("Fetching study halls for merchant:", user.id);
+        console.log("User role in auth:", userRole, "Effective role:", effectiveRole);
+        
         // Get study hall IDs for merchant first
         const { data: merchantStudyHalls, error: studyHallError } = await supabase
           .from("study_halls")
@@ -66,19 +68,30 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
           .eq("merchant_id", user.id);
         
         console.log("Merchant study halls:", merchantStudyHalls);
+        console.log("Merchant study halls error:", studyHallError);
         
         if (studyHallError) {
           console.error("Error fetching merchant study halls:", studyHallError);
+          toast({
+            title: "Error",
+            description: "Failed to fetch study halls for merchant",
+            variant: "destructive",
+          });
+          setBookings([]);
+          return;
         }
         
         const studyHallIds = merchantStudyHalls?.map(sh => sh.id) || [];
         console.log("Study hall IDs for filtering:", studyHallIds);
+        console.log("Study hall IDs length:", studyHallIds.length);
         
         if (studyHallIds.length > 0) {
+          console.log("Filtering bookings by study hall IDs:", studyHallIds);
           query = query.in("study_hall_id", studyHallIds);
         } else {
           console.log("No study halls found for merchant, returning empty bookings");
           setBookings([]);
+          setLoading(false);
           return;
         }
       }

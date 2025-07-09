@@ -37,6 +37,17 @@ const MerchantDashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Debug: Log current user info
+  useEffect(() => {
+    if (user) {
+      console.log("Current user in merchant dashboard:", {
+        id: user.id,
+        email: user.email,
+        // We'll see the role from useAuth
+      });
+    }
+  }, [user]);
+
   const stats = [
     {
       title: "Total Study Halls",
@@ -154,12 +165,12 @@ const MerchantDashboard = () => {
   };
 
   return (
-        <DashboardSidebar 
-          userRole="merchant" 
-          userName={user?.email || 'Merchant'}
-          onTabChange={setActiveTab}
-          activeTab={activeTab}
-        >
+    <DashboardSidebar 
+      userRole="merchant" 
+      userName={user?.email || 'Merchant'}
+      onTabChange={setActiveTab}
+      activeTab={activeTab}
+    >
       <div className="p-6">
         {/* Banner Carousel */}
         <BannerCarousel targetAudience="merchant" className="mb-6" />
