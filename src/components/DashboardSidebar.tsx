@@ -31,34 +31,37 @@ interface DashboardSidebarProps {
   userRole: "student" | "merchant" | "admin";
   userName: string;
   children: React.ReactNode;
+  onTabChange?: (tab: string) => void;
+  activeTab?: string;
 }
 
 const sidebarItems = {
   student: [
-    { title: "Dashboard", url: "/student/dashboard", icon: Home },
-    { title: "Browse Cabins", url: "/student/cabins", icon: Building },
-    { title: "My Bookings", url: "/student/bookings", icon: Calendar },
-    { title: "Favorites", url: "/student/favorites", icon: BookOpen },
-    { title: "Settings", url: "/student/settings", icon: Settings },
+    { title: "Dashboard", url: "/student/dashboard", icon: Home, tab: "overview" },
+    { title: "Browse Cabins", url: "/student/dashboard", icon: Building, tab: "browse" },
+    { title: "My Bookings", url: "/student/dashboard", icon: Calendar, tab: "bookings" },
+    { title: "Favorites", url: "/student/dashboard", icon: BookOpen, tab: "favorites" },
   ],
   merchant: [
-    { title: "Dashboard", url: "/merchant/dashboard", icon: Home },
-    { title: "My Cabins", url: "/merchant/cabins", icon: Building },
-    { title: "Bookings", url: "/merchant/bookings", icon: Calendar },
-    { title: "Analytics", url: "/merchant/analytics", icon: BarChart3 },
-    { title: "Settings", url: "/merchant/settings", icon: Settings },
+    { title: "Dashboard", url: "/merchant/dashboard", icon: Home, tab: "overview" },
+    { title: "My Cabins", url: "/merchant/dashboard", icon: Building, tab: "cabins" },
+    { title: "Bookings", url: "/merchant/dashboard", icon: Calendar, tab: "bookings" },
+    { title: "Analytics", url: "/merchant/dashboard", icon: BarChart3, tab: "analytics" },
   ],
   admin: [
-    { title: "Dashboard", url: "/admin/dashboard", icon: Home },
-    { title: "Users", url: "/admin/users", icon: Users },
-    { title: "Cabins", url: "/admin/cabins", icon: Building },
-    { title: "Bookings", url: "/admin/bookings", icon: Calendar },
-    { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-    { title: "Settings", url: "/admin/settings", icon: Settings },
+    { title: "Dashboard", url: "/admin/dashboard", icon: Home, tab: "overview" },
+    { title: "Users", url: "/admin/dashboard", icon: Users, tab: "users" },
+    { title: "Cabins", url: "/admin/dashboard", icon: Building, tab: "cabins" },
+    { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
   ],
 };
 
-function AppSidebar({ userRole, userName }: { userRole: "student" | "merchant" | "admin"; userName: string }) {
+function AppSidebar({ userRole, userName, onTabChange, activeTab }: { 
+  userRole: "student" | "merchant" | "admin"; 
+  userName: string;
+  onTabChange?: (tab: string) => void;
+  activeTab?: string;
+}) {
   const location = useLocation();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -92,13 +95,19 @@ function AppSidebar({ userRole, userName }: { userRole: "student" | "merchant" |
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const isActive = location.pathname === item.url;
+                const isActive = activeTab === item.tab || (location.pathname === item.url && item.tab === "overview");
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <Link
-                        to={item.url}
-                        className={`flex items-center space-x-2 p-2 rounded-md transition-colors ${
+                      <button
+                        onClick={() => {
+                          if (item.tab && onTabChange) {
+                            onTabChange(item.tab);
+                          } else if (item.url !== location.pathname) {
+                            window.location.href = item.url;
+                          }
+                        }}
+                        className={`flex items-center space-x-2 p-2 rounded-md transition-colors w-full text-left ${
                           isActive
                             ? "bg-primary text-primary-foreground"
                             : "hover:bg-accent hover:text-accent-foreground"
@@ -106,7 +115,7 @@ function AppSidebar({ userRole, userName }: { userRole: "student" | "merchant" |
                       >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
                         {!isCollapsed && <span>{item.title}</span>}
-                      </Link>
+                      </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -138,11 +147,11 @@ function AppSidebar({ userRole, userName }: { userRole: "student" | "merchant" |
   );
 }
 
-export function DashboardSidebar({ userRole, userName, children }: DashboardSidebarProps) {
+export function DashboardSidebar({ userRole, userName, children, onTabChange, activeTab }: DashboardSidebarProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AppSidebar userRole={userRole} userName={userName} />
+        <AppSidebar userRole={userRole} userName={userName} onTabChange={onTabChange} activeTab={activeTab} />
         <main className="flex-1 flex flex-col">
           {/* Header with trigger */}
           <header className="h-14 border-b bg-background flex items-center px-4">

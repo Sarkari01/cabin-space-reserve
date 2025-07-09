@@ -13,6 +13,8 @@ const AdminDashboard = () => {
     return stored ? JSON.parse(stored) : { name: "Admin", email: "admin@demo.com" };
   });
 
+  const [activeTab, setActiveTab] = useState("overview");
+
   const systemStats = [
     {
       title: "Total Users",
@@ -121,7 +123,12 @@ const AdminDashboard = () => {
   };
 
   return (
-    <DashboardSidebar userRole="admin" userName={user.name}>
+    <DashboardSidebar 
+      userRole="admin" 
+      userName={user.name}
+      onTabChange={setActiveTab}
+      activeTab={activeTab}
+    >
       <div className="p-6">
         {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">

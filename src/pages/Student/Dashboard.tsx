@@ -13,6 +13,8 @@ const StudentDashboard = () => {
     return stored ? JSON.parse(stored) : { name: "Student", email: "student@demo.com" };
   });
 
+  const [activeTab, setActiveTab] = useState("overview");
+
   const upcomingBookings = [
     {
       id: 1,
@@ -65,7 +67,12 @@ const StudentDashboard = () => {
   ];
 
   return (
-    <DashboardSidebar userRole="student" userName={user.name}>
+    <DashboardSidebar 
+      userRole="student" 
+      userName={user.name}
+      onTabChange={setActiveTab}
+      activeTab={activeTab}
+    >
       <div className="p-6">
         {/* Welcome Section */}
         <div className="mb-8">

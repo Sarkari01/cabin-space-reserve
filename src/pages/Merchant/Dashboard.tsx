@@ -18,6 +18,7 @@ const MerchantDashboard = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [selectedCabin, setSelectedCabin] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
   const stats = [
@@ -163,7 +164,12 @@ const MerchantDashboard = () => {
   ];
 
   return (
-    <DashboardSidebar userRole="merchant" userName={user.name}>
+    <DashboardSidebar 
+      userRole="merchant" 
+      userName={user.name}
+      onTabChange={setActiveTab}
+      activeTab={activeTab}
+    >
       <div className="p-6">
         {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">
@@ -177,33 +183,36 @@ const MerchantDashboard = () => {
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <Card key={index}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+        {/* Stats Cards - Show only on overview tab */}
+        {activeTab === "overview" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {stats.map((stat, index) => (
+              <Card key={index}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+                    </div>
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <stat.icon className="h-5 w-5 text-primary" />
+                    </div>
                   </div>
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <stat.icon className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-        {/* Main Content */}
-        <Tabs defaultValue="cabins" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="cabins">My Cabins</TabsTrigger>
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
+        {/* Main Content based on active tab */}
+        {activeTab === "overview" && (
+          <Tabs defaultValue="cabins" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="cabins">My Cabins</TabsTrigger>
+              <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
 
           {/* Cabins Tab */}
           <TabsContent value="cabins" className="space-y-6">
@@ -350,8 +359,158 @@ const MerchantDashboard = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Direct tab content for sidebar navigation */}
+        {activeTab === "cabins" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold">Your Cabins</h3>
+              <Button variant="outline" onClick={handleAddCabin}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Cabin
+              </Button>
+            </div>
+            
+            <div className="grid lg:grid-cols-2 gap-6">
+              {myCabins.map((cabin) => (
+                <Card key={cabin.id} className="hover:shadow-md transition-shadow">
+                  <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                      <span className="text-muted-foreground">{cabin.name}</span>
+                    </div>
+                  </div>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h4 className="text-lg font-semibold mb-1">{cabin.name}</h4>
+                        <p className="text-sm text-muted-foreground">{cabin.location}</p>
+                      </div>
+                      <Badge variant={cabin.status === "active" ? "default" : "secondary"}>
+                        {cabin.status}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Price/day</p>
+                        <p className="font-semibold">${cabin.price}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Bookings</p>
+                        <p className="font-semibold">{cabin.bookings}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Rating</p>
+                        <p className="font-semibold">
+                          {cabin.rating > 0 ? `★ ${cabin.rating}` : "No reviews"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Revenue</p>
+                        <p className="font-semibold">{cabin.revenue}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEditCabin(cabin)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleViewCabin(cabin)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <BarChart3 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "bookings" && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold">Recent Bookings</h3>
+            <div className="space-y-4">
+              {recentBookings.map((booking) => (
+                <Card key={booking.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-semibold">{booking.cabin}</h4>
+                          <Badge variant={booking.status === "confirmed" ? "default" : "secondary"}>
+                            {booking.status}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium">{booking.guest}</span> • {booking.date} • {booking.guests} guests
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-semibold">{booking.amount}</p>
+                        <div className="flex space-x-2 mt-2">
+                          <Button variant="outline" size="sm">
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            Contact
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue Overview</CardTitle>
+                  <CardDescription>Your earnings over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
+                    <p className="text-muted-foreground">Revenue Chart Placeholder</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Booking Trends</CardTitle>
+                  <CardDescription>Booking patterns and peak times</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
+                    <p className="text-muted-foreground">Booking Chart Placeholder</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
 
         <CabinModal
           isOpen={modalOpen}
