@@ -175,31 +175,27 @@ export const useAdminData = () => {
     phone?: string;
   }) => {
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: userData.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: userData.full_name,
-          role: userData.role,
-        },
-      });
+      // Get current session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
 
-      if (authError) throw authError;
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{
-          id: authData.user.id,
+      // Call edge function to create user with admin privileges
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
           email: userData.email,
+          password: userData.password,
           full_name: userData.full_name,
           role: userData.role,
           phone: userData.phone,
-        }]);
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-      if (profileError) throw profileError;
+      if (error) throw error;
 
       await fetchUsers();
       await fetchStats();
@@ -209,7 +205,7 @@ export const useAdminData = () => {
         description: "User created successfully",
       });
 
-      return { data: authData.user, error: null };
+      return { data: data.data, error: null };
     } catch (error: any) {
       toast({
         title: "Error",
