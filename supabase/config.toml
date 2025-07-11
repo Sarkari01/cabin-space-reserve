@@ -2,3 +2,9 @@ project_id = "jseyxxsptcckjumjcljk"
 
 [functions.admin-create-user]
 # Keep JWT verification enabled for admin-only access
+
+[functions.razorpay-payment]
+# Keep JWT verification enabled for secure payment processing
+
+[functions.ekqr-payment]
+# Keep JWT verification enabled for secure payment processing

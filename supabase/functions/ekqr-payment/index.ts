@@ -48,17 +48,18 @@ async function createQRCode(amount: number) {
     throw new Error('EKQR credentials not configured');
   }
 
-  // TODO: Replace with actual EKQR API endpoint
-  const response = await fetch('https://api.ekqr.in/qrcode', {
+  // EKQR API call based on documentation
+  const response = await fetch('https://api.ekqr.in/api/qr', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${EKQR_API_KEY}`,
+      'x-api-key': EKQR_API_KEY,
     },
     body: JSON.stringify({
-      merchantId: EKQR_MERCHANT_ID,
-      amount: amount,
-      orderId: `ORDER_${Date.now()}`,
+      merchant_code: EKQR_MERCHANT_ID,
+      amount: amount.toString(),
+      order_id: `ORDER_${Date.now()}`,
+      description: 'Study Hall Booking Payment',
     }),
   });
 
@@ -71,9 +72,10 @@ async function createQRCode(amount: number) {
   return new Response(
     JSON.stringify({ 
       success: true, 
-      qrId: data.qrId,
-      qrImage: data.qrImage,
-      orderId: data.orderId
+      qrId: data.qr_id,
+      qrImage: data.qr_code,
+      orderId: data.order_id,
+      paymentUrl: data.payment_url
     }),
     { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -88,10 +90,10 @@ async function checkPaymentStatus(transactionId: string) {
     throw new Error('EKQR credentials not configured');
   }
 
-  // TODO: Replace with actual EKQR API endpoint
-  const response = await fetch(`https://api.ekqr.in/transaction/${transactionId}`, {
+  // Check EKQR payment status
+  const response = await fetch(`https://api.ekqr.in/api/status/${transactionId}`, {
     headers: {
-      'Authorization': `Bearer ${EKQR_API_KEY}`,
+      'x-api-key': EKQR_API_KEY,
     },
   });
 

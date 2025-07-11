@@ -11,6 +11,7 @@ import { useBookings } from "@/hooks/useBookings";
 import { UserModal } from "@/components/admin/UserModal";
 import { BannersTab } from "@/components/admin/BannersTab";
 import { BusinessSettingsTab } from "@/components/admin/BusinessSettingsTab";
+import { TransactionsTab } from "@/components/admin/TransactionsTab";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
@@ -655,6 +656,9 @@ const AdminDashboard = () => {
           
           {/* Business Settings Tab */}
           {activeTab === "business" && <BusinessSettingsTab />}
+          
+          {/* Transactions Tab */}
+          {activeTab === "transactions" && <TransactionsTab />}
           
           {/* News Tab */}
           {activeTab === "news" && <NewsTab userRole="admin" />}
