@@ -17,19 +17,31 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
   useEffect(() => {
     if (settings) {
       const methods: string[] = [];
-      if (settings.razorpay_enabled && settings.razorpay_key_id) {
+      
+      // Check Razorpay - needs to be enabled AND have key_id
+      if (settings.razorpay_enabled && settings.razorpay_key_id?.trim()) {
         methods.push("razorpay");
       }
-      if (settings.ekqr_enabled && settings.ekqr_merchant_id) {
+      
+      // Check EKQR - needs to be enabled AND have merchant_id
+      if (settings.ekqr_enabled && settings.ekqr_merchant_id?.trim()) {
         methods.push("ekqr");
       }
+      
+      // Check offline - just needs to be enabled
       if (settings.offline_enabled) {
         methods.push("offline");
       }
+      
       setAvailableMethods(methods);
       
-      // Auto-select first available method
+      // Auto-select first available method only if no method is currently selected
       if (methods.length > 0 && !selectedMethod) {
+        onMethodSelect(methods[0]);
+      }
+      
+      // If current method is no longer available, switch to first available
+      if (selectedMethod && !methods.includes(selectedMethod) && methods.length > 0) {
         onMethodSelect(methods[0]);
       }
     }

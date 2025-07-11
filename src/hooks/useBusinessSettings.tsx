@@ -24,10 +24,29 @@ export const useBusinessSettings = () => {
       const { data, error } = await supabase
         .from("business_settings")
         .select("*")
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setSettings(data);
+      
+      if (!data) {
+        // Create default settings if none exist
+        const { data: newData, error: insertError } = await supabase
+          .from("business_settings")
+          .insert({
+            razorpay_enabled: false,
+            razorpay_key_id: null,
+            ekqr_enabled: false,
+            ekqr_merchant_id: null,
+            offline_enabled: true,
+          })
+          .select()
+          .single();
+        
+        if (insertError) throw insertError;
+        setSettings(newData);
+      } else {
+        setSettings(data);
+      }
     } catch (error) {
       console.error("Error fetching business settings:", error);
       toast({
@@ -41,9 +60,35 @@ export const useBusinessSettings = () => {
   };
 
   const updateSettings = async (updates: Partial<BusinessSettings>) => {
-    if (!settings) return false;
+    if (!settings) {
+      toast({
+        title: "Error",
+        description: "No settings found to update",
+        variant: "destructive",
+      });
+      return false;
+    }
 
     try {
+      // Validate settings based on what's being enabled
+      if (updates.razorpay_enabled && !updates.razorpay_key_id && !settings.razorpay_key_id) {
+        toast({
+          title: "Validation Error",
+          description: "Razorpay Key ID is required when enabling Razorpay",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (updates.ekqr_enabled && !updates.ekqr_merchant_id && !settings.ekqr_merchant_id) {
+        toast({
+          title: "Validation Error",
+          description: "EKQR Merchant ID is required when enabling EKQR",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       const { error } = await supabase
         .from("business_settings")
         .update(updates)
@@ -56,7 +101,7 @@ export const useBusinessSettings = () => {
         description: "Business settings updated successfully",
       });
 
-      fetchSettings();
+      await fetchSettings();
       return true;
     } catch (error) {
       console.error("Error updating business settings:", error);

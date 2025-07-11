@@ -19,6 +19,7 @@ import { BookingEditModal } from "@/components/BookingEditModal";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
+import { MerchantTransactionsTab } from "@/components/merchant/MerchantTransactionsTab";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();

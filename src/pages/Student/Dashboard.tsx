@@ -15,6 +15,7 @@ import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
+import { StudentTransactionsTab } from "@/components/student/StudentTransactionsTab";
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading } = useStudyHalls();

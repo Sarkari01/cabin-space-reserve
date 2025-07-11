@@ -12,6 +12,7 @@ import { UserModal } from "@/components/admin/UserModal";
 import { BannersTab } from "@/components/admin/BannersTab";
 import { BusinessSettingsTab } from "@/components/admin/BusinessSettingsTab";
 import { TransactionsTab } from "@/components/admin/TransactionsTab";
+import { TransactionsManagementTab } from "@/components/admin/TransactionsManagementTab";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
@@ -658,7 +659,7 @@ const AdminDashboard = () => {
           {activeTab === "business" && <BusinessSettingsTab />}
           
           {/* Transactions Tab */}
-          {activeTab === "transactions" && <TransactionsTab />}
+          {activeTab === "transactions" && <TransactionsManagementTab />}
           
           {/* News Tab */}
           {activeTab === "news" && <NewsTab userRole="admin" />}

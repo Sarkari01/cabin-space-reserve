@@ -33,8 +33,11 @@ export const BusinessSettingsTab = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    await updateSettings(formData);
+    const success = await updateSettings(formData);
     setSaving(false);
+    if (success) {
+      // Optionally reset form to saved state
+    }
   };
 
   if (loading) {
