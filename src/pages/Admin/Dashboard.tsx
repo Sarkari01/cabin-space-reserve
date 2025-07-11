@@ -16,6 +16,8 @@ import { ChatTab } from "@/components/ChatTab";
 import { useToast } from "@/hooks/use-toast";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { MerchantDetailModal } from "@/components/admin/MerchantDetailModal";
+import { MerchantEditModal } from "@/components/admin/MerchantEditModal";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -42,6 +44,9 @@ const AdminDashboard = () => {
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
+  const [merchantDetailOpen, setMerchantDetailOpen] = useState(false);
+  const [merchantEditOpen, setMerchantEditOpen] = useState(false);
 
   // Redirect to login if not authenticated or not admin
   useEffect(() => {
@@ -85,6 +90,20 @@ const AdminDashboard = () => {
 
   const handleDeleteUser = async (userId: string) => {
     await deleteUser(userId);
+  };
+
+  const handleViewMerchant = (merchant: any) => {
+    setSelectedMerchant(merchant);
+    setMerchantDetailOpen(true);
+  };
+
+  const handleEditMerchant = (merchant: any) => {
+    setSelectedMerchant(merchant);
+    setMerchantEditOpen(true);
+  };
+
+  const handleDeleteMerchant = async (merchantId: string) => {
+    await deleteUser(merchantId);
   };
 
   const handleUpdateStudyHallStatus = async (studyHallId: string, currentStatus: string) => {
@@ -412,31 +431,31 @@ const AdminDashboard = () => {
                             Joined: {new Date(merchant.created_at).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Ban className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Merchant</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this merchant? This will also delete all their study halls.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                         <div className="flex space-x-2">
+                           <Button variant="outline" size="sm" onClick={() => handleViewMerchant(merchant)}>
+                             <Eye className="h-4 w-4 mr-1" />
+                             View
+                           </Button>
+                           <Button variant="outline" size="sm" onClick={() => handleEditMerchant(merchant)}>
+                             <Edit className="h-4 w-4 mr-1" />
+                             Edit
+                           </Button>
+                           <AlertDialog>
+                             <AlertDialogTrigger asChild>
+                               <Button variant="outline" size="sm">
+                                 <Ban className="h-4 w-4 mr-1" />
+                                 Delete
+                               </Button>
+                             </AlertDialogTrigger>
+                             <AlertDialogContent>
+                               <AlertDialogHeader>
+                                 <AlertDialogTitle>Delete Merchant</AlertDialogTitle>
+                                 <AlertDialogDescription>
+                                   Are you sure you want to delete this merchant? This will also delete all their study halls.
+                                 </AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter>
+                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction 
                                   onClick={() => handleDeleteUser(merchant.id)}
                                   className="bg-destructive text-destructive-foreground"
@@ -640,7 +659,7 @@ const AdminDashboard = () => {
           {activeTab === "community" && <CommunityTab />}
           
           {/* Chat Tab */}
-          {activeTab === "chat" && <ChatTab />}
+          {activeTab === "chat" && <ChatTab userRole="admin" />}
 
           {activeTab === "analytics" && (
             <div className="space-y-6">
@@ -706,6 +725,24 @@ const AdminDashboard = () => {
         booking={selectedBooking}
         userRole="admin"
         loading={actionLoading}
+      />
+
+      <MerchantDetailModal
+        open={merchantDetailOpen}
+        onOpenChange={setMerchantDetailOpen}
+        merchant={selectedMerchant}
+        studyHalls={studyHalls}
+      />
+
+      <MerchantEditModal
+        open={merchantEditOpen}
+        onOpenChange={setMerchantEditOpen}
+        merchant={selectedMerchant}
+        onSuccess={() => {
+          setMerchantEditOpen(false);
+          setSelectedMerchant(null);
+          // The useAdminData hook should automatically refetch
+        }}
       />
     </>
   );
