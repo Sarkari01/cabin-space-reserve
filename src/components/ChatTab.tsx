@@ -6,12 +6,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChat } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Users, Shield } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
-export function ChatTab() {
-  const { conversations, currentMessages, loading, sendMessage, fetchMessages } = useChat();
+interface ChatTabProps {
+  userRole?: "student" | "merchant" | "admin";
+}
+
+export function ChatTab({ userRole }: ChatTabProps = {}) {
+  const { conversations, currentMessages, loading, sendMessage, fetchMessages, getConversationBetween, createConversation } = useChat();
   const { user } = useAuth();
+  const [bookedUsers, setBookedUsers] = useState<any[]>([]);
+  const [adminUser, setAdminUser] = useState<any>(null);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -37,6 +44,69 @@ export function ChatTab() {
     setSending(false);
   };
 
+  // Fetch booked users for merchants
+  const fetchBookedUsers = async () => {
+    if (userRole !== "merchant" || !user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(`
+          user_id,
+          user:profiles!bookings_user_id_fkey(id, full_name, email),
+          study_hall:study_halls!bookings_study_hall_id_fkey(merchant_id)
+        `)
+        .eq("study_halls.merchant_id", user.id)
+        .eq("status", "confirmed");
+
+      if (error) throw error;
+      
+      const uniqueUsers = Array.from(
+        new Map(data?.map(booking => [booking.user_id, booking.user])).values()
+      );
+      setBookedUsers(uniqueUsers);
+    } catch (error) {
+      console.error("Error fetching booked users:", error);
+    }
+  };
+
+  // Fetch admin user
+  const fetchAdminUser = async () => {
+    if (userRole !== "merchant") return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("role", "admin")
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      setAdminUser(data);
+    } catch (error) {
+      console.error("Error fetching admin user:", error);
+    }
+  };
+
+  // Start conversation with a user
+  const handleStartConversation = async (otherUserId: string) => {
+    if (!user) return;
+    
+    // Check if conversation already exists
+    let conversationId = await getConversationBetween(user.id, otherUserId);
+    
+    if (!conversationId) {
+      // Create new conversation
+      conversationId = await createConversation(user.id, otherUserId);
+    }
+    
+    if (conversationId) {
+      setSelectedConversation(conversationId);
+      fetchMessages(conversationId);
+    }
+  };
+
   const getOtherParticipant = (conversation: any) => {
     if (!user) return null;
     if (conversation.participant_1 === user.id) {
@@ -44,6 +114,13 @@ export function ChatTab() {
     }
     return conversation.participant_1_profile;
   };
+
+  useEffect(() => {
+    if (userRole === "merchant") {
+      fetchBookedUsers();
+      fetchAdminUser();
+    }
+  }, [userRole, user]);
 
   if (loading) {
     return (
@@ -84,11 +161,87 @@ export function ChatTab() {
         {/* Conversations List */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Conversations</CardTitle>
+            <CardTitle className="text-lg">
+              {userRole === "merchant" ? "Contacts" : "Conversations"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-[500px]">
-              {conversations.length === 0 ? (
+              {/* For merchants, show contacts first */}
+              {userRole === "merchant" && (
+                <>
+                  {/* Admin Contact */}
+                  {adminUser && (
+                    <div
+                      className="p-4 border-b cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleStartConversation(adminUser.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            <Shield className="w-4 h-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">Admin Support</p>
+                          <p className="text-sm text-muted-foreground">
+                            {adminUser.full_name || adminUser.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Booked Users */}
+                  {bookedUsers.length > 0 && (
+                    <>
+                      <div className="p-3 bg-muted/30 border-b">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Booked Users ({bookedUsers.length})
+                          </span>
+                        </div>
+                      </div>
+                      {bookedUsers.map((user) => (
+                        <div
+                          key={user.id}
+                          className="p-4 border-b cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => handleStartConversation(user.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarFallback>
+                                {user.full_name?.charAt(0) || user.email?.charAt(0) || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">
+                                {user.full_name || "Student"}
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Existing Conversations */}
+                  {conversations.length > 0 && (
+                    <div className="p-3 bg-muted/30 border-b">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Recent Conversations
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Regular conversation list */}
+              {conversations.length === 0 && userRole !== "merchant" ? (
                 <div className="p-4 text-center text-muted-foreground">
                   <MessageSquare className="w-8 h-8 mx-auto mb-2" />
                   <p>No conversations yet</p>
@@ -131,6 +284,15 @@ export function ChatTab() {
                     </div>
                   );
                 })
+              )}
+
+              {/* Empty state for merchants */}
+              {userRole === "merchant" && bookedUsers.length === 0 && conversations.length === 0 && !adminUser && (
+                <div className="p-4 text-center text-muted-foreground">
+                  <MessageSquare className="w-8 h-8 mx-auto mb-2" />
+                  <p>No contacts available</p>
+                  <p className="text-xs">Users who book your study halls will appear here</p>
+                </div>
               )}
             </ScrollArea>
           </CardContent>

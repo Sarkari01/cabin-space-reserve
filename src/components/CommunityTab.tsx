@@ -7,30 +7,103 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useCommunity } from "@/hooks/useCommunity";
 import { useAuth } from "@/hooks/useAuth";
-import { Heart, MessageCircle, Send, Smile } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Heart, MessageCircle, Send, Smile, Upload, X, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢"];
 
-export function CommunityTab() {
+interface CommunityTabProps {
+  userRole?: "student" | "merchant" | "admin";
+}
+
+export function CommunityTab({ userRole }: CommunityTabProps = {}) {
   const { posts, loading, createPost, addReaction, removeReaction, addComment } = useCommunity();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [newPost, setNewPost] = useState("");
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
   const [posting, setPosting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return null;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `community/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('community-media')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('community-media')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Upload Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image or video file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+  };
 
   const handleCreatePost = async () => {
     if (!newPost.trim() || !user) return;
 
     setPosting(true);
+    
+    let mediaUrl = null;
+    if (selectedFile) {
+      mediaUrl = await handleFileUpload(selectedFile);
+    }
+
     const success = await createPost({
       user_id: user.id,
       content: newPost.trim(),
+      media_url: mediaUrl,
     });
 
     if (success) {
       setNewPost("");
+      setSelectedFile(null);
     }
     setPosting(false);
   };
@@ -119,10 +192,61 @@ export function CommunityTab() {
               rows={3}
               className="resize-none"
             />
-            <div className="flex justify-end">
+            
+            {/* File Upload Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="community-upload"
+                />
+                <label
+                  htmlFor="community-upload"
+                  className="flex items-center gap-2 px-3 py-1 text-sm border border-input rounded-md cursor-pointer hover:bg-accent transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploading ? "Uploading..." : "Add Media"}
+                </label>
+                {selectedFile && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={removeSelectedFile}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* File Preview */}
+              {selectedFile && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
+                  <ImageIcon className="w-4 h-4" />
+                  <span>{selectedFile.name}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                {REACTION_EMOJIS.map((emoji) => (
+                  <Button
+                    key={emoji}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setNewPost(prev => prev + emoji)}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
               <Button
                 onClick={handleCreatePost}
-                disabled={!newPost.trim() || posting}
+                disabled={!newPost.trim() || posting || uploading}
               >
                 <Send className="w-4 h-4 mr-2" />
                 {posting ? "Posting..." : "Post"}

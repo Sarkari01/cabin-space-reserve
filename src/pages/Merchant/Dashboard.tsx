@@ -939,6 +939,18 @@ const MerchantDashboard = () => {
         )}
 
         {/* Direct tab content for sidebar navigation */}
+        {activeTab === "news" && (
+          <NewsTab userRole="merchant" />
+        )}
+
+        {activeTab === "community" && (
+          <CommunityTab userRole="merchant" />
+        )}
+
+        {activeTab === "chat" && (
+          <ChatTab userRole="merchant" />
+        )}
+
         {activeTab === "users" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-6">
