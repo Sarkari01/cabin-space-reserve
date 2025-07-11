@@ -70,8 +70,16 @@ export const useBusinessSettings = () => {
     }
 
     try {
-      // Validate settings based on what's being enabled
-      if (updates.razorpay_enabled && !updates.razorpay_key_id && !settings.razorpay_key_id) {
+      // Get the values that will be set after the update
+      const finalRazorpayKeyId = updates.razorpay_key_id !== undefined 
+        ? updates.razorpay_key_id 
+        : settings.razorpay_key_id;
+      const finalEkqrMerchantId = updates.ekqr_merchant_id !== undefined 
+        ? updates.ekqr_merchant_id 
+        : settings.ekqr_merchant_id;
+
+      // Only validate if trying to enable without required fields
+      if (updates.razorpay_enabled === true && (!finalRazorpayKeyId || !finalRazorpayKeyId.trim())) {
         toast({
           title: "Validation Error",
           description: "Razorpay Key ID is required when enabling Razorpay",
@@ -80,7 +88,7 @@ export const useBusinessSettings = () => {
         return false;
       }
 
-      if (updates.ekqr_enabled && !updates.ekqr_merchant_id && !settings.ekqr_merchant_id) {
+      if (updates.ekqr_enabled === true && (!finalEkqrMerchantId || !finalEkqrMerchantId.trim())) {
         toast({
           title: "Validation Error",
           description: "EKQR Merchant ID is required when enabling EKQR",
@@ -89,6 +97,7 @@ export const useBusinessSettings = () => {
         return false;
       }
 
+      console.log("Updating business settings:", updates);
       const { error } = await supabase
         .from("business_settings")
         .update(updates)

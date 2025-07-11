@@ -33,10 +33,15 @@ export const BusinessSettingsTab = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    const success = await updateSettings(formData);
-    setSaving(false);
-    if (success) {
-      // Optionally reset form to saved state
+    try {
+      const success = await updateSettings(formData);
+      if (success) {
+        console.log("Business settings updated successfully");
+      }
+    } catch (error) {
+      console.error("Error saving business settings:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -80,22 +85,26 @@ export const BusinessSettingsTab = () => {
                 }
               />
             </div>
-            {formData.razorpay_enabled && (
-              <div className="space-y-2">
-                <Label htmlFor="razorpay-key">Razorpay Key ID</Label>
-                <Input
-                  id="razorpay-key"
-                  value={formData.razorpay_key_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, razorpay_key_id: e.target.value })
-                  }
-                  placeholder="rzp_test_xxxxxxxxxx"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Get your Key ID from Razorpay Dashboard
+            <div className="space-y-2">
+              <Label htmlFor="razorpay-key">Razorpay Key ID</Label>
+              <Input
+                id="razorpay-key"
+                value={formData.razorpay_key_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, razorpay_key_id: e.target.value })
+                }
+                placeholder="rzp_test_xxxxxxxxxx"
+                disabled={!formData.razorpay_enabled}
+              />
+              <p className="text-xs text-muted-foreground">
+                Get your Key ID from Razorpay Dashboard. Note: Secret key is managed separately in project settings.
+              </p>
+              {formData.razorpay_enabled && !formData.razorpay_key_id.trim() && (
+                <p className="text-xs text-destructive">
+                  Key ID is required when Razorpay is enabled
                 </p>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -121,22 +130,26 @@ export const BusinessSettingsTab = () => {
                 }
               />
             </div>
-            {formData.ekqr_enabled && (
-              <div className="space-y-2">
-                <Label htmlFor="ekqr-merchant">EKQR Merchant ID</Label>
-                <Input
-                  id="ekqr-merchant"
-                  value={formData.ekqr_merchant_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, ekqr_merchant_id: e.target.value })
-                  }
-                  placeholder="Your EKQR Merchant ID"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Contact EKQR support for your Merchant ID
+            <div className="space-y-2">
+              <Label htmlFor="ekqr-merchant">EKQR Merchant ID</Label>
+              <Input
+                id="ekqr-merchant"
+                value={formData.ekqr_merchant_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, ekqr_merchant_id: e.target.value })
+                }
+                placeholder="Your EKQR Merchant ID"
+                disabled={!formData.ekqr_enabled}
+              />
+              <p className="text-xs text-muted-foreground">
+                Contact EKQR support for your Merchant ID. Note: API key is managed separately in project settings.
+              </p>
+              {formData.ekqr_enabled && !formData.ekqr_merchant_id.trim() && (
+                <p className="text-xs text-destructive">
+                  Merchant ID is required when EKQR is enabled
                 </p>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
 

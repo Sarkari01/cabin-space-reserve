@@ -18,30 +18,44 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
     if (settings) {
       const methods: string[] = [];
       
+      console.log("Payment settings check:", {
+        razorpay_enabled: settings.razorpay_enabled,
+        razorpay_key_id: settings.razorpay_key_id,
+        ekqr_enabled: settings.ekqr_enabled,
+        ekqr_merchant_id: settings.ekqr_merchant_id,
+        offline_enabled: settings.offline_enabled
+      });
+      
       // Check Razorpay - needs to be enabled AND have key_id
       if (settings.razorpay_enabled && settings.razorpay_key_id?.trim()) {
         methods.push("razorpay");
+        console.log("Razorpay available");
       }
       
       // Check EKQR - needs to be enabled AND have merchant_id
       if (settings.ekqr_enabled && settings.ekqr_merchant_id?.trim()) {
         methods.push("ekqr");
+        console.log("EKQR available");
       }
       
       // Check offline - just needs to be enabled
       if (settings.offline_enabled) {
         methods.push("offline");
+        console.log("Offline payment available");
       }
       
+      console.log("Available payment methods:", methods);
       setAvailableMethods(methods);
       
       // Auto-select first available method only if no method is currently selected
       if (methods.length > 0 && !selectedMethod) {
+        console.log("Auto-selecting payment method:", methods[0]);
         onMethodSelect(methods[0]);
       }
       
       // If current method is no longer available, switch to first available
       if (selectedMethod && !methods.includes(selectedMethod) && methods.length > 0) {
+        console.log("Switching to available payment method:", methods[0]);
         onMethodSelect(methods[0]);
       }
     }
