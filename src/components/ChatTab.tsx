@@ -617,6 +617,9 @@ export function ChatTab({ userRole }: ChatTabProps = {}) {
                                   alt="Shared image" 
                                   className="max-w-full h-auto rounded-md"
                                   style={{ maxHeight: '200px' }}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
                                 />
                               </div>
                             ) : null}
