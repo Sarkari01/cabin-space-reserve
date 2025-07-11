@@ -124,7 +124,7 @@ export type Database = {
         Row: {
           created_at: string
           ekqr_enabled: boolean
-          ekqr_merchant_id: string | null
+          ekqr_merchant_code: string | null
           id: string
           offline_enabled: boolean
           razorpay_enabled: boolean
@@ -134,7 +134,7 @@ export type Database = {
         Insert: {
           created_at?: string
           ekqr_enabled?: boolean
-          ekqr_merchant_id?: string | null
+          ekqr_merchant_code?: string | null
           id?: string
           offline_enabled?: boolean
           razorpay_enabled?: boolean
@@ -144,7 +144,7 @@ export type Database = {
         Update: {
           created_at?: string
           ekqr_enabled?: boolean
-          ekqr_merchant_id?: string | null
+          ekqr_merchant_code?: string | null
           id?: string
           offline_enabled?: boolean
           razorpay_enabled?: boolean

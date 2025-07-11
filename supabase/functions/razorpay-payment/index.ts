@@ -43,7 +43,22 @@ async function createOrder(amount: number, bookingId: string) {
   const RAZORPAY_SECRET_KEY = Deno.env.get('RAZORPAY_SECRET_KEY');
   
   if (!RAZORPAY_SECRET_KEY) {
-    throw new Error('Razorpay secret key not configured');
+    throw new Error('Razorpay Secret Key not configured in project secrets');
+  }
+
+  // Get Razorpay Key ID from business settings  
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+
+  const { data: settings, error } = await supabase
+    .from('business_settings')
+    .select('razorpay_key_id')
+    .single();
+
+  if (error || !settings?.razorpay_key_id) {
+    throw new Error('Razorpay Key ID not configured in business settings');
   }
 
   const orderData = {

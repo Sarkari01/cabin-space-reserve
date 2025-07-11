@@ -42,10 +42,24 @@ serve(async (req) => {
 
 async function createQRCode(amount: number) {
   const EKQR_API_KEY = Deno.env.get('EKQR_API_KEY');
-  const EKQR_MERCHANT_ID = Deno.env.get('EKQR_MERCHANT_ID');
+  
+  if (!EKQR_API_KEY) {
+    throw new Error('EKQR API Key not configured in project secrets');
+  }
 
-  if (!EKQR_API_KEY || !EKQR_MERCHANT_ID) {
-    throw new Error('EKQR credentials not configured');
+  // Get merchant code from business settings
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+
+  const { data: settings, error } = await supabase
+    .from('business_settings')
+    .select('ekqr_merchant_code')
+    .single();
+
+  if (error || !settings?.ekqr_merchant_code) {
+    throw new Error('EKQR Merchant Code not configured in business settings');
   }
 
   // EKQR API call based on documentation
@@ -56,7 +70,7 @@ async function createQRCode(amount: number) {
       'x-api-key': EKQR_API_KEY,
     },
     body: JSON.stringify({
-      merchant_code: EKQR_MERCHANT_ID,
+      merchant_code: settings.ekqr_merchant_code,
       amount: amount.toString(),
       order_id: `ORDER_${Date.now()}`,
       description: 'Study Hall Booking Payment',

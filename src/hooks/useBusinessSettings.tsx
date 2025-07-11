@@ -7,7 +7,7 @@ export interface BusinessSettings {
   razorpay_enabled: boolean;
   razorpay_key_id: string | null;
   ekqr_enabled: boolean;
-  ekqr_merchant_id: string | null;
+  ekqr_merchant_code: string | null;
   offline_enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -36,7 +36,7 @@ export const useBusinessSettings = () => {
             razorpay_enabled: false,
             razorpay_key_id: null,
             ekqr_enabled: false,
-            ekqr_merchant_id: null,
+            ekqr_merchant_code: null,
             offline_enabled: true,
           })
           .select()
@@ -74,9 +74,9 @@ export const useBusinessSettings = () => {
       const finalRazorpayKeyId = updates.razorpay_key_id !== undefined 
         ? updates.razorpay_key_id 
         : settings.razorpay_key_id;
-      const finalEkqrMerchantId = updates.ekqr_merchant_id !== undefined 
-        ? updates.ekqr_merchant_id 
-        : settings.ekqr_merchant_id;
+      const finalEkqrMerchantCode = updates.ekqr_merchant_code !== undefined 
+        ? updates.ekqr_merchant_code 
+        : settings.ekqr_merchant_code;
 
       // Only validate if trying to enable without required fields
       if (updates.razorpay_enabled === true && (!finalRazorpayKeyId || !finalRazorpayKeyId.trim())) {
@@ -88,10 +88,10 @@ export const useBusinessSettings = () => {
         return false;
       }
 
-      if (updates.ekqr_enabled === true && (!finalEkqrMerchantId || !finalEkqrMerchantId.trim())) {
+      if (updates.ekqr_enabled === true && (!finalEkqrMerchantCode || !finalEkqrMerchantCode.trim())) {
         toast({
           title: "Validation Error",
-          description: "EKQR Merchant ID is required when enabling EKQR",
+          description: "EKQR Merchant Code is required when enabling EKQR",
           variant: "destructive",
         });
         return false;

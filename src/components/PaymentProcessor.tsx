@@ -174,7 +174,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
   };
 
   const handleEKQRPayment = async () => {
-    if (!settings?.ekqr_merchant_id) {
+    if (!settings?.ekqr_merchant_code) {
       toast({
         title: "Configuration Error",
         description: "EKQR is not properly configured",
