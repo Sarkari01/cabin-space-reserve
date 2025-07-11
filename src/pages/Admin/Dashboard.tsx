@@ -10,6 +10,9 @@ import { useAdminData } from "@/hooks/useAdminData";
 import { useBookings } from "@/hooks/useBookings";
 import { UserModal } from "@/components/admin/UserModal";
 import { BannersTab } from "@/components/admin/BannersTab";
+import { NewsTab } from "@/components/NewsTab";
+import { CommunityTab } from "@/components/CommunityTab";
+import { ChatTab } from "@/components/ChatTab";
 import { useToast } from "@/hooks/use-toast";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -627,10 +630,17 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Analytics Tab */}
-          {activeTab === "banners" && (
-            <BannersTab />
-          )}
+          {/* Banners Tab */}
+          {activeTab === "banners" && <BannersTab />}
+          
+          {/* News Tab */}
+          {activeTab === "news" && <NewsTab userRole="admin" />}
+          
+          {/* Community Tab */}
+          {activeTab === "community" && <CommunityTab />}
+          
+          {/* Chat Tab */}
+          {activeTab === "chat" && <ChatTab />}
 
           {activeTab === "analytics" && (
             <div className="space-y-6">

@@ -16,6 +16,9 @@ import { useStudyHalls } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { BookingEditModal } from "@/components/BookingEditModal";
+import { NewsTab } from "@/components/NewsTab";
+import { CommunityTab } from "@/components/CommunityTab";
+import { ChatTab } from "@/components/ChatTab";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();

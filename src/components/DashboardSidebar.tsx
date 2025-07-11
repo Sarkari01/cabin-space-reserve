@@ -11,6 +11,9 @@ import {
   Shield,
   LogOut,
   PanelLeft,
+  Newspaper,
+  MessageSquare,
+  Heart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,6 +44,9 @@ const sidebarItems = {
     { title: "Browse Study Halls", url: "/student/dashboard", icon: Building, tab: "browse" },
     { title: "My Bookings", url: "/student/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Favorites", url: "/student/dashboard", icon: BookOpen, tab: "favorites" },
+    { title: "News", url: "/student/dashboard", icon: Newspaper, tab: "news" },
+    { title: "Community", url: "/student/dashboard", icon: Heart, tab: "community" },
+    { title: "Chat", url: "/student/dashboard", icon: MessageSquare, tab: "chat" },
   ],
   merchant: [
     { title: "Dashboard", url: "/merchant/dashboard", icon: Home, tab: "overview" },
@@ -48,6 +54,9 @@ const sidebarItems = {
     { title: "Bookings", url: "/merchant/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Users", url: "/merchant/dashboard", icon: Users, tab: "users" },
     { title: "Analytics", url: "/merchant/dashboard", icon: BarChart3, tab: "analytics" },
+    { title: "News", url: "/merchant/dashboard", icon: Newspaper, tab: "news" },
+    { title: "Community", url: "/merchant/dashboard", icon: Heart, tab: "community" },
+    { title: "Chat", url: "/merchant/dashboard", icon: MessageSquare, tab: "chat" },
   ],
   admin: [
     { title: "Dashboard", url: "/admin/dashboard", icon: Home, tab: "overview" },
@@ -56,6 +65,9 @@ const sidebarItems = {
     { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Banners", url: "/admin/dashboard", icon: BookOpen, tab: "banners" },
+    { title: "News", url: "/admin/dashboard", icon: Newspaper, tab: "news" },
+    { title: "Community", url: "/admin/dashboard", icon: Heart, tab: "community" },
+    { title: "Chat", url: "/admin/dashboard", icon: MessageSquare, tab: "chat" },
     { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
   ],
 };

@@ -12,6 +12,9 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
+import { NewsTab } from "@/components/NewsTab";
+import { CommunityTab } from "@/components/CommunityTab";
+import { ChatTab } from "@/components/ChatTab";
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading } = useStudyHalls();
@@ -415,6 +418,15 @@ const StudentDashboard = () => {
               )}
             </div>
           )}
+
+          {/* News Tab */}
+          {activeTab === "news" && <NewsTab userRole="student" />}
+
+          {/* Community Tab */}
+          {activeTab === "community" && <CommunityTab />}
+
+          {/* Chat Tab */}
+          {activeTab === "chat" && <ChatTab />}
 
           {/* Favorites Tab */}
           {activeTab === "favorites" && (
