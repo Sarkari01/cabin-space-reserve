@@ -10,6 +10,7 @@ import { useAdminData } from "@/hooks/useAdminData";
 import { useBookings } from "@/hooks/useBookings";
 import { UserModal } from "@/components/admin/UserModal";
 import { BannersTab } from "@/components/admin/BannersTab";
+import { BusinessSettingsTab } from "@/components/admin/BusinessSettingsTab";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
@@ -651,6 +652,9 @@ const AdminDashboard = () => {
 
           {/* Banners Tab */}
           {activeTab === "banners" && <BannersTab />}
+          
+          {/* Business Settings Tab */}
+          {activeTab === "business" && <BusinessSettingsTab />}
           
           {/* News Tab */}
           {activeTab === "news" && <NewsTab userRole="admin" />}

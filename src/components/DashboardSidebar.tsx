@@ -65,6 +65,7 @@ const sidebarItems = {
     { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Banners", url: "/admin/dashboard", icon: BookOpen, tab: "banners" },
+    { title: "Business Settings", url: "/admin/dashboard", icon: Settings, tab: "business" },
     { title: "News", url: "/admin/dashboard", icon: Newspaper, tab: "news" },
     { title: "Community", url: "/admin/dashboard", icon: Heart, tab: "community" },
     { title: "Chat", url: "/admin/dashboard", icon: MessageSquare, tab: "chat" },

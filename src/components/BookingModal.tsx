@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
+import { PaymentProcessor } from "./PaymentProcessor";
 
 interface StudyHall {
   id: string;
@@ -41,6 +42,8 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<any>(null);
 
   const availableSeats = seats.filter(seat => seat.is_available);
 
@@ -94,6 +97,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
     setLoading(true);
     
+    // Create booking first
     const success = await createBooking({
       study_hall_id: studyHall.id,
       seat_id: selectedSeat,
@@ -104,11 +108,33 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     });
 
     if (success) {
-      onOpenChange(false);
-      onSuccess?.();
+      // Store booking data for payment processing
+      setCreatedBooking({
+        id: Date.now().toString(), // This should be the actual booking ID from the response
+        study_hall_id: studyHall.id,
+        seat_id: selectedSeat,
+        booking_period: bookingPeriod,
+        start_date: startDate,
+        end_date: endDate,
+        total_amount: calculateAmount(),
+      });
+      setShowPayment(true);
     }
     
     setLoading(false);
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPayment(false);
+    setCreatedBooking(null);
+    onOpenChange(false);
+    onSuccess?.();
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPayment(false);
+    setCreatedBooking(null);
+    // Could add logic to cancel the booking here
   };
 
   if (!studyHall) return null;
@@ -116,7 +142,23 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
+        {showPayment && createdBooking ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Complete Payment</DialogTitle>
+              <DialogDescription>
+                Choose your payment method to complete the booking
+              </DialogDescription>
+            </DialogHeader>
+            <PaymentProcessor
+              bookingData={createdBooking}
+              onPaymentSuccess={handlePaymentSuccess}
+              onCancel={handlePaymentCancel}
+            />
+          </>
+        ) : (
+          <>
+            <DialogHeader>
           <DialogTitle>Book Study Hall</DialogTitle>
           <DialogDescription>
             Reserve your seat at {studyHall.name}
@@ -260,6 +302,8 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </Button>
           </div>
         </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

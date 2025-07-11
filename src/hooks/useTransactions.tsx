@@ -1,0 +1,228 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
+import { useToast } from "./use-toast";
+
+export interface Transaction {
+  id: string;
+  booking_id: string;
+  user_id: string;
+  amount: number;
+  payment_method: "razorpay" | "ekqr" | "offline";
+  payment_id: string | null;
+  qr_id: string | null;
+  status: "pending" | "processing" | "completed" | "failed" | "refunded";
+  payment_data: any;
+  created_at: string;
+  updated_at: string;
+  booking?: {
+    id: string;
+    study_hall?: {
+      name: string;
+    };
+    seat?: {
+      seat_id: string;
+    };
+  };
+  user?: {
+    full_name: string;
+    email: string;
+  };
+}
+
+export const useTransactions = (forceRole?: "student" | "merchant" | "admin") => {
+  const { user, userRole } = useAuth();
+  const effectiveRole = forceRole || userRole;
+  const { toast } = useToast();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTransactions = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      
+      let query = supabase
+        .from("transactions")
+        .select(`
+          *,
+          booking:bookings(
+            id,
+            study_hall:study_halls(name),
+            seat:seats(seat_id)
+          ),
+          user:profiles(full_name, email)
+        `);
+
+      if (effectiveRole === "student") {
+        query = query.eq("user_id", user.id);
+      } else if (effectiveRole === "merchant") {
+        // Get transactions for bookings in merchant's study halls
+        const { data: merchantStudyHalls, error: studyHallError } = await supabase
+          .from("study_halls")
+          .select("id")
+          .eq("merchant_id", user.id);
+        
+        if (studyHallError) throw studyHallError;
+        
+        const studyHallIds = merchantStudyHalls?.map(sh => sh.id) || [];
+        
+        if (studyHallIds.length > 0) {
+          const { data: bookingIds, error: bookingError } = await supabase
+            .from("bookings")
+            .select("id")
+            .in("study_hall_id", studyHallIds);
+          
+          if (bookingError) throw bookingError;
+          
+          const bookingIdsArray = bookingIds?.map(b => b.id) || [];
+          
+          if (bookingIdsArray.length > 0) {
+            query = query.in("booking_id", bookingIdsArray);
+          } else {
+            setTransactions([]);
+            setLoading(false);
+            return;
+          }
+        } else {
+          setTransactions([]);
+          setLoading(false);
+          return;
+        }
+      }
+      // Admin sees all transactions
+
+      const { data, error } = await query.order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      setTransactions((data || []) as Transaction[]);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch transactions",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createTransaction = async (transactionData: {
+    booking_id: string;
+    amount: number;
+    payment_method: "razorpay" | "ekqr" | "offline";
+    payment_id?: string;
+    qr_id?: string;
+    payment_data?: any;
+  }) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a transaction",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("transactions")
+        .insert({
+          ...transactionData,
+          user_id: user.id,
+          status: "pending"
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Transaction created successfully",
+      });
+
+      fetchTransactions();
+      return data;
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create transaction",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const updateTransactionStatus = async (transactionId: string, status: Transaction["status"], paymentData?: any) => {
+    try {
+      const updates: any = { status };
+      if (paymentData) {
+        updates.payment_data = paymentData;
+      }
+
+      const { error } = await supabase
+        .from("transactions")
+        .update(updates)
+        .eq("id", transactionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Transaction status updated successfully",
+      });
+
+      fetchTransactions();
+      return true;
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update transaction status",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [user, effectiveRole]);
+
+  // Real-time subscription for transactions
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('transactions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        (payload) => {
+          console.log('Transaction change detected:', payload);
+          fetchTransactions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  return {
+    transactions,
+    loading,
+    fetchTransactions,
+    createTransaction,
+    updateTransactionStatus,
+  };
+};

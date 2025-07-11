@@ -120,6 +120,39 @@ export type Database = {
           },
         ]
       }
+      business_settings: {
+        Row: {
+          created_at: string
+          ekqr_enabled: boolean
+          ekqr_merchant_id: string | null
+          id: string
+          offline_enabled: boolean
+          razorpay_enabled: boolean
+          razorpay_key_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ekqr_enabled?: boolean
+          ekqr_merchant_id?: string | null
+          id?: string
+          offline_enabled?: boolean
+          razorpay_enabled?: boolean
+          razorpay_key_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ekqr_enabled?: boolean
+          ekqr_merchant_id?: string | null
+          id?: string
+          offline_enabled?: boolean
+          razorpay_enabled?: boolean
+          razorpay_key_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string
@@ -486,6 +519,63 @@ export type Database = {
           {
             foreignKeyName: "study_halls_merchant_id_fkey"
             columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          created_at: string
+          id: string
+          payment_data: Json | null
+          payment_id: string | null
+          payment_method: string
+          qr_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          payment_data?: Json | null
+          payment_id?: string | null
+          payment_method: string
+          qr_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          payment_data?: Json | null
+          payment_id?: string | null
+          payment_method?: string
+          qr_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
