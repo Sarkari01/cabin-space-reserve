@@ -83,17 +83,6 @@ serve(async (req) => {
       availableMethods.push('offline');
     }
 
-    console.log('Gateway validation result:', {
-      gateways,
-      availableMethods,
-      settings: {
-        razorpay_enabled: settings.razorpay_enabled,
-        razorpay_key_id: !!settings.razorpay_key_id,
-        ekqr_enabled: settings.ekqr_enabled,
-        ekqr_merchant_code: !!settings.ekqr_merchant_code,
-        offline_enabled: settings.offline_enabled
-      }
-    });
 
     return new Response(
       JSON.stringify({ 

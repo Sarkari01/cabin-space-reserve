@@ -97,7 +97,6 @@ export const useBusinessSettings = () => {
         return false;
       }
 
-      console.log("Updating business settings:", updates);
       const { error } = await supabase
         .from("business_settings")
         .update(updates)

@@ -58,7 +58,6 @@ export const BusinessSettingsTab = () => {
     try {
       const success = await updateSettings(formData);
       if (success) {
-        console.log("Business settings updated successfully");
         // Re-validate gateways after save
         setTimeout(validateGateways, 1000);
       }

@@ -206,8 +206,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
           schema: 'public',
           table: 'transactions'
         },
-        (payload) => {
-          console.log('Transaction change detected:', payload);
+        () => {
           fetchTransactions();
         }
       )

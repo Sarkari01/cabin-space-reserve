@@ -32,20 +32,16 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
         throw new Error(error.message || 'Failed to validate payment gateways');
       }
       
-      console.log("Gateway validation response:", data);
-      
       setGatewayStatus(data.gateways);
       setAvailableMethods(data.availableMethods || []);
       
       // Auto-select first available method only if no method is currently selected
       if (data.availableMethods?.length > 0 && !selectedMethod) {
-        console.log("Auto-selecting payment method:", data.availableMethods[0]);
         onMethodSelect(data.availableMethods[0]);
       }
       
       // If current method is no longer available, switch to first available
       if (selectedMethod && data.availableMethods && !data.availableMethods.includes(selectedMethod) && data.availableMethods.length > 0) {
-        console.log("Switching to available payment method:", data.availableMethods[0]);
         onMethodSelect(data.availableMethods[0]);
       }
     } catch (error) {
