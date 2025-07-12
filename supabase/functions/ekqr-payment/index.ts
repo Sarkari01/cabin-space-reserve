@@ -55,15 +55,16 @@ async function createQRCode(amount: number, bookingId: string) {
 
   // EKQR API call based on official documentation
   console.log('[EKQR-PAYMENT] Making API request to EKQR');
-  const response = await fetch('https://api.ekqr.in/api/qrcode', {
+  const response = await fetch('https://ekqr.co/api/ekqr', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'api_key': ekqrApiKey,
+      'x-api-key': ekqrApiKey,
     },
     body: JSON.stringify({
       amount: amount,
-      reference_id: `BOOKING_${bookingId}`
+      purpose: 'Study Hall Booking',
+      order_id: `BOOKING_${bookingId}`
     }),
   });
 
@@ -90,9 +91,9 @@ async function createQRCode(amount: number, bookingId: string) {
   return new Response(
     JSON.stringify({ 
       success: true, 
-      qr_id: data.qr_id,
-      qr_image_url: data.qr_image_url,
-      reference_id: data.reference_id,
+      qr_id: data.id,
+      qr_image_url: data.qr_url,
+      reference_id: data.order_id,
       amount: data.amount
     }),
     { 
@@ -114,9 +115,9 @@ async function checkPaymentStatus(qrId: string) {
 
   // Check EKQR payment status based on official documentation
   console.log('[EKQR-PAYMENT] Making status check API request');
-  const response = await fetch(`https://api.ekqr.in/api/transaction/${qrId}`, {
+  const response = await fetch(`https://ekqr.co/api/ekqr/status/${qrId}`, {
     headers: {
-      'api_key': ekqrApiKey,
+      'x-api-key': ekqrApiKey,
     },
   });
 
@@ -141,10 +142,10 @@ async function checkPaymentStatus(qrId: string) {
     JSON.stringify({ 
       success: true, 
       status: data.status, // 'pending', 'success', 'failed'
-      qr_id: data.qr_id,
-      reference_id: data.reference_id,
+      qr_id: data.id,
+      reference_id: data.order_id,
       amount: data.amount,
-      transaction_id: data.transaction_id
+      transaction_id: data.reference_id
     }),
     { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
