@@ -30,7 +30,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, ...requestData } = await req.json();
+    const requestBody = await req.json();
+    console.log('Razorpay function called with request:', requestBody);
+    const { action, ...requestData } = requestBody;
     console.log('Razorpay function called with action:', action);
 
     if (action === 'create_order') {

@@ -18,7 +18,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
-    const { action, transactionId, amount, bookingId } = await req.json();
+    const requestBody = await req.json();
+    console.log('[EKQR] Received request:', requestBody);
+    const { action, transactionId, amount, bookingId } = requestBody;
 
     switch (action) {
       case 'createQR':

@@ -96,16 +96,12 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
       if (error) {
         console.error('EKQR Payment Error:', error);
-        const errorMessage = error.message || 'Failed to generate QR code';
-        
-        // Provide more specific error messages
-        if (errorMessage.includes('API Key not configured')) {
-          throw new Error('EKQR payment is not properly configured. Please contact support.');
-        } else if (errorMessage.includes('Failed to create QR code')) {
-          throw new Error('Unable to create QR code. Please try again or contact support.');
-        }
-        
-        throw new Error(errorMessage);
+        toast({
+          title: "Payment Failed",
+          description: "Failed to generate QR code",
+          variant: "destructive",
+        });
+        throw new Error(error.message || 'Failed to generate QR code');
       }
 
       setQrData(qrResponse);
@@ -196,6 +192,12 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
       });
 
       if (error) {
+        console.error('Razorpay Payment Error:', error);
+        toast({
+          title: "Payment Failed", 
+          description: "Failed to initiate payment",
+          variant: "destructive",
+        });
         throw new Error(error.message || 'Failed to create payment order');
       }
 
