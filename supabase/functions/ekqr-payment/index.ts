@@ -54,39 +54,56 @@ async function createQRCode(amount: number, bookingId: string) {
   console.log('[EKQR-PAYMENT] API key found, length:', ekqrApiKey.length);
 
   // EKQR API call based on official documentation
+  const requestBody = {
+    amount: amount,
+    purpose: 'Study Hall Booking',
+    order_id: `BOOKING_${bookingId}`
+  };
+  
   console.log('[EKQR-PAYMENT] Making API request to EKQR');
+  console.log('[EKQR-PAYMENT] Request URL: https://ekqr.co/api/ekqr');
+  console.log('[EKQR-PAYMENT] Request body:', requestBody);
+  console.log('[EKQR-PAYMENT] API key preview:', ekqrApiKey ? `${ekqrApiKey.substring(0, 8)}...` : 'NOT SET');
+  
   const response = await fetch('https://ekqr.co/api/ekqr', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': ekqrApiKey,
     },
-    body: JSON.stringify({
-      amount: amount,
-      purpose: 'Study Hall Booking',
-      order_id: `BOOKING_${bookingId}`
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   console.log('[EKQR-PAYMENT] API response status:', response.status);
+  console.log('[EKQR-PAYMENT] Response headers:', Object.fromEntries(response.headers.entries()));
+
+  const responseText = await response.text();
+  console.log('[EKQR-PAYMENT] Raw API response:', responseText);
 
   if (!response.ok) {
-    const errorData = await response.text();
-    console.error('[EKQR-PAYMENT] API Error Response:', errorData);
+    console.error('[EKQR-PAYMENT] API Error - Status:', response.status);
+    console.error('[EKQR-PAYMENT] API Error - Response:', responseText);
     
     // Provide more specific error messages based on status codes
     if (response.status === 401) {
-      throw new Error('Invalid EKQR API key. Please check your configuration.');
+      throw new Error(`Invalid EKQR API key. Status: ${response.status}, Response: ${responseText}`);
     } else if (response.status === 400) {
-      throw new Error('Invalid payment amount or booking details.');
+      throw new Error(`Invalid payment request. Status: ${response.status}, Response: ${responseText}`);
     } else if (response.status >= 500) {
-      throw new Error('EKQR service is temporarily unavailable. Please try again later.');
+      throw new Error(`EKQR service error. Status: ${response.status}, Response: ${responseText}`);
     }
     
-    throw new Error(`Failed to create QR code: ${errorData}`);
+    throw new Error(`Failed to create QR code. Status: ${response.status}, Response: ${responseText}`);
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = JSON.parse(responseText);
+    console.log('[EKQR-PAYMENT] Parsed response data:', data);
+  } catch (parseError) {
+    console.error('[EKQR-PAYMENT] Failed to parse response as JSON:', parseError);
+    throw new Error(`Invalid API response format: ${responseText}`);
+  }
   
   return new Response(
     JSON.stringify({ 
@@ -114,29 +131,43 @@ async function checkPaymentStatus(qrId: string) {
   }
 
   // Check EKQR payment status based on official documentation
-  console.log('[EKQR-PAYMENT] Making status check API request');
+  console.log('[EKQR-PAYMENT] Making status check API request for QR ID:', qrId);
+  console.log('[EKQR-PAYMENT] Status check URL:', `https://ekqr.co/api/ekqr/status/${qrId}`);
+  console.log('[EKQR-PAYMENT] API key preview:', ekqrApiKey ? `${ekqrApiKey.substring(0, 8)}...` : 'NOT SET');
+  
   const response = await fetch(`https://ekqr.co/api/ekqr/status/${qrId}`, {
     headers: {
       'x-api-key': ekqrApiKey,
     },
   });
 
-  console.log('[EKQR-PAYMENT] Status check response:', response.status);
+  console.log('[EKQR-PAYMENT] Status check response status:', response.status);
+  console.log('[EKQR-PAYMENT] Status check response headers:', Object.fromEntries(response.headers.entries()));
+
+  const responseText = await response.text();
+  console.log('[EKQR-PAYMENT] Status check raw response:', responseText);
 
   if (!response.ok) {
-    const errorData = await response.text();
-    console.error('[EKQR-PAYMENT] Status Check Error:', errorData);
+    console.error('[EKQR-PAYMENT] Status Check Error - Status:', response.status);
+    console.error('[EKQR-PAYMENT] Status Check Error - Response:', responseText);
     
     if (response.status === 401) {
-      throw new Error('Invalid EKQR API key for status check.');
+      throw new Error(`Invalid EKQR API key for status check. Status: ${response.status}, Response: ${responseText}`);
     } else if (response.status === 404) {
-      throw new Error('Payment transaction not found.');
+      throw new Error(`Payment transaction not found. Status: ${response.status}, Response: ${responseText}`);
     }
     
-    throw new Error(`Failed to check payment status: ${errorData}`);
+    throw new Error(`Failed to check payment status. Status: ${response.status}, Response: ${responseText}`);
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = JSON.parse(responseText);
+    console.log('[EKQR-PAYMENT] Status check parsed data:', data);
+  } catch (parseError) {
+    console.error('[EKQR-PAYMENT] Failed to parse status response as JSON:', parseError);
+    throw new Error(`Invalid status response format: ${responseText}`);
+  }
   
   return new Response(
     JSON.stringify({ 

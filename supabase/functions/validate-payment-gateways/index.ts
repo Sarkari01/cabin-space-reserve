@@ -30,20 +30,29 @@ serve(async (req) => {
     const gateways: Record<string, string> = {};
     const availableMethods: string[] = [];
 
-    // Validate EKQR
+    // Validate EKQR - relaxed validation
     if (settings.ekqr_enabled) {
       const ekqrApiKey = Deno.env.get('EKQR_API_KEY');
       if (ekqrApiKey && ekqrApiKey.trim()) {
-        // Check if API key format is valid (should be a UUID-like string)
-        const isValidApiKey = /^[a-f0-9-]{36}$/i.test(ekqrApiKey.trim());
+        // More flexible API key validation - check for UUID format but be case-insensitive
+        const trimmedKey = ekqrApiKey.trim();
+        const isValidApiKey = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmedKey);
+        
+        console.log('[PAYMENT-GATEWAY] EKQR API Key validation:', {
+          keyLength: trimmedKey.length,
+          isValidFormat: isValidApiKey,
+          keyPreview: `${trimmedKey.substring(0, 8)}...`
+        });
         
         if (isValidApiKey) {
           gateways.ekqr = 'configured';
           availableMethods.push('ekqr');
         } else {
+          console.error('[PAYMENT-GATEWAY] Invalid EKQR API key format:', trimmedKey);
           gateways.ekqr = 'invalid_credentials';
         }
       } else {
+        console.error('[PAYMENT-GATEWAY] EKQR API key is missing or empty');
         gateways.ekqr = 'missing_config';
       }
     } else {
