@@ -67,14 +67,8 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
   };
 
   const handleEKQRPayment = async () => {
-    if (!settings?.ekqr_api_key) {
-      toast({
-        title: "Configuration Error",
-        description: "EKQR is not properly configured",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Remove the API key check here - rely on PaymentMethodSelector validation
+    // The payment method selector has already validated that EKQR is available
 
     try {
       // Create transaction record first
@@ -239,6 +233,12 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
           onMethodSelect={setSelectedMethod}
           selectedMethod={selectedMethod}
         />
+        
+        {!selectedMethod && (
+          <div className="text-sm text-muted-foreground text-center">
+            Please select a payment method to continue
+          </div>
+        )}
 
         <div className="flex gap-2">
           <Button variant="outline" onClick={onCancel} className="flex-1">
