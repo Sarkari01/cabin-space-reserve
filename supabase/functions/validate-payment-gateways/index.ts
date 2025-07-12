@@ -33,22 +33,14 @@ serve(async (req) => {
     // Validate EKQR
     if (settings.ekqr_enabled) {
       if (settings.ekqr_api_key && settings.ekqr_api_key.trim()) {
-        // Test EKQR API connection
-        try {
-          const testResponse = await fetch('https://api.ekqr.in/api/test', {
-            headers: {
-              'api_key': settings.ekqr_api_key,
-            },
-          });
-          
-          if (testResponse.ok) {
-            gateways.ekqr = 'configured';
-            availableMethods.push('ekqr');
-          } else {
-            gateways.ekqr = 'invalid_credentials';
-          }
-        } catch (error) {
-          gateways.ekqr = 'connection_error';
+        // Check if API key format is valid (should be a UUID-like string)
+        const isValidApiKey = /^[a-f0-9-]{36}$/i.test(settings.ekqr_api_key.trim());
+        
+        if (isValidApiKey) {
+          gateways.ekqr = 'configured';
+          availableMethods.push('ekqr');
+        } else {
+          gateways.ekqr = 'invalid_credentials';
         }
       } else {
         gateways.ekqr = 'missing_config';

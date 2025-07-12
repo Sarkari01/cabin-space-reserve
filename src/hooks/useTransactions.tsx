@@ -117,7 +117,8 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
     qr_id?: string;
     payment_data?: any;
   }) => {
-    if (!user) {
+    if (!user?.id) {
+      console.error('No authenticated user found');
       toast({
         title: "Error",
         description: "You must be logged in to create a transaction",
@@ -127,6 +128,9 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
     }
 
     try {
+      console.log('Creating transaction with user_id:', user.id);
+      console.log('Transaction data:', transactionData);
+
       const { data, error } = await supabase
         .from("transactions")
         .insert({
@@ -137,7 +141,11 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Transaction creation error:', error);
+        console.error('Error details:', error.message, error.details, error.hint);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -150,7 +158,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
       console.error("Error creating transaction:", error);
       toast({
         title: "Error",
-        description: "Failed to create transaction",
+        description: `Failed to create transaction: ${error?.message || 'Unknown error'}`,
         variant: "destructive",
       });
       return false;
