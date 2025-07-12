@@ -1,25 +1,30 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  console.log('EKQR Payment function called - method:', req.method, 'url:', req.url);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('EKQR: Handling OPTIONS request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('EKQR: Initializing Supabase client');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
+    console.log('EKQR: Parsing request body');
     const requestBody = await req.json();
-    console.log('[EKQR] Received request:', requestBody);
+    console.log('EKQR: Received request:', requestBody);
     const { action, transactionId, amount, bookingId } = requestBody;
 
     switch (action) {

@@ -70,10 +70,9 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
   };
 
   const handleEKQRPayment = async () => {
-    // Remove the API key check here - rely on PaymentMethodSelector validation
-    // The payment method selector has already validated that EKQR is available
-
     try {
+      console.log('EKQR: Starting payment process for booking:', bookingData.id);
+      
       // Create transaction record first
       const transaction = await createTransaction({
         booking_id: bookingData.id,
@@ -85,7 +84,10 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         throw new Error("Failed to create transaction record");
       }
 
+      console.log('EKQR: Transaction created:', transaction.id);
+
       // Create EKQR QR code using official API
+      console.log('EKQR: Invoking edge function...');
       const { data: qrResponse, error } = await supabase.functions.invoke('ekqr-payment', {
         body: {
           action: 'createQR',
@@ -94,11 +96,13 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         },
       });
 
+      console.log('EKQR: Function response:', { qrResponse, error });
+
       if (error) {
         console.error('EKQR Payment Error:', error);
         toast({
           title: "Payment Failed",
-          description: "Failed to generate QR code",
+          description: error.message || "Failed to generate QR code",
           variant: "destructive",
         });
         throw new Error(error.message || 'Failed to generate QR code');
@@ -171,6 +175,8 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
   const handleRazorpayPayment = async () => {
     try {
+      console.log('Razorpay: Starting payment process for booking:', bookingData.id);
+      
       // Create transaction record first
       const transaction = await createTransaction({
         booking_id: bookingData.id,
@@ -182,7 +188,10 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         throw new Error("Failed to create transaction record");
       }
 
+      console.log('Razorpay: Transaction created:', transaction.id);
+
       // Create Razorpay order
+      console.log('Razorpay: Invoking edge function...');
       const { data: orderResponse, error } = await supabase.functions.invoke('razorpay-payment', {
         body: {
           action: 'create_order',
@@ -191,11 +200,13 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         },
       });
 
+      console.log('Razorpay: Function response:', { orderResponse, error });
+
       if (error) {
         console.error('Razorpay Payment Error:', error);
         toast({
           title: "Payment Failed", 
-          description: "Failed to initiate payment",
+          description: error.message || "Failed to initiate payment",
           variant: "destructive",
         });
         throw new Error(error.message || 'Failed to create payment order');
