@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { QrCode, Wallet, Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { QrCode, Wallet, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -68,8 +69,17 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {error}
+        <AlertDescription className="flex items-center justify-between">
+          <span>{error}</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={validatePaymentGateways}
+            className="ml-2"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Retry
+          </Button>
         </AlertDescription>
       </Alert>
     );
