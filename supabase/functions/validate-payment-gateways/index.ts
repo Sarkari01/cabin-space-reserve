@@ -32,9 +32,10 @@ serve(async (req) => {
 
     // Validate EKQR
     if (settings.ekqr_enabled) {
-      if (settings.ekqr_api_key && settings.ekqr_api_key.trim()) {
+      const ekqrApiKey = Deno.env.get('EKQR_API_KEY');
+      if (ekqrApiKey && ekqrApiKey.trim()) {
         // Check if API key format is valid (should be a UUID-like string)
-        const isValidApiKey = /^[a-f0-9-]{36}$/i.test(settings.ekqr_api_key.trim());
+        const isValidApiKey = /^[a-f0-9-]{36}$/i.test(ekqrApiKey.trim());
         
         if (isValidApiKey) {
           gateways.ekqr = 'configured';
@@ -64,7 +65,7 @@ serve(async (req) => {
         availableMethods,
         settings: {
           ekqr_enabled: settings.ekqr_enabled,
-          ekqr_api_key: !!settings.ekqr_api_key,
+          ekqr_api_key_configured: !!Deno.env.get('EKQR_API_KEY'),
           offline_enabled: settings.offline_enabled
         }
       }),
