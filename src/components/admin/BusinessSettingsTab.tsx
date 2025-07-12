@@ -16,7 +16,6 @@ export const BusinessSettingsTab = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     ekqr_enabled: false,
-    ekqr_api_key: '',
     offline_enabled: true,
   });
   const [saving, setSaving] = useState(false);
@@ -27,7 +26,6 @@ export const BusinessSettingsTab = () => {
     if (settings) {
       setFormData({
         ekqr_enabled: settings.ekqr_enabled,
-        ekqr_api_key: settings.ekqr_api_key || '',
         offline_enabled: settings.offline_enabled,
       });
     }
@@ -133,17 +131,9 @@ export const BusinessSettingsTab = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="ekqr_api_key">EKQR API Key</Label>
-              <Input
-                id="ekqr_api_key"
-                type="password"
-                value={formData.ekqr_api_key}
-                onChange={(e) =>
-                  setFormData(prev => ({ ...prev, ekqr_api_key: e.target.value }))
-                }
-                placeholder="Enter your EKQR API Key"
-              />
+            <div className="text-sm text-muted-foreground">
+              <p>EKQR API key is managed securely through Supabase secrets.</p>
+              <p>Contact your administrator to configure the EKQR_API_KEY secret.</p>
             </div>
           </CardContent>
         </Card>
