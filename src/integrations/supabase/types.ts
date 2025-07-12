@@ -123,7 +123,6 @@ export type Database = {
       business_settings: {
         Row: {
           created_at: string
-          ekqr_api_key: string | null
           ekqr_enabled: boolean
           id: string
           offline_enabled: boolean
@@ -131,7 +130,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          ekqr_api_key?: string | null
           ekqr_enabled?: boolean
           id?: string
           offline_enabled?: boolean
@@ -139,7 +137,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          ekqr_api_key?: string | null
           ekqr_enabled?: boolean
           id?: string
           offline_enabled?: boolean
