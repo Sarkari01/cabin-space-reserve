@@ -123,32 +123,26 @@ export type Database = {
       business_settings: {
         Row: {
           created_at: string
+          ekqr_api_key: string | null
           ekqr_enabled: boolean
-          ekqr_merchant_code: string | null
           id: string
           offline_enabled: boolean
-          razorpay_enabled: boolean
-          razorpay_key_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          ekqr_api_key?: string | null
           ekqr_enabled?: boolean
-          ekqr_merchant_code?: string | null
           id?: string
           offline_enabled?: boolean
-          razorpay_enabled?: boolean
-          razorpay_key_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          ekqr_api_key?: string | null
           ekqr_enabled?: boolean
-          ekqr_merchant_code?: string | null
           id?: string
           offline_enabled?: boolean
-          razorpay_enabled?: boolean
-          razorpay_key_id?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -4,10 +4,8 @@ import { useToast } from "./use-toast";
 
 export interface BusinessSettings {
   id: string;
-  razorpay_enabled: boolean;
-  razorpay_key_id: string | null;
   ekqr_enabled: boolean;
-  ekqr_merchant_code: string | null;
+  ekqr_api_key: string | null;
   offline_enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -33,10 +31,8 @@ export const useBusinessSettings = () => {
         const { data: newData, error: insertError } = await supabase
           .from("business_settings")
           .insert({
-            razorpay_enabled: false,
-            razorpay_key_id: null,
-            ekqr_enabled: false,
-            ekqr_merchant_code: null,
+            ekqr_enabled: true,
+            ekqr_api_key: '3e323980-8939-433c-b8c5-4e1775e917d5',
             offline_enabled: true,
           })
           .select()
@@ -71,27 +67,15 @@ export const useBusinessSettings = () => {
 
     try {
       // Get the values that will be set after the update
-      const finalRazorpayKeyId = updates.razorpay_key_id !== undefined 
-        ? updates.razorpay_key_id 
-        : settings.razorpay_key_id;
-      const finalEkqrMerchantCode = updates.ekqr_merchant_code !== undefined 
-        ? updates.ekqr_merchant_code 
-        : settings.ekqr_merchant_code;
+      const finalEkqrApiKey = updates.ekqr_api_key !== undefined 
+        ? updates.ekqr_api_key 
+        : settings.ekqr_api_key;
 
       // Only validate if trying to enable without required fields
-      if (updates.razorpay_enabled === true && (!finalRazorpayKeyId || !finalRazorpayKeyId.trim())) {
+      if (updates.ekqr_enabled === true && (!finalEkqrApiKey || !finalEkqrApiKey.trim())) {
         toast({
           title: "Validation Error",
-          description: "Razorpay Key ID is required when enabling Razorpay",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      if (updates.ekqr_enabled === true && (!finalEkqrMerchantCode || !finalEkqrMerchantCode.trim())) {
-        toast({
-          title: "Validation Error",
-          description: "EKQR Merchant Code is required when enabling EKQR",
+          description: "EKQR API Key is required when enabling EKQR",
           variant: "destructive",
         });
         return false;

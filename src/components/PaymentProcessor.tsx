@@ -8,12 +8,6 @@ import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, QrCode } from "lucide-react";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 interface PaymentProcessorProps {
   bookingData: {
     id: string;
@@ -51,9 +45,6 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
     try {
       switch (selectedMethod) {
-        case "razorpay":
-          await handleRazorpayPayment();
-          break;
         case "ekqr":
           await handleEKQRPayment();
           break;
@@ -75,106 +66,8 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
     }
   };
 
-  const handleRazorpayPayment = async () => {
-    if (!settings?.razorpay_key_id) {
-      toast({
-        title: "Configuration Error",
-        description: "Razorpay is not properly configured",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Create transaction record first
-      const transaction = await createTransaction({
-        booking_id: bookingData.id,
-        amount: bookingData.total_amount,
-        payment_method: "razorpay",
-      });
-
-      if (!transaction) {
-        throw new Error("Failed to create transaction record");
-      }
-
-      // Create Razorpay order
-      const { data: orderData, error } = await supabase.functions.invoke('razorpay-payment', {
-        body: {
-          action: 'createOrder',
-          amount: bookingData.total_amount,
-          bookingId: bookingData.id,
-        },
-      });
-
-      if (error) throw error;
-
-      // Load Razorpay script if not already loaded
-      if (!window.Razorpay) {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.async = true;
-        document.body.appendChild(script);
-        await new Promise((resolve) => { script.onload = resolve; });
-      }
-
-      // Initialize Razorpay checkout
-      const options = {
-        key: settings.razorpay_key_id,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        order_id: orderData.orderId,
-        name: 'Study Hall Booking',
-        description: `Booking for ${bookingData.booking_period} period`,
-        handler: async (response: any) => {
-          try {
-            // Verify payment
-            const { error: verifyError } = await supabase.functions.invoke('razorpay-payment', {
-              body: {
-                action: 'verifyPayment',
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                bookingId: bookingData.id,
-              },
-            });
-
-            if (verifyError) throw verifyError;
-
-            toast({
-              title: "Payment Successful",
-              description: "Your booking has been confirmed!",
-            });
-            onPaymentSuccess();
-          } catch (error) {
-            console.error('Payment verification failed:', error);
-            toast({
-              title: "Payment Verification Failed",
-              description: "Please contact support if amount was deducted",
-              variant: "destructive",
-            });
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setProcessing(false);
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      console.error('Razorpay payment error:', error);
-      toast({
-        title: "Payment Failed",
-        description: "Failed to initialize payment. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleEKQRPayment = async () => {
-    if (!settings?.ekqr_merchant_code) {
+    if (!settings?.ekqr_api_key) {
       toast({
         title: "Configuration Error",
         description: "EKQR is not properly configured",
@@ -195,11 +88,12 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         throw new Error("Failed to create transaction record");
       }
 
-      // Create EKQR QR code
+      // Create EKQR QR code using official API
       const { data: qrResponse, error } = await supabase.functions.invoke('ekqr-payment', {
         body: {
           action: 'createQR',
           amount: bookingData.total_amount,
+          bookingId: bookingData.id,
         },
       });
 
@@ -209,7 +103,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
       setShowQR(true);
 
       // Start polling for payment status
-      startPaymentPolling(qrResponse.qrId, transaction.id);
+      startPaymentPolling(qrResponse.qr_id, transaction.id);
     } catch (error) {
       console.error('EKQR payment error:', error);
       toast({
@@ -232,7 +126,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
         if (error) throw error;
 
-        if (statusResponse.status === 'completed') {
+        if (statusResponse.status === 'success') {
           clearInterval(pollInterval);
           await updateTransactionStatus(transactionId, 'completed');
           setShowQR(false);
@@ -299,7 +193,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
           <div className="text-center space-y-4">
             <div className="bg-white p-4 rounded-lg inline-block">
               <img 
-                src={qrData.qrImage} 
+                src={qrData.qr_image_url} 
                 alt="Payment QR Code" 
                 className="w-48 h-48 mx-auto"
               />

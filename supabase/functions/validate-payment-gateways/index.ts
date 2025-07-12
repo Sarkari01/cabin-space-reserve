@@ -1,13 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,96 +14,76 @@ serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    )
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
 
     // Get business settings
-    const { data: settings, error: settingsError } = await supabase
+    const { data: settings, error } = await supabase
       .from('business_settings')
       .select('*')
-      .maybeSingle();
+      .single();
 
-    if (settingsError) {
-      throw new Error(`Settings error: ${settingsError.message}`);
+    if (error) {
+      throw new Error(`Failed to fetch business settings: ${error.message}`);
     }
 
-    if (!settings) {
-      throw new Error('No business settings found');
-    }
+    const gateways: Record<string, string> = {};
+    const availableMethods: string[] = [];
 
-    // Check gateway configurations
-    const gateways = {
-      razorpay: {
-        enabled: settings.razorpay_enabled,
-        configured: false,
-        hasPublicKey: !!settings.razorpay_key_id?.trim(),
-        hasSecretKey: !!Deno.env.get('RAZORPAY_SECRET_KEY'),
-        status: 'not_configured'
-      },
-      ekqr: {
-        enabled: settings.ekqr_enabled,
-        configured: false,
-        hasMerchantCode: !!settings.ekqr_merchant_code?.trim(),
-        hasApiKey: !!Deno.env.get('EKQR_API_KEY'),
-        status: 'not_configured'
-      },
-      offline: {
-        enabled: settings.offline_enabled,
-        configured: settings.offline_enabled,
-        status: settings.offline_enabled ? 'configured' : 'not_configured'
+    // Validate EKQR
+    if (settings.ekqr_enabled) {
+      if (settings.ekqr_api_key && settings.ekqr_api_key.trim()) {
+        // Test EKQR API connection
+        try {
+          const testResponse = await fetch('https://api.ekqr.in/api/test', {
+            headers: {
+              'api_key': settings.ekqr_api_key,
+            },
+          });
+          
+          if (testResponse.ok) {
+            gateways.ekqr = 'configured';
+            availableMethods.push('ekqr');
+          } else {
+            gateways.ekqr = 'invalid_credentials';
+          }
+        } catch (error) {
+          gateways.ekqr = 'connection_error';
+        }
+      } else {
+        gateways.ekqr = 'missing_config';
       }
-    };
-
-    // Validate Razorpay configuration
-    if (gateways.razorpay.hasPublicKey && gateways.razorpay.hasSecretKey) {
-      gateways.razorpay.configured = true;
-      gateways.razorpay.status = gateways.razorpay.enabled ? 'configured' : 'disabled';
     } else {
-      gateways.razorpay.status = !gateways.razorpay.hasPublicKey ? 'missing_public_key' : 'missing_secret_key';
+      gateways.ekqr = 'disabled';
     }
 
-    // Validate EKQR configuration  
-    if (gateways.ekqr.hasMerchantCode && gateways.ekqr.hasApiKey) {
-      gateways.ekqr.configured = true;
-      gateways.ekqr.status = gateways.ekqr.enabled ? 'configured' : 'disabled';
-    } else {
-      gateways.ekqr.status = !gateways.ekqr.hasMerchantCode ? 'missing_merchant_code' : 'missing_api_key';
-    }
-
-    // Get available payment methods (only fully configured and enabled ones)
-    const availableMethods = [];
-    if (gateways.razorpay.enabled && gateways.razorpay.configured) {
-      availableMethods.push('razorpay');
-    }
-    if (gateways.ekqr.enabled && gateways.ekqr.configured) {
-      availableMethods.push('ekqr');
-    }
-    if (gateways.offline.enabled) {
+    // Validate Offline Payment
+    if (settings.offline_enabled) {
+      gateways.offline = 'configured';
       availableMethods.push('offline');
+    } else {
+      gateways.offline = 'disabled';
     }
-
 
     return new Response(
       JSON.stringify({ 
-        success: true,
+        success: true, 
         gateways,
         availableMethods,
-        totalConfigured: availableMethods.length
+        settings: {
+          ekqr_enabled: settings.ekqr_enabled,
+          ekqr_api_key: !!settings.ekqr_api_key,
+          offline_enabled: settings.offline_enabled
+        }
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   } catch (error) {
-    console.error('Gateway validation error:', error);
+    console.error('Error validating payment gateways:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: error.message,
-        gateways: {},
-        availableMethods: [],
-        totalConfigured: 0
-      }),
+      JSON.stringify({ error: error.message }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

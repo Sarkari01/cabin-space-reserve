@@ -18,11 +18,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
-    const { action, transactionId, amount } = await req.json();
+    const { action, transactionId, amount, bookingId } = await req.json();
 
     switch (action) {
       case 'createQR':
-        return await createQRCode(amount);
+        return await createQRCode(amount, bookingId);
       case 'checkStatus':
         return await checkPaymentStatus(transactionId);
       default:
@@ -40,14 +40,8 @@ serve(async (req) => {
   }
 });
 
-async function createQRCode(amount: number) {
-  const EKQR_API_KEY = Deno.env.get('EKQR_API_KEY');
-  
-  if (!EKQR_API_KEY) {
-    throw new Error('EKQR API Key not configured in project secrets');
-  }
-
-  // Get merchant code from business settings
+async function createQRCode(amount: number, bookingId: string) {
+  // Get EKQR API key from business settings
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -55,30 +49,29 @@ async function createQRCode(amount: number) {
 
   const { data: settings, error } = await supabase
     .from('business_settings')
-    .select('ekqr_merchant_code')
+    .select('ekqr_api_key')
     .single();
 
-  if (error || !settings?.ekqr_merchant_code) {
-    throw new Error('EKQR Merchant Code not configured in business settings');
+  if (error || !settings?.ekqr_api_key) {
+    throw new Error('EKQR API Key not configured in business settings');
   }
 
-  // EKQR API call based on documentation
-  const response = await fetch('https://api.ekqr.in/api/qr', {
+  // EKQR API call based on official documentation
+  const response = await fetch('https://api.ekqr.in/api/qrcode', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': EKQR_API_KEY,
+      'api_key': settings.ekqr_api_key,
     },
     body: JSON.stringify({
-      merchant_code: settings.ekqr_merchant_code,
-      amount: amount.toString(),
-      order_id: `ORDER_${Date.now()}`,
-      description: 'Study Hall Booking Payment',
+      amount: amount,
+      reference_id: `BOOKING_${bookingId}`
     }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to create QR code');
+    const errorData = await response.text();
+    throw new Error(`Failed to create QR code: ${errorData}`);
   }
 
   const data = await response.json();
@@ -86,10 +79,10 @@ async function createQRCode(amount: number) {
   return new Response(
     JSON.stringify({ 
       success: true, 
-      qrId: data.qr_id,
-      qrImage: data.qr_code,
-      orderId: data.order_id,
-      paymentUrl: data.payment_url
+      qr_id: data.qr_id,
+      qr_image_url: data.qr_image_url,
+      reference_id: data.reference_id,
+      amount: data.amount
     }),
     { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -97,22 +90,32 @@ async function createQRCode(amount: number) {
   );
 }
 
-async function checkPaymentStatus(transactionId: string) {
-  const EKQR_API_KEY = Deno.env.get('EKQR_API_KEY');
+async function checkPaymentStatus(qrId: string) {
+  // Get EKQR API key from business settings
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
 
-  if (!EKQR_API_KEY) {
-    throw new Error('EKQR credentials not configured');
+  const { data: settings } = await supabase
+    .from('business_settings')
+    .select('ekqr_api_key')
+    .single();
+
+  if (!settings?.ekqr_api_key) {
+    throw new Error('EKQR API Key not configured');
   }
 
-  // Check EKQR payment status
-  const response = await fetch(`https://api.ekqr.in/api/status/${transactionId}`, {
+  // Check EKQR payment status based on official documentation
+  const response = await fetch(`https://api.ekqr.in/api/transaction/${qrId}`, {
     headers: {
-      'x-api-key': EKQR_API_KEY,
+      'api_key': settings.ekqr_api_key,
     },
   });
 
   if (!response.ok) {
-    throw new Error('Failed to check payment status');
+    const errorData = await response.text();
+    throw new Error(`Failed to check payment status: ${errorData}`);
   }
 
   const data = await response.json();
@@ -120,8 +123,11 @@ async function checkPaymentStatus(transactionId: string) {
   return new Response(
     JSON.stringify({ 
       success: true, 
-      status: data.status, // 'pending', 'completed', 'failed'
-      transactionId: data.transactionId
+      status: data.status, // 'pending', 'success', 'failed'
+      qr_id: data.qr_id,
+      reference_id: data.reference_id,
+      amount: data.amount,
+      transaction_id: data.transaction_id
     }),
     { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

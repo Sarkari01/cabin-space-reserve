@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CreditCard, QrCode, Wallet, Loader2, AlertCircle } from "lucide-react";
+import { QrCode, Wallet, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -87,14 +87,11 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
             {gatewayStatus && (
               <div className="text-xs text-left bg-muted p-3 rounded space-y-1">
                 <p className="font-medium">Configuration Status:</p>
-                {gatewayStatus.razorpay && (
-                  <p>• Razorpay: {gatewayStatus.razorpay.status.replace('_', ' ')}</p>
-                )}
                 {gatewayStatus.ekqr && (
-                  <p>• EKQR: {gatewayStatus.ekqr.status.replace('_', ' ')}</p>
+                  <p>• EKQR: {gatewayStatus.ekqr.replace('_', ' ')}</p>
                 )}
                 {gatewayStatus.offline && (
-                  <p>• Offline: {gatewayStatus.offline.status}</p>
+                  <p>• Offline: {gatewayStatus.offline}</p>
                 )}
               </div>
             )}
@@ -106,23 +103,16 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
 
   const paymentMethods = [
     {
-      id: "razorpay",
-      title: "Online Payment",
-      description: "Pay instantly using UPI, Cards, or Net Banking",
-      icon: CreditCard,
-      enabled: availableMethods.includes("razorpay"),
-    },
-    {
       id: "ekqr",
-      title: "UPI QR Payment",
-      description: "Scan QR code to pay using any UPI app",
+      title: "QR Code Payment",
+      description: "Scan QR code with your mobile app",
       icon: QrCode,
       enabled: availableMethods.includes("ekqr"),
     },
     {
       id: "offline",
       title: "Pay at Study Hall",
-      description: "Reserve seat now, pay when you arrive",
+      description: "Pay directly when you arrive",
       icon: Wallet,
       enabled: availableMethods.includes("offline"),
     },
