@@ -48,6 +48,9 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         case "ekqr":
           await handleEKQRPayment();
           break;
+        case "razorpay":
+          await handleRazorpayPayment();
+          break;
         case "offline":
           await handleOfflinePayment();
           break;
@@ -170,6 +173,101 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
     }, 600000);
   };
 
+  const handleRazorpayPayment = async () => {
+    try {
+      // Create transaction record first
+      const transaction = await createTransaction({
+        booking_id: bookingData.id,
+        amount: bookingData.total_amount,
+        payment_method: "razorpay",
+      });
+
+      if (!transaction) {
+        throw new Error("Failed to create transaction record");
+      }
+
+      // Create Razorpay order
+      const { data: orderResponse, error } = await supabase.functions.invoke('razorpay-payment', {
+        body: {
+          action: 'create_order',
+          amount: bookingData.total_amount,
+          booking_id: bookingData.id,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to create payment order');
+      }
+
+      // Load Razorpay script if not already loaded
+      if (!window.Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+        
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+        });
+      }
+
+      // Configure Razorpay options
+      const options = {
+        key: orderResponse.key_id,
+        amount: orderResponse.amount,
+        currency: orderResponse.currency,
+        name: "Study Hall Booking",
+        description: `Booking for ${bookingData.booking_period}`,
+        order_id: orderResponse.order_id,
+        handler: async function (response: any) {
+          try {
+            // Verify payment
+            const { data: verifyResponse, error: verifyError } = await supabase.functions.invoke('razorpay-payment', {
+              body: {
+                action: 'verify_payment',
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                transaction_id: transaction.id,
+              },
+            });
+
+            if (verifyError) {
+              throw new Error('Payment verification failed');
+            }
+
+            toast({
+              title: "Payment Successful",
+              description: "Your booking has been confirmed!",
+            });
+            onPaymentSuccess();
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            toast({
+              title: "Payment Verification Failed",
+              description: "Please contact support for assistance.",
+              variant: "destructive",
+            });
+          }
+        },
+        theme: {
+          color: "#3399cc"
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error('Razorpay payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleOfflinePayment = async () => {
     const transaction = await createTransaction({
       booking_id: bookingData.id,
@@ -262,7 +360,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
             className="flex-1"
           >
             {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {selectedMethod === "offline" ? "Reserve Seat" : "Pay Now"}
+            {selectedMethod === "offline" ? "Reserve Seat" : selectedMethod === "razorpay" ? "Pay with Razorpay" : "Pay Now"}
           </Button>
         </div>
       </CardContent>

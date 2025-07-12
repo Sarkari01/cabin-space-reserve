@@ -103,6 +103,9 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
                 {gatewayStatus.ekqr && (
                   <p>• EKQR: {gatewayStatus.ekqr.replace('_', ' ')}</p>
                 )}
+                {gatewayStatus.razorpay && (
+                  <p>• Razorpay: {gatewayStatus.razorpay.replace('_', ' ')}</p>
+                )}
                 {gatewayStatus.offline && (
                   <p>• Offline: {gatewayStatus.offline}</p>
                 )}
@@ -121,6 +124,13 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
       description: "Scan QR code with your mobile app",
       icon: QrCode,
       enabled: availableMethods.includes("ekqr"),
+    },
+    {
+      id: "razorpay",
+      title: "Card / UPI Payment",
+      description: "Pay securely with cards, UPI, wallets",
+      icon: () => <span className="text-lg">💳</span>,
+      enabled: availableMethods.includes("razorpay"),
     },
     {
       id: "offline",

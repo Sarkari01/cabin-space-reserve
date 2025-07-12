@@ -6,5 +6,8 @@ project_id = "jseyxxsptcckjumjcljk"
 [functions.razorpay-payment]
 # Keep JWT verification enabled for secure payment processing
 
+[functions.validate-payment-gateways]
+verify_jwt = false
+
 [functions.ekqr-payment]
 # Keep JWT verification enabled for secure payment processing

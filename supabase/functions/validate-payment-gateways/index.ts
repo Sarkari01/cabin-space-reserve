@@ -67,6 +67,34 @@ serve(async (req) => {
       gateways.offline = 'disabled';
     }
 
+    // Validate Razorpay
+    if (settings.razorpay_enabled) {
+      const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
+      const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+      
+      if (razorpayKeyId && razorpayKeySecret) {
+        // Basic validation - check if they look like valid Razorpay keys
+        const keyIdValid = razorpayKeyId.startsWith('rzp_live_') || razorpayKeyId.startsWith('rzp_test_');
+        
+        console.log('[PAYMENT-GATEWAY] Razorpay validation:', {
+          keyIdValid,
+          secretLength: razorpayKeySecret.length,
+          keyIdPreview: `${razorpayKeyId.substring(0, 8)}...`
+        });
+        
+        if (keyIdValid && razorpayKeySecret.length > 10) {
+          gateways.razorpay = 'configured';
+          availableMethods.push('razorpay');
+        } else {
+          gateways.razorpay = 'invalid_credentials';
+        }
+      } else {
+        gateways.razorpay = 'missing_config';
+      }
+    } else {
+      gateways.razorpay = 'disabled';
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -75,7 +103,9 @@ serve(async (req) => {
         settings: {
           ekqr_enabled: settings.ekqr_enabled,
           ekqr_api_key_configured: !!Deno.env.get('EKQR_API_KEY'),
-          offline_enabled: settings.offline_enabled
+          offline_enabled: settings.offline_enabled,
+          razorpay_enabled: settings.razorpay_enabled,
+          razorpay_configured: !!(Deno.env.get('RAZORPAY_KEY_ID') && Deno.env.get('RAZORPAY_KEY_SECRET'))
         }
       }),
       { 

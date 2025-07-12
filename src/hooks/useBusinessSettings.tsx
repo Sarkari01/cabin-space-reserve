@@ -6,6 +6,7 @@ export interface BusinessSettings {
   id: string;
   ekqr_enabled: boolean;
   offline_enabled: boolean;
+  razorpay_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +33,7 @@ export const useBusinessSettings = () => {
           .insert({
             ekqr_enabled: true,
             offline_enabled: true,
+            razorpay_enabled: false,
           })
           .select()
           .single();

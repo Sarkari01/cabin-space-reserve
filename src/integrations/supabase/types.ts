@@ -126,6 +126,7 @@ export type Database = {
           ekqr_enabled: boolean
           id: string
           offline_enabled: boolean
+          razorpay_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -133,6 +134,7 @@ export type Database = {
           ekqr_enabled?: boolean
           id?: string
           offline_enabled?: boolean
+          razorpay_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -140,6 +142,7 @@ export type Database = {
           ekqr_enabled?: boolean
           id?: string
           offline_enabled?: boolean
+          razorpay_enabled?: boolean
           updated_at?: string
         }
         Relationships: []

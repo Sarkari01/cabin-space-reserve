@@ -17,6 +17,7 @@ export const BusinessSettingsTab = () => {
   const [formData, setFormData] = useState({
     ekqr_enabled: false,
     offline_enabled: true,
+    razorpay_enabled: false,
   });
   const [saving, setSaving] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState<Record<string, string>>({});
@@ -27,6 +28,7 @@ export const BusinessSettingsTab = () => {
       setFormData({
         ekqr_enabled: settings.ekqr_enabled,
         offline_enabled: settings.offline_enabled,
+        razorpay_enabled: settings.razorpay_enabled,
       });
     }
   }, [settings]);
@@ -134,6 +136,33 @@ export const BusinessSettingsTab = () => {
             <div className="text-sm text-muted-foreground">
               <p>EKQR API key is managed securely through Supabase secrets.</p>
               <p>Contact your administrator to configure the EKQR_API_KEY secret.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Razorpay Payment Gateway */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-base">Razorpay Payment Gateway</CardTitle>
+              <CardDescription>
+                Accept card and UPI payments through Razorpay
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              {getStatusBadge(gatewayStatus.razorpay || 'unknown')}
+              <Switch
+                checked={formData.razorpay_enabled}
+                onCheckedChange={(checked) =>
+                  setFormData(prev => ({ ...prev, razorpay_enabled: checked }))
+                }
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              <p>Razorpay API keys are managed securely through Supabase secrets.</p>
+              <p>Contact your administrator to configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.</p>
             </div>
           </CardContent>
         </Card>

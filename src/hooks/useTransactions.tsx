@@ -8,7 +8,7 @@ export interface Transaction {
   booking_id: string;
   user_id: string;
   amount: number;
-  payment_method: "ekqr" | "offline";
+  payment_method: "ekqr" | "offline" | "razorpay";
   payment_id: string | null;
   qr_id: string | null;
   status: "pending" | "processing" | "completed" | "failed" | "refunded";
@@ -112,7 +112,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
   const createTransaction = async (transactionData: {
     booking_id: string;
     amount: number;
-    payment_method: "ekqr" | "offline";
+    payment_method: "ekqr" | "offline" | "razorpay";
     payment_id?: string;
     qr_id?: string;
     payment_data?: any;
