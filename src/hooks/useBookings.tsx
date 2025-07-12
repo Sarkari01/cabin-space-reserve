@@ -123,7 +123,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
     start_date: string;
     end_date: string;
     total_amount: number;
-  }) => {
+  }): Promise<Booking | false> => {
     if (!user) {
       toast({
         title: "Error",
@@ -172,7 +172,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
       });
 
       fetchBookings();
-      return true;
+      return booking as Booking; // Return the actual booking object instead of true
     } catch (error) {
       console.error("Error creating booking:", error);
       toast({

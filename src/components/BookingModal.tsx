@@ -98,7 +98,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     setLoading(true);
     
     // Create booking first
-    const success = await createBooking({
+    const bookingResult = await createBooking({
       study_hall_id: studyHall.id,
       seat_id: selectedSeat,
       booking_period: bookingPeriod,
@@ -107,10 +107,10 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
       total_amount: calculateAmount(),
     });
 
-    if (success) {
-      // Store booking data for payment processing
+    if (bookingResult && typeof bookingResult === 'object') {
+      // Store booking data for payment processing with real booking ID
       setCreatedBooking({
-        id: Date.now().toString(), // This should be the actual booking ID from the response
+        id: bookingResult.id, // Use the actual booking ID from database
         study_hall_id: studyHall.id,
         seat_id: selectedSeat,
         booking_period: bookingPeriod,

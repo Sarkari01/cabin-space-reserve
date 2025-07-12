@@ -26,7 +26,10 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
       setLoading(true);
       setError(null);
       
+      console.log('Validating payment gateways...');
       const { data, error } = await supabase.functions.invoke('validate-payment-gateways');
+      
+      console.log('Payment gateway validation result:', { data, error });
       
       if (error) {
         throw new Error(error.message || 'Failed to validate payment gateways');
