@@ -25,6 +25,7 @@ import { MerchantTransactionsTab } from "@/components/merchant/MerchantTransacti
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
+import UserProfileSettings from "@/components/UserProfileSettings";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
@@ -1002,6 +1003,14 @@ const MerchantDashboard = () => {
 
         {activeTab === "chat" && (
           <ChatTab userRole="merchant" />
+        )}
+
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
+          <div className="space-y-6">
+            <h3 className="text-2xl font-semibold">Profile Settings</h3>
+            <UserProfileSettings />
+          </div>
         )}
 
         {activeTab === "users" && (

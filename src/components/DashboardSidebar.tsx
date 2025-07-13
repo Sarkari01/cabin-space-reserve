@@ -48,6 +48,7 @@ const sidebarItems = {
     { title: "News", url: "/student/dashboard", icon: Newspaper, tab: "news" },
     { title: "Community", url: "/student/dashboard", icon: Heart, tab: "community" },
     { title: "Chat", url: "/student/dashboard", icon: MessageSquare, tab: "chat" },
+    { title: "Profile", url: "/student/dashboard", icon: Settings, tab: "profile" },
   ],
   merchant: [
     { title: "Dashboard", url: "/merchant/dashboard", icon: Home, tab: "overview" },
@@ -58,6 +59,7 @@ const sidebarItems = {
     { title: "News", url: "/merchant/dashboard", icon: Newspaper, tab: "news" },
     { title: "Community", url: "/merchant/dashboard", icon: Heart, tab: "community" },
     { title: "Chat", url: "/merchant/dashboard", icon: MessageSquare, tab: "chat" },
+    { title: "Profile", url: "/merchant/dashboard", icon: Settings, tab: "profile" },
   ],
   admin: [
     { title: "Dashboard", url: "/admin/dashboard", icon: Home, tab: "overview" },
@@ -72,6 +74,7 @@ const sidebarItems = {
     { title: "Community", url: "/admin/dashboard", icon: Heart, tab: "community" },
     { title: "Chat", url: "/admin/dashboard", icon: MessageSquare, tab: "chat" },
     { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
+    { title: "Profile", url: "/admin/dashboard", icon: Settings, tab: "profile" },
   ],
 };
 

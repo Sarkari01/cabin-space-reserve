@@ -20,6 +20,7 @@ import { StudentTransactionsTab } from "@/components/student/StudentTransactions
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
+import UserProfileSettings from "@/components/UserProfileSettings";
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading } = useStudyHalls();
@@ -434,6 +435,14 @@ const StudentDashboard = () => {
 
           {/* Chat Tab */}
           {activeTab === "chat" && <ChatTab />}
+
+          {/* Profile Tab */}
+          {activeTab === "profile" && (
+            <div className="space-y-6">
+              <h3 className="text-2xl font-semibold">Profile Settings</h3>
+              <UserProfileSettings />
+            </div>
+          )}
 
           {/* Favorites Tab */}
           {activeTab === "favorites" && (

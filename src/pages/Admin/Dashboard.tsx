@@ -25,6 +25,7 @@ import { MerchantEditModal } from "@/components/admin/MerchantEditModal";
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
+import UserProfileSettings from "@/components/UserProfileSettings";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -712,6 +713,14 @@ const AdminDashboard = () => {
           
           {/* Chat Tab */}
           {activeTab === "chat" && <ChatTab userRole="admin" />}
+
+          {/* Profile Tab */}
+          {activeTab === "profile" && (
+            <div className="space-y-6">
+              <h3 className="text-2xl font-semibold">Profile Settings</h3>
+              <UserProfileSettings />
+            </div>
+          )}
 
           {activeTab === "analytics" && (
             <div className="space-y-6">
