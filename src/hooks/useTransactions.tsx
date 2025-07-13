@@ -5,6 +5,7 @@ import { useToast } from "./use-toast";
 
 export interface Transaction {
   id: string;
+  transaction_number?: number;
   booking_id: string;
   user_id: string;
   amount: number;
@@ -17,8 +18,10 @@ export interface Transaction {
   updated_at: string;
   booking?: {
     id: string;
+    booking_number?: number;
     study_hall?: {
       name: string;
+      hall_number?: number;
     };
     seat?: {
       seat_id: string;
@@ -27,6 +30,7 @@ export interface Transaction {
   user?: {
     full_name: string;
     email: string;
+    merchant_number?: number;
   };
 }
 
@@ -49,10 +53,11 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
           *,
           booking:bookings(
             id,
-            study_hall:study_halls(name),
+            booking_number,
+            study_hall:study_halls(name, hall_number),
             seat:seats(seat_id)
           ),
-          user:profiles(full_name, email)
+          user:profiles(full_name, email, merchant_number)
         `);
 
       if (effectiveRole === "student") {

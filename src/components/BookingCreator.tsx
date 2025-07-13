@@ -10,7 +10,13 @@ interface BookingIntent {
   total_amount: number;
 }
 
-export const createBookingFromIntent = async (bookingIntent: BookingIntent, userId: string, transactionId?: string) => {
+export const createBookingFromIntent = async (
+  bookingIntent: BookingIntent, 
+  userId: string, 
+  transactionId?: string,
+  bookingStatus: 'confirmed' | 'pending' = 'confirmed',
+  paymentStatus: 'paid' | 'unpaid' = 'paid'
+) => {
   console.log('=== Creating booking from intent ===');
   console.log('Booking intent:', bookingIntent);
   console.log('User ID:', userId);
@@ -26,7 +32,7 @@ export const createBookingFromIntent = async (bookingIntent: BookingIntent, user
     }
 
     // Create booking
-    console.log('Inserting booking into database...');
+    console.log('Inserting booking into database with status:', bookingStatus, 'payment:', paymentStatus);
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
@@ -37,7 +43,8 @@ export const createBookingFromIntent = async (bookingIntent: BookingIntent, user
         end_date: bookingIntent.end_date,
         total_amount: bookingIntent.total_amount,
         user_id: userId,
-        status: 'confirmed'
+        status: bookingStatus,
+        payment_status: paymentStatus
       })
       .select()
       .single();

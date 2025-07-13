@@ -58,10 +58,12 @@ export type Database = {
       }
       bookings: {
         Row: {
+          booking_number: number | null
           booking_period: Database["public"]["Enums"]["booking_period"]
           created_at: string
           end_date: string
           id: string
+          payment_status: string | null
           seat_id: string
           start_date: string
           status: string
@@ -71,10 +73,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          booking_number?: number | null
           booking_period: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date: string
           id?: string
+          payment_status?: string | null
           seat_id: string
           start_date: string
           status?: string
@@ -84,10 +88,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          booking_number?: number | null
           booking_period?: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date?: string
           id?: string
+          payment_status?: string | null
           seat_id?: string
           start_date?: string
           status?: string
@@ -392,6 +398,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          merchant_number: number | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
@@ -401,6 +408,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          merchant_number?: number | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
@@ -410,6 +418,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          merchant_number?: number | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
@@ -460,6 +469,7 @@ export type Database = {
           custom_row_names: string[]
           daily_price: number
           description: string | null
+          hall_number: number | null
           id: string
           image_url: string | null
           location: string
@@ -478,6 +488,7 @@ export type Database = {
           custom_row_names?: string[]
           daily_price?: number
           description?: string | null
+          hall_number?: number | null
           id?: string
           image_url?: string | null
           location: string
@@ -496,6 +507,7 @@ export type Database = {
           custom_row_names?: string[]
           daily_price?: number
           description?: string | null
+          hall_number?: number | null
           id?: string
           image_url?: string | null
           location?: string
@@ -530,6 +542,7 @@ export type Database = {
           payment_method: string
           qr_id: string | null
           status: string
+          transaction_number: number | null
           updated_at: string
           user_id: string | null
         }
@@ -543,6 +556,7 @@ export type Database = {
           payment_method: string
           qr_id?: string | null
           status?: string
+          transaction_number?: number | null
           updated_at?: string
           user_id?: string | null
         }
@@ -556,6 +570,7 @@ export type Database = {
           payment_method?: string
           qr_id?: string | null
           status?: string
+          transaction_number?: number | null
           updated_at?: string
           user_id?: string | null
         }
@@ -581,6 +596,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_short_id: {
+        Args: { table_name: string; column_name: string }
+        Returns: number
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

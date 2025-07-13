@@ -5,6 +5,8 @@ import { useToast } from "./use-toast";
 
 export interface Booking {
   id: string;
+  booking_number?: number;
+  payment_status?: string;
   user_id: string;
   study_hall_id: string;
   seat_id: string;
@@ -19,6 +21,7 @@ export interface Booking {
     name: string;
     location: string;
     image_url?: string;
+    hall_number?: number;
   };
   seat?: {
     seat_id: string;
@@ -28,6 +31,7 @@ export interface Booking {
   user?: {
     full_name: string;
     email: string;
+    merchant_number?: number;
   };
 }
 
@@ -50,9 +54,9 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         .from("bookings")
         .select(`
           *,
-          study_hall:study_halls(name, location, image_url),
+          study_hall:study_halls(name, location, image_url, hall_number),
           seat:seats(seat_id, row_name, seat_number),
-          user:profiles(full_name, email)
+          user:profiles(full_name, email, merchant_number)
         `);
 
       if (effectiveRole === "student") {

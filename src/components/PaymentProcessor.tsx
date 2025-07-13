@@ -205,7 +205,13 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           if (user) {
             try {
               console.log('🏗️ EKQR: Creating booking after successful payment');
-              const booking = await createBookingFromIntent(bookingIntent, user.id, transactionId);
+              const booking = await createBookingFromIntent(
+                bookingIntent, 
+                user.id, 
+                transactionId, 
+                'confirmed', 
+                'paid'
+              );
               console.log('✅ EKQR: Booking created successfully:', booking);
               
               setShowQR(false);
@@ -373,7 +379,13 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             if (user) {
               try {
                 console.log('Razorpay: Creating booking after successful payment');
-                const booking = await createBookingFromIntent(bookingIntent, user.id, transaction.id);
+                const booking = await createBookingFromIntent(
+                  bookingIntent, 
+                  user.id, 
+                  transaction.id, 
+                  'confirmed', 
+                  'paid'
+                );
                 console.log('Razorpay: Booking created successfully:', booking);
                 
                 toast({
@@ -461,8 +473,14 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
         throw new Error("Failed to create transaction record");
       }
 
-      // Create booking using the centralized function
-      const booking = await createBookingFromIntent(bookingIntent, user.id, transaction.id);
+      // Create booking for offline payment (immediate but pending)
+      const booking = await createBookingFromIntent(
+        bookingIntent, 
+        user.id, 
+        transaction.id, 
+        'pending', 
+        'unpaid'
+      );
       console.log('Offline: Booking created successfully:', booking);
 
       toast({
