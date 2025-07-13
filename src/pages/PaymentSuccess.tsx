@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle, ArrowLeft, QrCode, Ticket } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import QRCodeLib from "qrcode";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -14,6 +15,7 @@ const PaymentSuccess = () => {
   const { toast } = useToast();
   const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [qrCodePreview, setQrCodePreview] = useState<string>("");
 
   useEffect(() => {
     console.log('PaymentSuccess: Component mounted');
@@ -51,7 +53,7 @@ const PaymentSuccess = () => {
             .single();
 
           if (!bookingError && booking) {
-            setBookingDetails({
+            const details = {
               bookingId: booking.id,
               studyHallName: booking.study_hall?.name,
               seatInfo: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
@@ -59,7 +61,29 @@ const PaymentSuccess = () => {
               startDate: booking.start_date,
               endDate: booking.end_date,
               period: booking.booking_period
-            });
+            };
+            setBookingDetails(details);
+
+            // Generate QR code preview for confirmed bookings
+            if (booking.status === 'confirmed' || booking.status === 'completed') {
+              try {
+                const qrData = {
+                  type: "study_hall_booking",
+                  booking_id: booking.id,
+                  study_hall: booking.study_hall?.name,
+                  seat: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
+                  amount: booking.total_amount
+                };
+                const qrCodeUrl = await QRCodeLib.toDataURL(JSON.stringify(qrData), {
+                  width: 128,
+                  margin: 1,
+                  color: { dark: '#000000', light: '#FFFFFF' }
+                });
+                setQrCodePreview(qrCodeUrl);
+              } catch (error) {
+                console.error('Error generating QR preview:', error);
+              }
+            }
           }
         } catch (error) {
           console.error('Error fetching booking details:', error);
@@ -178,7 +202,7 @@ const PaymentSuccess = () => {
           
           {bookingDetails && (
             <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
-                            {bookingDetails.bookingId && (
+              {bookingDetails.bookingId && (
                 <p><strong>Booking ID:</strong> {bookingDetails.bookingId.substring(0, 8)}...</p>
               )}
               {bookingDetails.studyHallName && (
@@ -199,6 +223,24 @@ const PaymentSuccess = () => {
               {bookingDetails.status && (
                 <p className="text-blue-600"><strong>Status:</strong> {bookingDetails.status}</p>
               )}
+            </div>
+          )}
+
+          {/* QR Code Preview */}
+          {qrCodePreview && (
+            <div className="bg-gradient-to-br from-primary/5 to-secondary/5 p-4 rounded-lg border border-primary/20">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <Ticket className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Your Digital Ticket</span>
+              </div>
+              <div className="flex justify-center mb-3">
+                <div className="p-2 bg-white rounded-lg border">
+                  <img src={qrCodePreview} alt="Booking QR Code" className="w-20 h-20" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Full ticket with QR code available in your dashboard
+              </p>
             </div>
           )}
 

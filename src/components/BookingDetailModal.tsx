@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, Users, Clock, DollarSign, User, Building, Edit } from "lucide-react";
 import { Booking } from "@/hooks/useBookings";
+import { BookingQRCode } from "./BookingQRCode";
 
 interface BookingDetailModalProps {
   open: boolean;
@@ -190,6 +191,11 @@ export function BookingDetailModal({
               </CardContent>
             </Card>
           </div>
+
+          {/* QR Code Ticket - Show for confirmed/completed bookings */}
+          {(booking.status === 'confirmed' || booking.status === 'completed') && (
+            <BookingQRCode booking={booking} userRole={userRole} />
+          )}
 
           {/* Timestamps */}
           <Card>
