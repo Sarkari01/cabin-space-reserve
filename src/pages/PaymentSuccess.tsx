@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -12,61 +13,154 @@ const PaymentSuccess = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     console.log('PaymentSuccess: Component mounted');
-    // Extract booking info from URL params if available
-    const bookingId = searchParams.get('booking_id');
-    const transactionId = searchParams.get('transaction_id');
-    const amount = searchParams.get('amount');
-    const studyHallId = searchParams.get('study_hall_id');
-    const error = searchParams.get('error');
-    
-    console.log('PaymentSuccess: URL params:', { bookingId, transactionId, amount, studyHallId, error });
-    
-    if (error === 'booking_creation') {
-      toast({
-        title: "Payment Successful, Booking Issue",
-        description: "Your payment was processed but there was an issue creating the booking. Please contact support.",
-        variant: "destructive",
-      });
-    }
-    
-    // For successful payments, show success message
-    if (bookingId || transactionId) {
+    const initializeSuccessPage = async () => {
+      // Extract booking info from URL params if available
+      const bookingId = searchParams.get('booking_id');
+      const transactionId = searchParams.get('transaction_id');
+      const amount = searchParams.get('amount');
+      const studyHallId = searchParams.get('study_hall_id');
+      const error = searchParams.get('error');
+      
+      console.log('PaymentSuccess: URL params:', { bookingId, transactionId, amount, studyHallId, error });
+      
+      if (error === 'booking_creation') {
+        toast({
+          title: "Payment Successful, Booking Issue",
+          description: "Your payment was processed but there was an issue creating the booking. Please contact support.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // For successful payments, try to fetch the actual booking data
+      if (bookingId) {
+        try {
+          const { data: booking, error: bookingError } = await supabase
+            .from('bookings')
+            .select(`
+              *,
+              study_hall:study_halls(name, location),
+              seat:seats(seat_id, row_name, seat_number)
+            `)
+            .eq('id', bookingId)
+            .single();
+
+          if (!bookingError && booking) {
+            setBookingDetails({
+              bookingId: booking.id,
+              studyHallName: booking.study_hall?.name,
+              seatInfo: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
+              amount: booking.total_amount,
+              startDate: booking.start_date,
+              endDate: booking.end_date,
+              period: booking.booking_period
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching booking details:', error);
+        }
+      } else if (transactionId) {
+        // Try to fetch transaction and linked booking
+        try {
+          const { data: transaction, error: txnError } = await supabase
+            .from('transactions')
+            .select(`
+              *,
+              booking:bookings(
+                *,
+                study_hall:study_halls(name, location),
+                seat:seats(seat_id, row_name, seat_number)
+              )
+            `)
+            .eq('id', transactionId)
+            .single();
+
+          if (!txnError && transaction) {
+            if (transaction.booking) {
+              setBookingDetails({
+                bookingId: transaction.booking.id,
+                studyHallName: transaction.booking.study_hall?.name,
+                seatInfo: `${transaction.booking.seat?.row_name}${transaction.booking.seat?.seat_number}`,
+                amount: transaction.booking.total_amount,
+                startDate: transaction.booking.start_date,
+                endDate: transaction.booking.end_date,
+                period: transaction.booking.booking_period
+              });
+            } else {
+              setBookingDetails({
+                transactionId: transaction.id,
+                amount: transaction.amount,
+                status: 'Payment processed, booking being created...'
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching transaction details:', error);
+        }
+      }
+      
+      // Set basic booking details from URL params if no database data
+      if (!bookingDetails && (bookingId || transactionId || amount)) {
+        setBookingDetails({
+          bookingId,
+          transactionId,
+          amount,
+          studyHallId
+        });
+      }
+
+      // Show success message
       toast({
         title: "Payment Successful!",
         description: "Your booking has been confirmed successfully.",
       });
-    }
-    
-    if (bookingId || transactionId || amount) {
-      setBookingDetails({
-        bookingId,
-        transactionId,
-        amount,
-        studyHallId
-      });
-    }
+
+      setLoading(false);
+    };
+
+    initializeSuccessPage();
   }, [searchParams, toast]);
 
   const handleGoToDashboard = () => {
     console.log('PaymentSuccess: Navigating to dashboard for user role:', user?.role);
-    if (user?.role === 'student') {
-      navigate('/student/dashboard');
-    } else if (user?.role === 'merchant') {
-      navigate('/merchant/dashboard');
-    } else if (user?.role === 'admin') {
-      navigate('/admin/dashboard');
-    } else {
-      navigate('/');
-    }
     
-    // Trigger a page refresh to ensure bookings are fetched
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    // Navigate to appropriate dashboard and trigger refresh
+    if (user?.role === 'student') {
+      navigate('/student/dashboard', { 
+        replace: true,
+        state: { refreshBookings: true }
+      });
+    } else if (user?.role === 'merchant') {
+      navigate('/merchant/dashboard', { 
+        replace: true,
+        state: { refreshBookings: true, activeTab: 'bookings' }
+      });
+    } else if (user?.role === 'admin') {
+      navigate('/admin/dashboard', { 
+        replace: true,
+        state: { refreshBookings: true }
+      });
+    } else {
+      navigate('/', { replace: true });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">Loading payment details...</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -84,14 +178,26 @@ const PaymentSuccess = () => {
           
           {bookingDetails && (
             <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
-              {bookingDetails.bookingId && (
-                <p><strong>Booking ID:</strong> {bookingDetails.bookingId}</p>
+                            {bookingDetails.bookingId && (
+                <p><strong>Booking ID:</strong> {bookingDetails.bookingId.substring(0, 8)}...</p>
+              )}
+              {bookingDetails.studyHallName && (
+                <p><strong>Study Hall:</strong> {bookingDetails.studyHallName}</p>
+              )}
+              {bookingDetails.seatInfo && (
+                <p><strong>Seat:</strong> {bookingDetails.seatInfo}</p>
+              )}
+              {bookingDetails.period && (
+                <p><strong>Period:</strong> {bookingDetails.period}</p>
+              )}
+              {bookingDetails.amount && (
+                <p><strong>Amount:</strong> ₹{bookingDetails.amount}</p>
               )}
               {bookingDetails.transactionId && !bookingDetails.bookingId && (
                 <p><strong>Transaction ID:</strong> {bookingDetails.transactionId}</p>
               )}
-              {bookingDetails.amount && (
-                <p><strong>Amount:</strong> ₹{bookingDetails.amount}</p>
+              {bookingDetails.status && (
+                <p className="text-blue-600"><strong>Status:</strong> {bookingDetails.status}</p>
               )}
             </div>
           )}
