@@ -201,7 +201,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           console.log('✅ EKQR: Payment confirmed, updating transaction status');
           await updateTransactionStatus(transactionId, 'completed');
           
-          // Create booking after successful payment
+          // Create booking after successful payment verification
           if (user) {
             try {
               console.log('🏗️ EKQR: Creating booking after successful payment');
@@ -375,7 +375,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
 
             console.log('✅ Payment verified successfully');
             
-            // Create booking after successful payment
+            // Create booking after successful payment verification
             if (user) {
               try {
                 console.log('Razorpay: Creating booking after successful payment');
