@@ -25,7 +25,9 @@ Deno.serve(async (req) => {
         status: 'healthy', 
         timestamp: new Date().toISOString(),
         ekqr_api_key_configured: !!ekqrApiKey,
-        ekqr_api_key_length: ekqrApiKey ? ekqrApiKey.length : 0
+        ekqr_api_key_length: ekqrApiKey ? ekqrApiKey.length : 0,
+        function_name: 'ekqr-payment',
+        available_actions: ['createQR', 'checkStatus']
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -39,7 +39,9 @@ Deno.serve(async (req) => {
         timestamp: new Date().toISOString(),
         razorpay_key_id_configured: !!keyId,
         razorpay_key_secret_configured: !!keySecret,
-        key_id_preview: keyId ? `${keyId.substring(0, 8)}...` : 'NOT SET'
+        key_id_preview: keyId ? `${keyId.substring(0, 8)}...` : 'NOT SET',
+        function_name: 'razorpay-payment',
+        available_actions: ['create_order', 'verify_payment']
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
