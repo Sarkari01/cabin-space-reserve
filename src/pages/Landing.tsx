@@ -182,9 +182,9 @@ const Landing = () => {
                     ))}
                   </div>
                   
-                  <Link to={`/cabin/${cabin.id}`}>
+                  <Link to="/register">
                     <Button className="w-full" variant="outline">
-                      View Details
+                      Sign Up to View
                     </Button>
                   </Link>
                 </CardContent>
@@ -193,9 +193,9 @@ const Landing = () => {
           </div>
           
           <div className="text-center mt-12">
-            <Link to="/cabins">
+            <Link to="/register">
               <Button size="lg" variant="outline">
-                View All Cabins
+                Sign Up to Browse All
               </Button>
             </Link>
           </div>
@@ -252,7 +252,7 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold mb-4">For Guests</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><Link to="/cabins" className="hover:text-foreground">Browse Cabins</Link></li>
+                <li><Link to="/register" className="hover:text-foreground">Browse Cabins</Link></li>
                 <li><Link to="/login" className="hover:text-foreground">Sign In</Link></li>
                 <li><Link to="/register" className="hover:text-foreground">Sign Up</Link></li>
               </ul>
@@ -261,16 +261,16 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold mb-4">For Hosts</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><Link to="/host" className="hover:text-foreground">Become a Host</Link></li>
-                <li><Link to="/merchant/dashboard" className="hover:text-foreground">Host Dashboard</Link></li>
+                <li><Link to="/register" className="hover:text-foreground">Become a Host</Link></li>
+                <li><Link to="/login" className="hover:text-foreground">Host Dashboard</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li><Link to="/help" className="hover:text-foreground">Help Center</Link></li>
-                <li><Link to="/contact" className="hover:text-foreground">Contact Us</Link></li>
+                <li><Link to="/register" className="hover:text-foreground">Help Center</Link></li>
+                <li><Link to="/register" className="hover:text-foreground">Contact Us</Link></li>
               </ul>
             </div>
           </div>

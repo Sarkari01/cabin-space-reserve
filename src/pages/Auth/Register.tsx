@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,7 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signUp } = useAuth();
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -34,26 +36,45 @@ const Register = () => {
       return;
     }
 
+    if (!formData.role) {
+      toast({
+        title: "Role required",
+        description: "Please select your role",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     
     try {
-      // Simulate registration - replace with actual authentication
-      localStorage.setItem("user", JSON.stringify({
-        email: formData.email,
-        name: formData.name,
+      const { error } = await signUp(formData.email, formData.password, {
+        full_name: formData.name,
         role: formData.role
-      }));
+      });
+
+      if (error) {
+        console.error('Registration error:', error);
+        toast({
+          title: "Registration failed",
+          description: error.message || "Please try again",
+          variant: "destructive"
+        });
+        return;
+      }
       
       toast({
         title: "Registration successful",
-        description: "Welcome to CabinSpace!"
+        description: "Welcome to CabinSpace! Please check your email to verify your account."
       });
       
-      navigate(`/${formData.role}/dashboard`);
+      // Navigate to login page after successful registration
+      navigate("/login");
     } catch (error) {
+      console.error('Unexpected registration error:', error);
       toast({
         title: "Registration failed",
-        description: "Please try again",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
