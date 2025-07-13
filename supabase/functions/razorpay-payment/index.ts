@@ -271,31 +271,115 @@ async function verifyRazorpayPayment(
     // If verification is successful, create booking
     console.log('Payment verification successful, creating booking...');
     
-    // Get booking intent from transaction - we'll need to reconstruct it
-    // For now, we'll get the booking details from the payment flow
-    // This should be improved to store booking intent in transaction
-    
-    // Update transaction status first
-    const { error: updateError } = await supabaseServiceRole
-      .from('transactions')
-      .update({ 
-        status: 'completed',
-        payment_id: razorpay_payment_id,
-        payment_data: {
-          razorpay_payment_id,
-          razorpay_order_id,
-          razorpay_signature,
-          verified_at: new Date().toISOString()
-        }
-      })
-      .eq('id', transaction_id);
+    // Get booking intent from transaction payment_data
+    const bookingIntent = transaction.payment_data?.bookingIntent;
+    if (!bookingIntent) {
+      console.error('Booking intent not found in transaction data');
+      // Update transaction status only
+      const { error: updateError } = await supabaseServiceRole
+        .from('transactions')
+        .update({ 
+          status: 'completed',
+          payment_id: razorpay_payment_id,
+          payment_data: {
+            razorpay_payment_id,
+            razorpay_order_id,
+            razorpay_signature,
+            verified_at: new Date().toISOString()
+          }
+        })
+        .eq('id', transaction_id);
 
-    if (updateError) {
-      console.error('Error updating transaction:', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to update transaction status' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (updateError) {
+        console.error('Error updating transaction:', updateError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to update transaction status' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // Create booking with confirmed status and paid payment
+      const { data: booking, error: bookingError } = await supabaseServiceRole
+        .from('bookings')
+        .insert({
+          study_hall_id: bookingIntent.study_hall_id,
+          seat_id: bookingIntent.seat_id,
+          booking_period: bookingIntent.booking_period,
+          start_date: bookingIntent.start_date,
+          end_date: bookingIntent.end_date,
+          total_amount: bookingIntent.total_amount,
+          user_id: transaction.user_id,
+          status: 'confirmed',
+          payment_status: 'paid'
+        })
+        .select()
+        .single();
+
+      if (bookingError) {
+        console.error('Error creating booking:', bookingError);
+        // Still update transaction even if booking fails
+        const { error: updateError } = await supabaseServiceRole
+          .from('transactions')
+          .update({ 
+            status: 'completed',
+            payment_id: razorpay_payment_id,
+            payment_data: {
+              razorpay_payment_id,
+              razorpay_order_id,
+              razorpay_signature,
+              verified_at: new Date().toISOString(),
+              booking_error: bookingError.message
+            }
+          })
+          .eq('id', transaction_id);
+
+        if (updateError) {
+          console.error('Error updating transaction:', updateError);
+        }
+        
+        return new Response(
+          JSON.stringify({ error: 'Payment verified but booking creation failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        console.log('Booking created successfully:', booking);
+
+        // Update transaction with booking_id and mark as completed
+        const { error: updateError } = await supabaseServiceRole
+          .from('transactions')
+          .update({ 
+            booking_id: booking.id,
+            status: 'completed',
+            payment_id: razorpay_payment_id,
+            payment_data: {
+              razorpay_payment_id,
+              razorpay_order_id,
+              razorpay_signature,
+              verified_at: new Date().toISOString()
+            }
+          })
+          .eq('id', transaction_id);
+
+        if (updateError) {
+          console.error('Error updating transaction with booking_id:', updateError);
+          return new Response(
+            JSON.stringify({ error: 'Booking created but failed to link transaction' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Mark seat as unavailable
+        const { error: seatError } = await supabaseServiceRole
+          .from('seats')
+          .update({ is_available: false })
+          .eq('id', bookingIntent.seat_id);
+
+        if (seatError) {
+          console.error('Error updating seat availability:', seatError);
+        }
+
+        console.log('Razorpay payment and booking process completed successfully');
+      }
     }
 
     console.log('✅ Payment verified and transaction updated successfully');

@@ -108,6 +108,9 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           customerMobile: user?.user_metadata?.phone || '9999999999',
           studyHallId: bookingIntent.study_hall_id,
           seatId: bookingIntent.seat_id,
+          bookingPeriod: bookingIntent.booking_period,
+          startDate: bookingIntent.start_date,
+          endDate: bookingIntent.end_date,
           // Use production domain for redirect
           redirectUrl: `https://sarkarininja.com/payment-success?transaction_id=${transaction.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`
         },
@@ -198,39 +201,16 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           hasCreatedBooking = true; // Prevent duplicate bookings
           clearInterval(pollInterval);
           
-          console.log('✅ EKQR: Payment confirmed, updating transaction status');
-          await updateTransactionStatus(transactionId, 'completed');
+          console.log('✅ EKQR: Payment confirmed - booking should be created by edge function');
           
-          // Create booking after successful payment verification
-          if (user) {
-            try {
-              console.log('🏗️ EKQR: Creating booking after successful payment');
-              const booking = await createBookingFromIntent(
-                bookingIntent, 
-                user.id, 
-                transactionId, 
-                'confirmed', 
-                'paid'
-              );
-              console.log('✅ EKQR: Booking created successfully:', booking);
-              
-              setShowQR(false);
-              toast({
-                title: "Payment Successful!",
-                description: "Your booking has been confirmed!",
-              });
-              
-              // Call success callback
-              onPaymentSuccess();
-            } catch (error) {
-              console.error('❌ EKQR: Error creating booking after payment:', error);
-              toast({
-                title: "Payment Successful, Booking Error",
-                description: "Payment completed but booking creation failed. Please contact support.",
-                variant: "destructive",
-              });
-            }
-          }
+          setShowQR(false);
+          toast({
+            title: "Payment Successful!",
+            description: "Your booking has been confirmed!",
+          });
+          
+          // Call success callback
+          onPaymentSuccess();
         } else if (statusResponse?.status === 'failed' && !hasCreatedBooking) {
           hasCreatedBooking = true; // Prevent further attempts
           clearInterval(pollInterval);
@@ -282,6 +262,16 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       }
 
       console.log('✅ Razorpay: Transaction created:', transaction.id);
+
+      // Store booking intent in transaction for edge function
+      await supabase
+        .from('transactions')
+        .update({
+          payment_data: {
+            bookingIntent: bookingIntent
+          }
+        })
+        .eq('id', transaction.id);
 
       // Create Razorpay order
       console.log('🌐 Razorpay: Invoking edge function...');
@@ -373,37 +363,15 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
               throw new Error(verifyError.message || 'Payment verification failed');
             }
 
-            console.log('✅ Payment verified successfully');
+            console.log('✅ Payment verified successfully - booking created by edge function');
             
-            // Create booking after successful payment verification
-            if (user) {
-              try {
-                console.log('Razorpay: Creating booking after successful payment');
-                const booking = await createBookingFromIntent(
-                  bookingIntent, 
-                  user.id, 
-                  transaction.id, 
-                  'confirmed', 
-                  'paid'
-                );
-                console.log('Razorpay: Booking created successfully:', booking);
-                
-                toast({
-                  title: "Payment Successful!",
-                  description: "Your booking has been confirmed!",
-                });
-                
-                // Call success callback
-                onPaymentSuccess();
-              } catch (error) {
-                console.error('Razorpay: Error creating booking after payment:', error);
-                toast({
-                  title: "Payment Successful, Booking Error",
-                  description: "Payment completed but booking creation failed. Please contact support.",
-                  variant: "destructive",
-                });
-              }
-            }
+            toast({
+              title: "Payment Successful!",
+              description: "Your booking has been confirmed!",
+            });
+            
+            // Call success callback
+            onPaymentSuccess();
           } catch (error) {
             console.error('💥 Payment verification error:', error);
             toast({

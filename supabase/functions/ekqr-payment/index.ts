@@ -165,62 +165,30 @@ async function checkOrderStatus(data: any, ekqrApiKey: string, supabaseServiceRo
     );
   }
 
-  // If payment is successful, create booking
+  // If payment is successful, just mark transaction as completed
+  // Frontend will handle booking creation to avoid duplication
   if (responseData.data.status === 'success') {
-    console.log('Payment successful, creating booking...');
+    console.log('Payment successful, updating transaction status...');
     
-    // Get booking intent from transaction payment_data
-    const bookingIntent = transactionData.payment_data?.bookingIntent;
-    if (!bookingIntent) {
-      console.error('Booking intent not found in transaction data');
+    // Only update transaction status to completed
+    const { error: transactionUpdateError } = await supabaseServiceRole
+      .from('transactions')
+      .update({ 
+        status: 'completed',
+        payment_id: responseData.data.id,
+        payment_data: {
+          ...transactionData.payment_data,
+          ekqr_payment_id: responseData.data.id,
+          customer_vpa: responseData.data.customer_vpa,
+          upi_txn_id: responseData.data.upi_txn_id
+        }
+      })
+      .eq('id', transactionId);
+
+    if (transactionUpdateError) {
+      console.error('Error updating transaction status:', transactionUpdateError);
     } else {
-      // Create booking using consistent logic
-      const { data: booking, error: bookingError } = await supabaseServiceRole
-        .from('bookings')
-        .insert({
-          study_hall_id: bookingIntent.study_hall_id,
-          seat_id: bookingIntent.seat_id,
-          booking_period: bookingIntent.booking_period,
-          start_date: bookingIntent.start_date,
-          end_date: bookingIntent.end_date,
-          total_amount: bookingIntent.total_amount,
-          user_id: transactionData.user_id,
-          status: 'confirmed',
-          payment_status: 'paid'
-        })
-        .select()
-        .single();
-
-      if (bookingError) {
-        console.error('Error creating booking:', bookingError);
-      } else {
-        console.log('Booking created successfully:', booking);
-
-        // Update transaction with booking_id and mark as completed
-        const { error: transactionUpdateError } = await supabaseServiceRole
-          .from('transactions')
-          .update({ 
-            booking_id: booking.id,
-            status: 'completed'
-          })
-          .eq('id', transactionId);
-
-        if (transactionUpdateError) {
-          console.error('Error updating transaction with booking_id:', transactionUpdateError);
-        }
-
-        // Mark seat as unavailable
-        const { error: seatError } = await supabaseServiceRole
-          .from('seats')
-          .update({ is_available: false })
-          .eq('id', bookingIntent.seat_id);
-
-        if (seatError) {
-          console.error('Error updating seat availability:', seatError);
-        }
-
-        console.log('EKQR payment and booking process completed successfully');
-      }
+      console.log('EKQR transaction marked as completed');
     }
   }
 
