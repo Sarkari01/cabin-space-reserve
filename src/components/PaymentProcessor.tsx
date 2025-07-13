@@ -180,39 +180,64 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
   };
 
   const startPaymentPolling = (orderId: string, transactionId: string) => {
-    console.log('🔄 Starting payment polling for order:', orderId, 'transaction:', transactionId);
-    let hasCreatedBooking = false; // Prevent duplicate booking creation
+    console.log('🔄 EKQR: Starting payment polling for order:', orderId, 'transaction:', transactionId);
+    let hasCreatedBooking = false;
+    let retryCount = 0;
+    const maxRetries = 3;
     
     const pollInterval = setInterval(async () => {
       try {
         // Get today's date in YYYY-MM-DD format for txn_date
         const today = new Date().toISOString().split('T')[0];
         
+        console.log(`🔄 EKQR: Polling attempt ${retryCount + 1} for order ${orderId}`);
+        
         const { data: statusResponse, error } = await supabase.functions.invoke('ekqr-payment', {
           body: {
             action: 'checkStatus',
-            clientTxnId: orderId,
+            clientTxnId: transactionId, // Use transaction ID, not order ID
             txnDate: today
           },
         });
 
-        if (error) throw error;
+        console.log('📥 EKQR: Poll response:', { statusResponse, error });
+
+        if (error) {
+          console.error('❌ EKQR: Status check error:', error);
+          retryCount++;
+          
+          if (retryCount >= maxRetries) {
+            console.error('💥 EKQR: Max retries exceeded, stopping polling');
+            clearInterval(pollInterval);
+            if (!hasCreatedBooking) {
+              setShowQR(false);
+              toast({
+                title: "Status Check Failed",
+                description: "Unable to verify payment status. Please contact support if payment was made.",
+                variant: "destructive",
+              });
+            }
+          }
+          return;
+        }
+
+        // Reset retry count on successful response
+        retryCount = 0;
 
         if (statusResponse?.success && statusResponse.status === 'success' && !hasCreatedBooking) {
-          hasCreatedBooking = true; // Prevent duplicate bookings
+          hasCreatedBooking = true;
           clearInterval(pollInterval);
           
-          console.log('✅ EKQR: Payment confirmed - booking created automatically by edge function');
+          console.log('🎉 EKQR: Payment confirmed - booking created automatically by edge function');
           setShowQR(false);
           toast({
             title: "Payment Successful!",
             description: "Your booking has been confirmed!",
           });
           
-          // Call success callback
           onPaymentSuccess();
         } else if (statusResponse?.status === 'failed' && !hasCreatedBooking) {
-          hasCreatedBooking = true; // Prevent further attempts
+          hasCreatedBooking = true;
           clearInterval(pollInterval);
           await updateTransactionStatus(transactionId, 'failed');
           setShowQR(false);
@@ -221,9 +246,12 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             description: "Payment was not completed. Please try again.",
             variant: "destructive",
           });
+        } else if (statusResponse?.status === 'pending') {
+          console.log('⏳ EKQR: Payment still pending, continuing to poll...');
         }
       } catch (error) {
-        console.error('❌ Error checking payment status:', error);
+        console.error('💥 EKQR: Unexpected error during status check:', error);
+        retryCount++;
       }
     }, 5000); // Poll every 5 seconds
 
