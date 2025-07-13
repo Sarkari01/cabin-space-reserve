@@ -85,7 +85,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
 
       // Create transaction record without booking_id initially
       const transaction = await createTransaction({
-        booking_id: null, // No booking exists yet
+        booking_id: "", // Will be updated after booking creation
         amount: bookingIntent.total_amount,
         payment_method: "ekqr",
       });
@@ -201,18 +201,24 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           console.log('✅ EKQR: Payment confirmed, updating transaction status');
           await updateTransactionStatus(transactionId, 'completed');
           
-          // Create booking after successful payment verification
-          if (user) {
-            try {
-              console.log('🏗️ EKQR: Creating booking after successful payment');
-              const booking = await createBookingFromIntent(
-                bookingIntent, 
-                user.id, 
-                transactionId, 
-                'confirmed', 
-                'paid'
-              );
-              console.log('✅ EKQR: Booking created successfully:', booking);
+              // Create booking after successful payment verification
+              if (user) {
+                try {
+                  console.log('🏗️ EKQR: Creating booking after successful payment');
+                  const booking = await createBookingFromIntent(
+                    bookingIntent, 
+                    user.id, 
+                    transactionId, 
+                    'confirmed', 
+                    'paid'
+                  );
+                  console.log('✅ EKQR: Booking created successfully:', booking);
+                  
+                  // Link the transaction to the created booking
+                  await supabase
+                    .from('transactions')
+                    .update({ booking_id: booking.id })
+                    .eq('id', transactionId);
               
               setShowQR(false);
               toast({
@@ -272,7 +278,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
 
       // Create transaction record without booking_id initially
       const transaction = await createTransaction({
-        booking_id: null, // No booking exists yet
+        booking_id: "", // Will be updated after booking creation
         amount: bookingIntent.total_amount,
         payment_method: "razorpay",
       });
@@ -378,7 +384,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             // Create booking after successful payment verification
             if (user) {
               try {
-                console.log('Razorpay: Creating booking after successful payment');
+                console.log('💰 Razorpay: Creating booking after successful payment');
                 const booking = await createBookingFromIntent(
                   bookingIntent, 
                   user.id, 
@@ -386,7 +392,13 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
                   'confirmed', 
                   'paid'
                 );
-                console.log('Razorpay: Booking created successfully:', booking);
+                console.log('✅ Razorpay: Booking created successfully:', booking);
+                
+                // Link the transaction to the created booking
+                await supabase
+                  .from('transactions')
+                  .update({ booking_id: booking.id })
+                  .eq('id', transaction.id);
                 
                 toast({
                   title: "Payment Successful!",
@@ -475,7 +487,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
         throw new Error("Failed to create booking");
       }
 
-      console.log('Booking created for offline payment:', booking);
+      console.log('✅ Offline: Booking created successfully:', booking);
 
       // Create transaction and link to booking
       const transaction = await createTransaction({

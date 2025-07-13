@@ -57,15 +57,30 @@ export const MerchantTransactionsTab = () => {
 
   const handleStatusUpdate = async (transactionId: string, newStatus: "completed" | "failed") => {
     setUpdatingId(transactionId);
-    console.log('Updating transaction status:', { transactionId, newStatus });
+    console.log('🔄 Updating transaction status:', { transactionId, newStatus });
     
-    // For offline payments being confirmed, also update booking status
-    const transaction = transactions.find(t => t.id === transactionId);
-    if (transaction && transaction.payment_method === 'offline' && newStatus === 'completed') {
-      console.log('Confirming offline payment - updating booking status');
+    try {
+      const transaction = transactions.find(t => t.id === transactionId);
       
-      // Update booking status to confirmed and payment_status to paid
-      if (transaction.booking_id) {
+      if (!transaction) {
+        toast.error("Transaction not found");
+        setUpdatingId(null);
+        return;
+      }
+
+      // First, check if booking exists
+      if (!transaction.booking_id) {
+        console.error('❌ Cannot update transaction without booking_id');
+        toast.error("Cannot confirm payment - booking not found. Please contact support.");
+        setUpdatingId(null);
+        return;
+      }
+
+      // For offline payments being confirmed, also update booking status
+      if (transaction.payment_method === 'offline' && newStatus === 'completed') {
+        console.log('✅ Confirming offline payment - updating booking status');
+        
+        // Update booking status to confirmed and payment_status to paid
         const { error: bookingError } = await supabase
           .from('bookings')
           .update({ 
@@ -75,24 +90,38 @@ export const MerchantTransactionsTab = () => {
           .eq('id', transaction.booking_id);
 
         if (bookingError) {
-          console.error('Error updating booking status:', bookingError);
+          console.error('❌ Error updating booking status:', bookingError);
           toast.error("Failed to update booking status");
           setUpdatingId(null);
           return;
         }
+        
+        console.log('✅ Booking status updated successfully');
       }
-    }
 
-    const success = await updateTransactionStatus(transactionId, newStatus);
-    if (success) {
-      toast.success(`Payment ${newStatus === 'completed' ? 'confirmed' : 'rejected'}`);
-    } else {
-      toast.error("Failed to update transaction status");
+      // Update transaction status
+      const success = await updateTransactionStatus(transactionId, newStatus);
+      if (success) {
+        toast.success(`Payment ${newStatus === 'completed' ? 'confirmed' : 'rejected'} successfully`);
+      } else {
+        toast.error("Failed to update transaction status");
+      }
+    } catch (error) {
+      console.error('❌ Error in handleStatusUpdate:', error);
+      toast.error("An unexpected error occurred");
     }
+    
     setUpdatingId(null);
   };
 
+  // Only show transactions that are properly linked to bookings for merchant actions
   const filteredTransactions = transactions.filter((transaction) => {
+    // Skip orphaned transactions (those without booking_id) for merchant view
+    if (!transaction.booking_id) {
+      console.warn('Skipping orphaned transaction:', transaction.id);
+      return false;
+    }
+    
     const matchesStatus = statusFilter === "all" || transaction.status === statusFilter;
     const matchesSearch = searchTerm === "" || 
       transaction.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
