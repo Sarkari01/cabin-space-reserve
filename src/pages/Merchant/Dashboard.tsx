@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +25,9 @@ import { MerchantTransactionsTab } from "@/components/merchant/MerchantTransacti
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
-  const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking } = useBookings(userRole === "admin" ? "admin" : "merchant");
+  const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking, refreshBookings } = useBookings(userRole === "admin" ? "admin" : "merchant");
   
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
@@ -46,6 +48,23 @@ const MerchantDashboard = () => {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Handle navigation state for booking refresh
+  useEffect(() => {
+    const navigationState = location.state as any;
+    if (navigationState?.refreshBookings) {
+      console.log("Merchant dashboard: Refresh triggered from navigation state");
+      refreshBookings();
+      
+      // Switch to bookings tab if requested
+      if (navigationState?.activeTab) {
+        setActiveTab(navigationState.activeTab);
+      }
+
+      // Clear the navigation state to prevent repeated refreshes
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, refreshBookings]);
 
   // Debug: Log current user info
   useEffect(() => {
