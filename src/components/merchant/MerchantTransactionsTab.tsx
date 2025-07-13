@@ -3,12 +3,13 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Eye, CheckCircle, XCircle, Clock, DollarSign } from "lucide-react";
+import { Loader2, Eye, CheckCircle, XCircle, Clock, DollarSign, AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { canMerchantConfirmTransaction, getTransactionDisplayStatus } from "@/utils/transactionHelpers";
 
 export const MerchantTransactionsTab = () => {
   const { transactions, loading, updateTransactionStatus } = useTransactions("merchant");
@@ -245,9 +246,15 @@ export const MerchantTransactionsTab = () => {
                         {transaction.booking.seat?.seat_id && ` • Seat: ${transaction.booking.seat.seat_id}`}
                       </div>
                     )}
+                    {!transaction.booking_id && (
+                      <div className="text-sm text-red-600 flex items-center gap-1">
+                        <AlertTriangle className="h-4 w-4" />
+                        Orphaned transaction - contact support
+                      </div>
+                    )}
                   </div>
                   
-                  {transaction.status === "pending" && transaction.payment_method === "offline" && (
+                  {canMerchantConfirmTransaction(transaction) && (
                     <div className="flex gap-2">
                       <Button
                         size="sm"
