@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [bookingDetails, setBookingDetails] = useState<any>(null);
 
@@ -51,12 +51,12 @@ const PaymentSuccess = () => {
   }, [searchParams, toast]);
 
   const handleGoToDashboard = () => {
-    console.log('PaymentSuccess: Navigating to dashboard for user role:', userRole);
-    if (userRole === 'student') {
+    console.log('PaymentSuccess: Navigating to dashboard for user role:', user?.role);
+    if (user?.role === 'student') {
       navigate('/student/dashboard');
-    } else if (userRole === 'merchant') {
+    } else if (user?.role === 'merchant') {
       navigate('/merchant/dashboard');
-    } else if (userRole === 'admin') {
+    } else if (user?.role === 'admin') {
       navigate('/admin/dashboard');
     } else {
       navigate('/');

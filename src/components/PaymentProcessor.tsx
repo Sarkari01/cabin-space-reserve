@@ -108,9 +108,6 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           customerMobile: user?.user_metadata?.phone || '9999999999',
           studyHallId: bookingIntent.study_hall_id,
           seatId: bookingIntent.seat_id,
-          bookingPeriod: bookingIntent.booking_period,
-          startDate: bookingIntent.start_date,
-          endDate: bookingIntent.end_date,
           // Use production domain for redirect
           redirectUrl: `https://sarkarininja.com/payment-success?transaction_id=${transaction.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`
         },
@@ -201,16 +198,39 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           hasCreatedBooking = true; // Prevent duplicate bookings
           clearInterval(pollInterval);
           
-          console.log('✅ EKQR: Payment confirmed - booking created by edge function');
+          console.log('✅ EKQR: Payment confirmed, updating transaction status');
+          await updateTransactionStatus(transactionId, 'completed');
           
-          setShowQR(false);
-          toast({
-            title: "Payment Successful!",
-            description: "Your booking has been confirmed!",
-          });
-          
-          // Call success callback
-          onPaymentSuccess();
+          // Create booking after successful payment
+          if (user) {
+            try {
+              console.log('🏗️ EKQR: Creating booking after successful payment');
+              const booking = await createBookingFromIntent(
+                bookingIntent, 
+                user.id, 
+                transactionId, 
+                'confirmed', 
+                'paid'
+              );
+              console.log('✅ EKQR: Booking created successfully:', booking);
+              
+              setShowQR(false);
+              toast({
+                title: "Payment Successful!",
+                description: "Your booking has been confirmed!",
+              });
+              
+              // Call success callback
+              onPaymentSuccess();
+            } catch (error) {
+              console.error('❌ EKQR: Error creating booking after payment:', error);
+              toast({
+                title: "Payment Successful, Booking Error",
+                description: "Payment completed but booking creation failed. Please contact support.",
+                variant: "destructive",
+              });
+            }
+          }
         } else if (statusResponse?.status === 'failed' && !hasCreatedBooking) {
           hasCreatedBooking = true; // Prevent further attempts
           clearInterval(pollInterval);
@@ -262,16 +282,6 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       }
 
       console.log('✅ Razorpay: Transaction created:', transaction.id);
-
-      // Store booking intent in transaction for edge function
-      await supabase
-        .from('transactions')
-        .update({
-          payment_data: {
-            bookingIntent: bookingIntent
-          }
-        })
-        .eq('id', transaction.id);
 
       // Create Razorpay order
       console.log('🌐 Razorpay: Invoking edge function...');
@@ -363,15 +373,37 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
               throw new Error(verifyError.message || 'Payment verification failed');
             }
 
-            console.log('✅ Payment verified successfully - booking created by edge function');
+            console.log('✅ Payment verified successfully');
             
-            toast({
-              title: "Payment Successful!",
-              description: "Your booking has been confirmed!",
-            });
-            
-            // Call success callback
-            onPaymentSuccess();
+            // Create booking after successful payment
+            if (user) {
+              try {
+                console.log('Razorpay: Creating booking after successful payment');
+                const booking = await createBookingFromIntent(
+                  bookingIntent, 
+                  user.id, 
+                  transaction.id, 
+                  'confirmed', 
+                  'paid'
+                );
+                console.log('Razorpay: Booking created successfully:', booking);
+                
+                toast({
+                  title: "Payment Successful!",
+                  description: "Your booking has been confirmed!",
+                });
+                
+                // Call success callback
+                onPaymentSuccess();
+              } catch (error) {
+                console.error('Razorpay: Error creating booking after payment:', error);
+                toast({
+                  title: "Payment Successful, Booking Error",
+                  description: "Payment completed but booking creation failed. Please contact support.",
+                  variant: "destructive",
+                });
+              }
+            }
           } catch (error) {
             console.error('💥 Payment verification error:', error);
             toast({
@@ -428,41 +460,27 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
     }
 
     try {
-      console.log('=== Starting offline payment process ===');
+      console.log('Offline: Creating transaction and booking');
       
-      // Create booking first with pending status
-      const booking = await createBookingFromIntent(
-        bookingIntent, 
-        user.id, 
-        undefined, // No transaction ID yet
-        'pending', // booking status - waiting for merchant confirmation
-        'unpaid'   // payment status - will be paid at merchant
-      );
-
-      if (!booking) {
-        throw new Error("Failed to create booking");
-      }
-
-      console.log('Booking created for offline payment:', booking);
-
-      // Create transaction and link to booking
+      // Create transaction record first
       const transaction = await createTransaction({
-        booking_id: booking.id,
+        booking_id: null, // Will be updated after booking creation
         amount: bookingIntent.total_amount,
         payment_method: "offline",
-        payment_id: `offline_${Date.now()}`,
-        payment_data: { 
-          method: 'offline',
-          timestamp: new Date().toISOString(),
-          status: 'pending'
-        }
       });
 
       if (!transaction) {
-        console.error('Failed to create transaction, but booking exists:', booking.id);
+        throw new Error("Failed to create transaction record");
       }
 
-      console.log('Transaction created for offline payment:', transaction);
+      // Create booking for offline payment (immediate but pending)
+      const booking = await createBookingFromIntent(
+        bookingIntent, 
+        user.id, 
+        transaction.id, 
+        'pending', 
+        'unpaid'
+      );
       console.log('Offline: Booking created successfully:', booking);
 
       toast({

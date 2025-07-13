@@ -7,8 +7,6 @@ import { Loader2, Eye, CheckCircle, XCircle, Clock, DollarSign } from "lucide-re
 import { formatDistanceToNow } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 export const MerchantTransactionsTab = () => {
   const { transactions, loading, updateTransactionStatus } = useTransactions("merchant");
@@ -57,38 +55,7 @@ export const MerchantTransactionsTab = () => {
 
   const handleStatusUpdate = async (transactionId: string, newStatus: "completed" | "failed") => {
     setUpdatingId(transactionId);
-    console.log('Updating transaction status:', { transactionId, newStatus });
-    
-    // For offline payments being confirmed, also update booking status
-    const transaction = transactions.find(t => t.id === transactionId);
-    if (transaction && transaction.payment_method === 'offline' && newStatus === 'completed') {
-      console.log('Confirming offline payment - updating booking status');
-      
-      // Update booking status to confirmed and payment_status to paid
-      if (transaction.booking_id) {
-        const { error: bookingError } = await supabase
-          .from('bookings')
-          .update({ 
-            status: 'confirmed',
-            payment_status: 'paid' 
-          })
-          .eq('id', transaction.booking_id);
-
-        if (bookingError) {
-          console.error('Error updating booking status:', bookingError);
-          toast.error("Failed to update booking status");
-          setUpdatingId(null);
-          return;
-        }
-      }
-    }
-
-    const success = await updateTransactionStatus(transactionId, newStatus);
-    if (success) {
-      toast.success(`Payment ${newStatus === 'completed' ? 'confirmed' : 'rejected'}`);
-    } else {
-      toast.error("Failed to update transaction status");
-    }
+    await updateTransactionStatus(transactionId, newStatus);
     setUpdatingId(null);
   };
 
@@ -222,25 +189,25 @@ export const MerchantTransactionsTab = () => {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
+                        variant="outline"
                         onClick={() => handleStatusUpdate(transaction.id, "completed")}
                         disabled={updatingId === transaction.id}
-                        className="bg-success hover:bg-success/90"
                       >
                         {updatingId === transaction.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <CheckCircle className="h-4 w-4" />
                         )}
-                        Confirm Payment
+                        Mark Paid
                       </Button>
                       <Button
                         size="sm"
-                        variant="destructive"
+                        variant="outline"
                         onClick={() => handleStatusUpdate(transaction.id, "failed")}
                         disabled={updatingId === transaction.id}
                       >
                         <XCircle className="h-4 w-4" />
-                        Reject Payment
+                        Mark Failed
                       </Button>
                     </div>
                   )}

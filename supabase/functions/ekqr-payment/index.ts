@@ -14,9 +14,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseServiceRole = createClient(
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
     const { action, ...requestData } = await req.json();
@@ -30,9 +30,9 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'createOrder':
-        return await createOrder(requestData, ekqrApiKey, req, supabaseServiceRole);
+        return await createOrder(requestData, ekqrApiKey, req);
       case 'checkStatus':
-        return await checkOrderStatus(requestData, ekqrApiKey, supabaseServiceRole);
+        return await checkOrderStatus(requestData, ekqrApiKey);
       default:
         throw new Error(`Invalid action: ${action}`);
     }
@@ -45,29 +45,8 @@ Deno.serve(async (req) => {
   }
 });
 
-async function createOrder(data: any, ekqrApiKey: string, req: Request, supabaseServiceRole: any) {
+async function createOrder(data: any, ekqrApiKey: string, req: Request) {
   console.log('Creating EKQR order:', data);
-  
-  // Store booking intent in transaction for later use
-  const { error: updateError } = await supabaseServiceRole
-    .from('transactions')
-    .update({
-      payment_data: {
-        bookingIntent: {
-          study_hall_id: data.studyHallId,
-          seat_id: data.seatId,
-          booking_period: data.bookingPeriod || 'daily',
-          start_date: data.startDate,
-          end_date: data.endDate,
-          total_amount: data.amount
-        }
-      }
-    })
-    .eq('id', data.bookingId);
-
-  if (updateError) {
-    console.error('Error storing booking intent:', updateError);
-  }
   
   // Use the user's real domain for redirect URL
   const userDomain = 'https://sarkarininja.com';
@@ -117,7 +96,7 @@ async function createOrder(data: any, ekqrApiKey: string, req: Request, supabase
   );
 }
 
-async function checkOrderStatus(data: any, ekqrApiKey: string, supabaseServiceRole: any) {
+async function checkOrderStatus(data: any, ekqrApiKey: string) {
   console.log('Checking EKQR order status:', data);
   
   const requestBody = {
@@ -139,133 +118,6 @@ async function checkOrderStatus(data: any, ekqrApiKey: string, supabaseServiceRo
   
   if (!response.ok || !responseData.status) {
     throw new Error(responseData.msg || 'Failed to check order status');
-  }
-
-  // Get transaction data to find booking intent
-  const transactionId = data.clientTxnId;
-  const { data: transactionData, error: transactionError } = await supabaseServiceRole
-    .from('transactions')
-    .select('*, payment_data')
-    .eq('id', transactionId)
-    .single();
-
-  if (transactionError || !transactionData) {
-    console.error('Error fetching transaction:', transactionError);
-    return new Response(
-      JSON.stringify({
-        success: true,
-        status: responseData.data.status,
-        transactionId: responseData.data.id,
-        amount: responseData.data.amount,
-        customerVpa: responseData.data.customer_vpa,
-        upiTxnId: responseData.data.upi_txn_id,
-        remark: responseData.data.remark
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // If payment is successful, create booking and mark transaction as completed
-  if (responseData.data.status === 'success') {
-    console.log('Payment successful, creating booking...');
-    
-    // Get booking intent from transaction payment_data
-    const bookingIntent = transactionData.payment_data?.bookingIntent;
-    if (!bookingIntent) {
-      console.error('Booking intent not found in transaction data');
-      // Update transaction status only
-      const { error: transactionUpdateError } = await supabaseServiceRole
-        .from('transactions')
-        .update({ 
-          status: 'completed',
-          payment_id: responseData.data.id,
-          payment_data: {
-            ...transactionData.payment_data,
-            ekqr_payment_id: responseData.data.id,
-            customer_vpa: responseData.data.customer_vpa,
-            upi_txn_id: responseData.data.upi_txn_id
-          }
-        })
-        .eq('id', transactionId);
-
-      if (transactionUpdateError) {
-        console.error('Error updating transaction status:', transactionUpdateError);
-      }
-    } else {
-      // Create booking with confirmed status and paid payment
-      const { data: booking, error: bookingError } = await supabaseServiceRole
-        .from('bookings')
-        .insert({
-          study_hall_id: bookingIntent.study_hall_id,
-          seat_id: bookingIntent.seat_id,
-          booking_period: bookingIntent.booking_period,
-          start_date: bookingIntent.start_date,
-          end_date: bookingIntent.end_date,
-          total_amount: bookingIntent.total_amount,
-          user_id: transactionData.user_id,
-          status: 'confirmed',
-          payment_status: 'paid'
-        })
-        .select()
-        .single();
-
-      if (bookingError) {
-        console.error('Error creating booking:', bookingError);
-        // Still update transaction even if booking fails
-        const { error: transactionUpdateError } = await supabaseServiceRole
-          .from('transactions')
-          .update({ 
-            status: 'completed',
-            payment_id: responseData.data.id,
-            payment_data: {
-              ...transactionData.payment_data,
-              ekqr_payment_id: responseData.data.id,
-              customer_vpa: responseData.data.customer_vpa,
-              upi_txn_id: responseData.data.upi_txn_id,
-              booking_error: bookingError.message
-            }
-          })
-          .eq('id', transactionId);
-
-        if (transactionUpdateError) {
-          console.error('Error updating transaction:', transactionUpdateError);
-        }
-      } else {
-        console.log('Booking created successfully:', booking);
-
-        // Update transaction with booking_id and mark as completed
-        const { error: transactionUpdateError } = await supabaseServiceRole
-          .from('transactions')
-          .update({ 
-            booking_id: booking.id,
-            status: 'completed',
-            payment_id: responseData.data.id,
-            payment_data: {
-              ...transactionData.payment_data,
-              ekqr_payment_id: responseData.data.id,
-              customer_vpa: responseData.data.customer_vpa,
-              upi_txn_id: responseData.data.upi_txn_id
-            }
-          })
-          .eq('id', transactionId);
-
-        if (transactionUpdateError) {
-          console.error('Error updating transaction with booking_id:', transactionUpdateError);
-        }
-
-        // Mark seat as unavailable
-        const { error: seatError } = await supabaseServiceRole
-          .from('seats')
-          .update({ is_available: false })
-          .eq('id', bookingIntent.seat_id);
-
-        if (seatError) {
-          console.error('Error updating seat availability:', seatError);
-        }
-
-        console.log('EKQR payment and booking process completed successfully');
-      }
-    }
   }
 
   return new Response(

@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -38,30 +37,23 @@ const Register = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // Simulate registration - replace with actual authentication
+      localStorage.setItem("user", JSON.stringify({
         email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: formData.name,
-            role: formData.role
-          }
-        }
-      });
-
-      if (error) throw error;
-
+        name: formData.name,
+        role: formData.role
+      }));
+      
       toast({
         title: "Registration successful",
-        description: "Welcome to CabinSpace! Please check your email to verify your account."
+        description: "Welcome to CabinSpace!"
       });
       
-      navigate("/login");
-    } catch (error: any) {
+      navigate(`/${formData.role}/dashboard`);
+    } catch (error) {
       toast({
         title: "Registration failed",
-        description: error.message || "Please try again",
+        description: "Please try again",
         variant: "destructive"
       });
     } finally {
