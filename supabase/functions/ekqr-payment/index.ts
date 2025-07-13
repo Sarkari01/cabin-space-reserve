@@ -197,18 +197,20 @@ async function checkOrderStatus(data: any, ekqrApiKey: string) {
 
           console.log('✅ EKQR: Booking created successfully:', booking.id);
 
-          // Update transaction status and link to booking
+          // Update transaction status and link to booking (preserve existing payment_data)
+          const preservedPaymentData = transaction.payment_data || {};
           const { error: updateError } = await supabaseService
             .from('transactions')
             .update({
               status: 'completed',
               booking_id: booking.id,
               payment_data: {
-                ...transaction.payment_data,
+                ...preservedPaymentData,
                 ekqr_payment_id: responseData.data.id,
                 upi_txn_id: responseData.data.upi_txn_id,
                 completed_at: new Date().toISOString()
-              }
+              },
+              updated_at: new Date().toISOString()
             })
             .eq('id', transaction.id);
 
