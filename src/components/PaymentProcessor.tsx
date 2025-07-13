@@ -106,7 +106,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
           customerMobile: user?.user_metadata?.phone || '9999999999',
           studyHallId: bookingData.study_hall_id,
           seatId: bookingData.seat_id,
-          redirectUrl: `https://jseyxxsptcckjumjcljk.lovable.app/payment-success?booking_id=${bookingData.id}&amount=${bookingData.total_amount}&study_hall_id=${bookingData.study_hall_id}`
+          redirectUrl: `${window.location.origin}/payment-success?booking_id=${bookingData.id}&amount=${bookingData.total_amount}&study_hall_id=${bookingData.study_hall_id}`
         },
       });
 
@@ -346,11 +346,10 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
             }
 
             console.log('✅ Payment verified successfully');
-            toast({
-              title: "Payment Successful",
-              description: "Your booking has been confirmed!",
-            });
-            onPaymentSuccess();
+            
+            // Redirect to payment success page with booking details
+            const successUrl = `${window.location.origin}/payment-success?booking_id=${bookingData.id}&amount=${bookingData.total_amount}&study_hall_id=${bookingData.study_hall_id}`;
+            window.location.href = successUrl;
           } catch (error) {
             console.error('💥 Payment verification error:', error);
             toast({

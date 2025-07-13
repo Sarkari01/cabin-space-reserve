@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'createOrder':
-        return await createOrder(requestData, ekqrApiKey);
+        return await createOrder(requestData, ekqrApiKey, req);
       case 'checkStatus':
         return await checkOrderStatus(requestData, ekqrApiKey);
       default:
@@ -45,8 +45,14 @@ Deno.serve(async (req) => {
   }
 });
 
-async function createOrder(data: any, ekqrApiKey: string) {
+async function createOrder(data: any, ekqrApiKey: string, req: Request) {
   console.log('Creating EKQR order:', data);
+  
+  // Get the origin from the request headers for dynamic redirect URL
+  const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || 'https://sarkarininja.com';
+  const redirectUrl = data.redirectUrl || `${origin}/payment-success?booking_id=${data.bookingId}&amount=${data.amount}&study_hall_id=${data.studyHallId || ''}`;
+  
+  console.log('Using redirect URL:', redirectUrl);
   
   const requestBody = {
     key: ekqrApiKey,
@@ -56,7 +62,7 @@ async function createOrder(data: any, ekqrApiKey: string) {
     customer_name: data.customerName || 'Customer',
     customer_email: data.customerEmail || 'customer@example.com',
     customer_mobile: data.customerMobile || '9999999999',
-    redirect_url: data.redirectUrl || 'https://jseyxxsptcckjumjcljk.lovable.app/payment-success',
+    redirect_url: redirectUrl,
     udf1: `booking_id:${data.bookingId}`,
     udf2: `study_hall_id:${data.studyHallId || ''}`,
     udf3: `seat_id:${data.seatId || ''}`
