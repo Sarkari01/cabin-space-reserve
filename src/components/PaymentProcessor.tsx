@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createBookingFromIntent } from "./BookingCreator";
 import { Loader2, QrCode } from "lucide-react";
 
+
 interface PaymentProcessorProps {
   bookingIntent: {
     study_hall_id: string;
@@ -28,10 +29,13 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
   const [processing, setProcessing] = useState(false);
   const [qrData, setQrData] = useState<any>(null);
   const [showQR, setShowQR] = useState(false);
+
   const { user } = useAuth();
   const { createTransaction, updateTransactionStatus } = useTransactions();
   const { settings } = useBusinessSettings();
   const { toast } = useToast();
+
+
 
   const handlePayment = async () => {
     if (!selectedMethod) {
@@ -75,15 +79,62 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
     try {
       console.log('💳 EKQR: Starting payment process for booking intent');
       
-      // Validate business settings first
-      if (!settings?.ekqr_enabled) {
-        throw new Error("EKQR payments are currently disabled. Please try another payment method.");
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be logged in to make a payment");
+      }
+      
+      // First, validate payment gateways to get current configuration status
+      console.log('🔧 EKQR: Validating payment gateway configuration...');
+      const { data: gatewayData, error: gatewayError } = await supabase.functions.invoke('validate-payment-gateways');
+      
+      if (gatewayData?.gateways?.ekqr) {
+        const ekqrStatus = gatewayData.gateways.ekqr;
+        console.log('🔧 EKQR: Gateway status:', ekqrStatus);
+        
+        if (ekqrStatus === 'missing_config') {
+          throw new Error("QR payment service is not configured. Please contact support or try Card/UPI Payment.");
+        } else if (ekqrStatus === 'invalid_credentials') {
+          throw new Error("QR payment service configuration is invalid. Please contact support or try Card/UPI Payment.");
+        } else if (ekqrStatus === 'disabled') {
+          throw new Error("QR payments are currently disabled. Please try Card/UPI Payment instead.");
+        } else if (ekqrStatus !== 'configured') {
+          throw new Error(`QR payment service status: ${ekqrStatus}. Please try Card/UPI Payment or contact support.`);
+        }
+      }
+      
+      // Enhanced validation of business settings
+      console.log('🔧 EKQR: Business settings:', settings);
+      if (!settings) {
+        console.log('⚠️ EKQR: Business settings not loaded, attempting to fetch...');
+        
+        // Try to fetch business settings directly
+        const { data: freshSettings, error: settingsError } = await supabase
+          .from('business_settings')
+          .select('*')
+          .single();
+        
+        if (settingsError || !freshSettings) {
+          console.error('❌ EKQR: Failed to load business settings:', settingsError);
+          
+          // More specific error message based on the type of error
+          if (settingsError?.code === 'PGRST116') {
+            throw new Error("Payment system not initialized. Please contact support to set up payments.");
+          } else {
+            throw new Error("Unable to load payment configuration. Please refresh the page or contact support.");
+          }
+        }
+        
+        if (!freshSettings.ekqr_enabled) {
+          throw new Error("QR payments are currently disabled. Please try Card/UPI Payment or contact support.");
+        }
+      } else if (!settings.ekqr_enabled) {
+        throw new Error("QR payments are currently disabled. Please try Card/UPI Payment instead.");
       }
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-
       // Create transaction record with booking intent data
+      console.log('💾 EKQR: Creating transaction record...');
       const transaction = await createTransaction({
         booking_id: null, // No booking exists yet
         amount: bookingIntent.total_amount,
@@ -94,10 +145,19 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       });
 
       if (!transaction) {
-        throw new Error("Failed to create transaction record");
+        throw new Error("Failed to create payment record. Please try again.");
       }
 
       console.log('✅ EKQR: Transaction created:', transaction.id);
+
+      // Prepare customer data with defaults
+      const customerData = {
+        customerName: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Customer',
+        customerEmail: user?.email || 'customer@example.com',
+        customerMobile: user?.user_metadata?.phone || '9999999999'
+      };
+
+      console.log('👤 EKQR: Customer data:', customerData);
 
       // Create EKQR order using the edge function
       console.log('🌐 EKQR: Invoking edge function...');
@@ -106,9 +166,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           action: 'createOrder',
           amount: bookingIntent.total_amount,
           bookingId: transaction.id, // Use transaction ID as temporary identifier
-          customerName: user?.user_metadata?.full_name || user?.email || 'Customer',
-          customerEmail: user?.email || 'customer@example.com',
-          customerMobile: user?.user_metadata?.phone || '9999999999',
+          ...customerData,
           studyHallId: bookingIntent.study_hall_id,
           seatId: bookingIntent.seat_id
         },
@@ -119,42 +177,74 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       if (error) {
         console.error('❌ EKQR Payment Error:', error);
         
-        // Provide more user-friendly error messages
-        let userMessage = "Failed to create payment order. Please try again.";
+        // Provide more user-friendly error messages based on error type
+        let userMessage = "Failed to set up QR payment. Please try Card/UPI Payment.";
+        let shouldLogDetails = true;
+        
         if (error.message?.includes('EKQR_API_KEY not configured')) {
-          userMessage = "EKQR payment service is not configured. Please contact support.";
+          userMessage = "QR payment service is not configured. Please contact support or try Card/UPI Payment.";
+          shouldLogDetails = false; // Don't log this as it's a known config issue
         } else if (error.message?.includes('Invalid amount')) {
-          userMessage = "Invalid payment amount. Please refresh and try again.";
-        } else if (error.message?.includes('API Error')) {
-          userMessage = "Payment service is temporarily unavailable. Please try Razorpay or offline payment.";
+          userMessage = "Invalid payment amount. Please refresh the page and try again.";
+        } else if (error.message?.includes('API Error') || error.message?.includes('Failed to create EKQR order')) {
+          userMessage = "QR payment service is temporarily unavailable. Please try Card/UPI Payment.";
+        } else if (error.message?.includes('Network') || error.message?.includes('timeout')) {
+          userMessage = "Network error. Please check your connection and try again.";
+        } else if (error.message?.includes('fetch')) {
+          userMessage = "Unable to connect to payment service. Please check your connection and try again.";
+        }
+        
+        // Log detailed error for debugging if it's not a known config issue
+        if (shouldLogDetails) {
+          console.error('🔍 Detailed EKQR error for debugging:', {
+            error,
+            bookingIntent,
+            settings,
+            user: user?.id
+          });
         }
         
         toast({
-          title: "EKQR Payment Failed",
+          title: "QR Payment Setup Failed",
           description: userMessage,
           variant: "destructive",
         });
-        throw new Error(error.message || 'Failed to create order');
+        
+        // Don't throw here - let user try other payment methods
+        return;
       }
 
       if (!orderResponse?.success || !orderResponse?.orderId) {
-        throw new Error("Invalid order response received");
+        console.error('❌ EKQR: Invalid order response:', orderResponse);
+        toast({
+          title: "QR Payment Setup Failed",
+          description: "Invalid response from payment service. Please try Card/UPI Payment.",
+          variant: "destructive",
+        });
+        return;
       }
 
       // Update transaction with EKQR order details
-      await supabase
+      const updateData = {
+        payment_id: orderResponse.orderId,
+        payment_data: {
+          bookingIntent: bookingIntent,
+          sessionId: orderResponse.sessionId,
+          paymentUrl: orderResponse.paymentUrl,
+          upiIntent: orderResponse.upiIntent,
+          isUtrRequired: orderResponse.isUtrRequired
+        }
+      };
+
+      const { error: updateError } = await supabase
         .from('transactions')
-        .update({
-          payment_id: orderResponse.orderId,
-          payment_data: {
-            bookingIntent: bookingIntent,
-            sessionId: orderResponse.sessionId,
-            paymentUrl: orderResponse.paymentUrl,
-            upiIntent: orderResponse.upiIntent,
-            isUtrRequired: orderResponse.isUtrRequired
-          }
-        })
+        .update(updateData)
         .eq('id', transaction.id);
+
+      if (updateError) {
+        console.error('❌ EKQR: Failed to update transaction:', updateError);
+        // Continue anyway as the order was created successfully
+      }
 
       console.log('✅ EKQR: Order created successfully');
       setQrData(orderResponse);
@@ -164,19 +254,29 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       startPaymentPolling(orderResponse.orderId, transaction.id);
 
       toast({
-        title: "Payment Options Ready",
-        description: "Choose your preferred payment method below",
+        title: "QR Payment Ready",
+        description: "Scan the QR code or use UPI to complete payment",
       });
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('💥 EKQR payment error:', error);
+      
+      // Default error message
+      let errorMessage = "Unable to set up QR payment. Please try Card/UPI Payment.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Payment Setup Failed",
-        description: error.message || "Unable to set up EKQR payment. Please try another method.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
   };
 
+  // Update the polling function to better handle success states and booking data
   const startPaymentPolling = async (orderId: string, transactionId: string) => {
     console.log('Starting enhanced payment polling for order:', orderId);
     setShowQR(true);
@@ -205,7 +305,15 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
         // First check local transaction status (faster via real-time)
         const { data: transactionCheck } = await supabase
           .from('transactions')
-          .select('status, booking_id')
+          .select(`
+            status, 
+            booking_id,
+            booking:bookings(
+              *,
+              study_hall:study_halls(name, location),
+              seat:seats(seat_id, row_name, seat_number)
+            )
+          `)
           .eq('id', transactionId)
           .single();
         
@@ -218,22 +326,15 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             description: "Your booking has been confirmed!",
           });
           
-          // Fetch the booking details if available
-          if (transactionCheck.booking_id) {
-            const { data: booking } = await supabase
-              .from('bookings')
-              .select('*, study_hall:study_halls(*), seat:seats(*)')
-              .eq('id', transactionCheck.booking_id)
-              .single();
-            
-            if (booking) {
-              onPaymentSuccess(booking);
-              return true;
-            }
+          // Pass the booking data if available
+          const bookingData = transactionCheck.booking;
+          if (bookingData) {
+            console.log('Passing booking data to success callback:', bookingData);
+            onPaymentSuccess(bookingData);
+          } else {
+            console.log('No booking data found, triggering success without data');
+            onPaymentSuccess(null);
           }
-          
-          // Fallback - just trigger success
-          onPaymentSuccess(null);
           return true;
         }
         
@@ -250,7 +351,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           if (!error && data) {
             console.log('EKQR payment status response:', data);
             
-            if (data.status === 'SUCCESS' || data.paid === true) {
+            if (data.status === 'success' || data.paid === true) {
               console.log('Payment successful via EKQR API!');
               setProcessing(false);
               setShowQR(false);
@@ -258,9 +359,30 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
                 title: "Payment Successful!",
                 description: "Your booking has been confirmed!",
               });
-              onPaymentSuccess(data.booking);
+              
+              // Pass booking data if available from EKQR response
+              if (data.booking) {
+                console.log('Passing booking data from EKQR response:', data.booking);
+                onPaymentSuccess(data.booking);
+              } else {
+                // Try to fetch the booking using the transaction data
+                console.log('Fetching booking data after EKQR success');
+                const { data: updatedTransaction } = await supabase
+                  .from('transactions')
+                  .select(`
+                    booking:bookings(
+                      *,
+                      study_hall:study_halls(name, location),
+                      seat:seats(seat_id, row_name, seat_number)
+                    )
+                  `)
+                  .eq('id', transactionId)
+                  .single();
+                
+                onPaymentSuccess(updatedTransaction?.booking || null);
+              }
               return true;
-            } else if (data.status === 'FAILED') {
+            } else if (data.status === 'failed') {
               console.log('Payment failed via EKQR API');
               setProcessing(false);
               setShowQR(false);
@@ -569,54 +691,58 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Complete Your Booking</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <h4 className="font-medium">Booking Summary</h4>
-          <div className="text-sm space-y-1">
-            <div className="flex justify-between">
-              <span>Amount:</span>
-              <span>₹{bookingIntent.total_amount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Period:</span>
-              <span className="capitalize">{bookingIntent.booking_period}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Duration:</span>
-              <span>{bookingIntent.start_date} to {bookingIntent.end_date}</span>
+    <div className="w-full max-w-md mx-auto space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Complete Your Booking</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <h4 className="font-medium">Booking Summary</h4>
+            <div className="text-sm space-y-1">
+              <div className="flex justify-between">
+                <span>Amount:</span>
+                <span>₹{bookingIntent.total_amount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Period:</span>
+                <span className="capitalize">{bookingIntent.booking_period}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Duration:</span>
+                <span>{bookingIntent.start_date} to {bookingIntent.end_date}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <PaymentMethodSelector
-          onMethodSelect={setSelectedMethod}
-          selectedMethod={selectedMethod}
-        />
-        
-        {!selectedMethod && (
-          <div className="text-sm text-muted-foreground text-center">
-            Please select a payment method to continue
+          <PaymentMethodSelector
+            onMethodSelect={setSelectedMethod}
+            selectedMethod={selectedMethod}
+          />
+          
+          {!selectedMethod && (
+            <div className="text-sm text-muted-foreground text-center">
+              Please select a payment method to continue
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onCancel} className="flex-1">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePayment} 
+              disabled={!selectedMethod || processing}
+              className="flex-1"
+            >
+              {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {selectedMethod === "offline" ? "Reserve Seat" : selectedMethod === "razorpay" ? "Pay with Razorpay" : "Pay Now"}
+            </Button>
           </div>
-        )}
+        </CardContent>
+      </Card>
 
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onCancel} className="flex-1">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handlePayment} 
-            disabled={!selectedMethod || processing}
-            className="flex-1"
-          >
-            {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {selectedMethod === "offline" ? "Reserve Seat" : selectedMethod === "razorpay" ? "Pay with Razorpay" : "Pay Now"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+
+    </div>
   );
 };
