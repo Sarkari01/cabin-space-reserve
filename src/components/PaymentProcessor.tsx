@@ -71,8 +71,13 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
   const handleEKQRPayment = async () => {
     try {
-      console.log('EKQR: Starting payment process for booking:', bookingData.id);
+      console.log('💳 EKQR: Starting payment process for booking:', bookingData.id);
       
+      // Validate business settings first
+      if (!settings?.ekqr_enabled) {
+        throw new Error("EKQR payments are currently disabled. Please try another payment method.");
+      }
+
       // Create transaction record first
       const transaction = await createTransaction({
         booking_id: bookingData.id,
@@ -84,10 +89,10 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         throw new Error("Failed to create transaction record");
       }
 
-      console.log('EKQR: Transaction created:', transaction.id);
+      console.log('✅ EKQR: Transaction created:', transaction.id);
 
-      // Create EKQR QR code using official API
-      console.log('EKQR: Invoking edge function...');
+      // Create EKQR QR code using the edge function
+      console.log('🌐 EKQR: Invoking edge function...');
       const { data: qrResponse, error } = await supabase.functions.invoke('ekqr-payment', {
         body: {
           action: 'createQR',
@@ -96,28 +101,49 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         },
       });
 
-      console.log('EKQR: Function response:', { qrResponse, error });
+      console.log('📡 EKQR: Function response:', { qrResponse, error });
 
       if (error) {
-        console.error('EKQR Payment Error:', error);
+        console.error('❌ EKQR Payment Error:', error);
+        
+        // Provide more user-friendly error messages
+        let userMessage = "Failed to generate QR code. Please try again.";
+        if (error.message?.includes('MISSING_API_KEY')) {
+          userMessage = "EKQR payment service is not configured. Please contact support.";
+        } else if (error.message?.includes('Invalid amount')) {
+          userMessage = "Invalid payment amount. Please refresh and try again.";
+        } else if (error.message?.includes('API Error')) {
+          userMessage = "Payment service is temporarily unavailable. Please try Razorpay or offline payment.";
+        }
+        
         toast({
-          title: "Payment Failed",
-          description: error.message || "Failed to generate QR code",
+          title: "EKQR Payment Failed",
+          description: userMessage,
           variant: "destructive",
         });
         throw new Error(error.message || 'Failed to generate QR code');
       }
 
+      if (!qrResponse?.qr_image_url || !qrResponse?.qr_id) {
+        throw new Error("Invalid QR code response received");
+      }
+
+      console.log('✅ EKQR: QR code generated successfully');
       setQrData(qrResponse);
       setShowQR(true);
 
       // Start polling for payment status
       startPaymentPolling(qrResponse.qr_id, transaction.id);
-    } catch (error) {
-      console.error('EKQR payment error:', error);
+
       toast({
-        title: "Payment Failed",
-        description: "Failed to generate QR code. Please try again.",
+        title: "QR Code Generated",
+        description: "Scan the QR code with any UPI app to complete payment",
+      });
+    } catch (error) {
+      console.error('💥 EKQR payment error:', error);
+      toast({
+        title: "Payment Setup Failed",
+        description: error.message || "Unable to set up EKQR payment. Please try another method.",
         variant: "destructive",
       });
     }
@@ -175,8 +201,13 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
   const handleRazorpayPayment = async () => {
     try {
-      console.log('Razorpay: Starting payment process for booking:', bookingData.id);
+      console.log('💳 Razorpay: Starting payment process for booking:', bookingData.id);
       
+      // Validate business settings first
+      if (!settings?.razorpay_enabled) {
+        throw new Error("Razorpay payments are currently disabled. Please try another payment method.");
+      }
+
       // Create transaction record first
       const transaction = await createTransaction({
         booking_id: bookingData.id,
@@ -188,10 +219,10 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         throw new Error("Failed to create transaction record");
       }
 
-      console.log('Razorpay: Transaction created:', transaction.id);
+      console.log('✅ Razorpay: Transaction created:', transaction.id);
 
       // Create Razorpay order
-      console.log('Razorpay: Invoking edge function...');
+      console.log('🌐 Razorpay: Invoking edge function...');
       const { data: orderResponse, error } = await supabase.functions.invoke('razorpay-payment', {
         body: {
           action: 'create_order',
@@ -200,28 +231,54 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         },
       });
 
-      console.log('Razorpay: Function response:', { orderResponse, error });
+      console.log('📡 Razorpay: Function response:', { orderResponse, error });
 
       if (error) {
-        console.error('Razorpay Payment Error:', error);
+        console.error('❌ Razorpay Payment Error:', error);
+        
+        // Provide more user-friendly error messages
+        let userMessage = "Failed to initiate payment. Please try again.";
+        if (error.message?.includes('MISSING_CREDENTIALS')) {
+          userMessage = "Razorpay payment service is not configured. Please contact support.";
+        } else if (error.message?.includes('Invalid amount')) {
+          userMessage = "Invalid payment amount. Please refresh and try again.";
+        } else if (error.message?.includes('Invalid Razorpay credentials')) {
+          userMessage = "Payment service configuration error. Please contact support.";
+        } else if (error.message?.includes('service is temporarily unavailable')) {
+          userMessage = "Payment service is temporarily unavailable. Please try EKQR or offline payment.";
+        }
+        
         toast({
-          title: "Payment Failed", 
-          description: error.message || "Failed to initiate payment",
+          title: "Razorpay Payment Failed", 
+          description: userMessage,
           variant: "destructive",
         });
         throw new Error(error.message || 'Failed to create payment order');
       }
 
+      if (!orderResponse?.order_id || !orderResponse?.key_id) {
+        throw new Error("Invalid payment order response received");
+      }
+
+      console.log('✅ Razorpay: Order created successfully');
+
       // Load Razorpay script if not already loaded
       if (!window.Razorpay) {
+        console.log('📦 Loading Razorpay checkout script...');
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
         document.body.appendChild(script);
         
         await new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = reject;
+          script.onload = () => {
+            console.log('✅ Razorpay script loaded successfully');
+            resolve(null);
+          };
+          script.onerror = () => {
+            console.error('❌ Failed to load Razorpay script');
+            reject(new Error('Failed to load Razorpay checkout'));
+          };
         });
       }
 
@@ -229,12 +286,14 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
       const options = {
         key: orderResponse.key_id,
         amount: orderResponse.amount,
-        currency: orderResponse.currency,
+        currency: orderResponse.currency || 'INR',
         name: "Study Hall Booking",
-        description: `Booking for ${bookingData.booking_period}`,
+        description: `${bookingData.booking_period} booking for ₹${bookingData.total_amount}`,
         order_id: orderResponse.order_id,
         handler: async function (response: any) {
           try {
+            console.log('💰 Payment completed, verifying...', response);
+            
             // Verify payment
             const { data: verifyResponse, error: verifyError } = await supabase.functions.invoke('razorpay-payment', {
               body: {
@@ -246,36 +305,58 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
               },
             });
 
+            console.log('🔍 Verification response:', { verifyResponse, verifyError });
+
             if (verifyError) {
-              throw new Error('Payment verification failed');
+              throw new Error(verifyError.message || 'Payment verification failed');
             }
 
+            console.log('✅ Payment verified successfully');
             toast({
               title: "Payment Successful",
               description: "Your booking has been confirmed!",
             });
             onPaymentSuccess();
           } catch (error) {
-            console.error('Payment verification error:', error);
+            console.error('💥 Payment verification error:', error);
             toast({
               title: "Payment Verification Failed",
-              description: "Please contact support for assistance.",
+              description: error.message || "Please contact support for assistance.",
               variant: "destructive",
+            });
+          }
+        },
+        modal: {
+          ondismiss: function() {
+            console.log('ℹ️ Payment modal closed by user');
+            toast({
+              title: "Payment Cancelled",
+              description: "You can try again or choose a different payment method.",
             });
           }
         },
         theme: {
           color: "#3399cc"
+        },
+        retry: {
+          enabled: true,
+          max_count: 3
         }
       };
 
+      console.log('🚀 Opening Razorpay checkout...');
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (error) {
-      console.error('Razorpay payment error:', error);
+
       toast({
-        title: "Payment Failed",
-        description: "Failed to initiate payment. Please try again.",
+        title: "Payment Initiated",
+        description: "Complete the payment in the Razorpay window",
+      });
+    } catch (error) {
+      console.error('💥 Razorpay payment error:', error);
+      toast({
+        title: "Payment Setup Failed",
+        description: error.message || "Unable to set up Razorpay payment. Please try another method.",
         variant: "destructive",
       });
     }

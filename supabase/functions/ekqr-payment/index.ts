@@ -7,76 +7,120 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
-  console.log('EKQR Payment function called - method:', req.method, 'url:', req.url);
+  console.log('🚀 EKQR Payment function called - method:', req.method, 'url:', req.url);
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('EKQR: Handling OPTIONS request');
+    console.log('✅ EKQR: Handling OPTIONS request');
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check endpoint
+  const url = new URL(req.url);
+  if (url.pathname.includes('/health')) {
+    console.log('💚 EKQR: Health check requested');
+    const ekqrApiKey = Deno.env.get('EKQR_API_KEY');
+    return new Response(
+      JSON.stringify({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        ekqr_api_key_configured: !!ekqrApiKey,
+        ekqr_api_key_length: ekqrApiKey ? ekqrApiKey.length : 0
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
-    console.log('EKQR: Initializing Supabase client');
+    console.log('🔧 EKQR: Initializing Supabase client');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
-    console.log('EKQR: Parsing request body');
+    console.log('📖 EKQR: Parsing request body');
     const requestBody = await req.json();
-    console.log('EKQR: Received request:', requestBody);
+    console.log('📦 EKQR: Received request:', JSON.stringify(requestBody, null, 2));
     const { action, transactionId, amount, bookingId } = requestBody;
+
+    // Validate API key upfront
+    const ekqrApiKey = Deno.env.get('EKQR_API_KEY');
+    if (!ekqrApiKey) {
+      console.error('❌ EKQR_API_KEY not found in environment variables');
+      return new Response(
+        JSON.stringify({ 
+          error: 'EKQR payment service is not configured. Please contact support.',
+          code: 'MISSING_API_KEY'
+        }),
+        { 
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log(`🔑 EKQR: API key found (length: ${ekqrApiKey.length}, preview: ${ekqrApiKey.substring(0, 8)}...)`);
 
     switch (action) {
       case 'createQR':
-        return await createQRCode(amount, bookingId);
+        if (!amount || !bookingId) {
+          throw new Error('Missing required parameters: amount and bookingId');
+        }
+        return await createQRCode(amount, bookingId, ekqrApiKey);
       case 'checkStatus':
-        return await checkPaymentStatus(transactionId);
+        if (!transactionId) {
+          throw new Error('Missing required parameter: transactionId');
+        }
+        return await checkPaymentStatus(transactionId, ekqrApiKey);
       default:
-        throw new Error('Invalid action');
+        throw new Error(`Invalid action: ${action}. Supported actions: createQR, checkStatus`);
     }
   } catch (error) {
-    console.error('EKQR Payment Error:', error);
+    console.error('💥 EKQR Payment Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        code: 'FUNCTION_ERROR',
+        timestamp: new Date().toISOString()
+      }),
       { 
-        status: 400,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
 });
 
-async function createQRCode(amount: number, bookingId: string) {
-  console.log('[EKQR-PAYMENT] Creating QR code for booking:', bookingId, 'Amount:', amount);
-  
-  // Get EKQR API key from Supabase secrets
-  const ekqrApiKey = Deno.env.get('EKQR_API_KEY');
-  
-  if (!ekqrApiKey) {
-    console.error('[EKQR-PAYMENT] EKQR_API_KEY not found in environment variables');
-    throw new Error('EKQR payment service is not configured. Please contact support.');
+async function createQRCode(amount: number, bookingId: string, ekqrApiKey: string) {
+  console.log('💳 [EKQR-PAYMENT] Creating QR code for booking:', bookingId, 'Amount: ₹', amount);
+
+  // Validate amount
+  if (!amount || amount <= 0) {
+    throw new Error(`Invalid amount: ${amount}. Amount must be greater than 0.`);
   }
 
-  console.log('[EKQR-PAYMENT] API key found, length:', ekqrApiKey.length);
-
-  // EKQR API call based on official documentation
+  // EKQR API call - Using correct endpoint format
   const requestBody = {
-    amount: amount,
+    amount: Math.round(amount), // Ensure whole number
     purpose: 'Study Hall Booking',
-    order_id: `BOOKING_${bookingId}`
+    order_id: `BOOKING_${bookingId}_${Date.now()}`,
+    callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/ekqr-payment/callback`
   };
   
-  console.log('[EKQR-PAYMENT] Making API request to EKQR');
-  console.log('[EKQR-PAYMENT] Request URL: https://ekqr.co/api/ekqr');
-  console.log('[EKQR-PAYMENT] Request body:', requestBody);
-  console.log('[EKQR-PAYMENT] API key preview:', ekqrApiKey ? `${ekqrApiKey.substring(0, 8)}...` : 'NOT SET');
+  const apiUrl = 'https://ekqr.co/api/qr/create';
   
-  const response = await fetch('https://ekqr.co/api/ekqr', {
+  console.log('🌐 [EKQR-PAYMENT] Making API request');
+  console.log('📍 [EKQR-PAYMENT] Request URL:', apiUrl);
+  console.log('📤 [EKQR-PAYMENT] Request body:', JSON.stringify(requestBody, null, 2));
+  console.log('🔐 [EKQR-PAYMENT] API key preview:', `${ekqrApiKey.substring(0, 8)}...`);
+  
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': ekqrApiKey,
+      'Authorization': `Bearer ${ekqrApiKey}`,
+      'Accept': 'application/json',
+      'User-Agent': 'StudyHall-Payment/1.0'
     },
     body: JSON.stringify(requestBody),
   });
@@ -126,25 +170,22 @@ async function createQRCode(amount: number, bookingId: string) {
   );
 }
 
-async function checkPaymentStatus(qrId: string) {
-  console.log('[EKQR-PAYMENT] Checking payment status for QR ID:', qrId);
-  
-  // Get EKQR API key from Supabase secrets
-  const ekqrApiKey = Deno.env.get('EKQR_API_KEY');
-  
-  if (!ekqrApiKey) {
-    console.error('[EKQR-PAYMENT] EKQR_API_KEY not found in environment variables');
-    throw new Error('EKQR payment service is not configured. Please contact support.');
-  }
+async function checkPaymentStatus(qrId: string, ekqrApiKey: string) {
+  console.log('🔍 [EKQR-PAYMENT] Checking payment status for QR ID:', qrId);
 
-  // Check EKQR payment status based on official documentation
-  console.log('[EKQR-PAYMENT] Making status check API request for QR ID:', qrId);
-  console.log('[EKQR-PAYMENT] Status check URL:', `https://ekqr.co/api/ekqr/status/${qrId}`);
-  console.log('[EKQR-PAYMENT] API key preview:', ekqrApiKey ? `${ekqrApiKey.substring(0, 8)}...` : 'NOT SET');
+  // Check EKQR payment status - Using correct endpoint
+  const statusUrl = `https://ekqr.co/api/qr/status/${qrId}`;
   
-  const response = await fetch(`https://ekqr.co/api/ekqr/status/${qrId}`, {
+  console.log('🔍 [EKQR-PAYMENT] Making status check API request');
+  console.log('📍 [EKQR-PAYMENT] Status check URL:', statusUrl);
+  console.log('🔐 [EKQR-PAYMENT] API key preview:', `${ekqrApiKey.substring(0, 8)}...`);
+  
+  const response = await fetch(statusUrl, {
+    method: 'GET',
     headers: {
-      'x-api-key': ekqrApiKey,
+      'Authorization': `Bearer ${ekqrApiKey}`,
+      'Accept': 'application/json',
+      'User-Agent': 'StudyHall-Payment/1.0'
     },
   });
 
