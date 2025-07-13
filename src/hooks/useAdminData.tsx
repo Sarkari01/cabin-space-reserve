@@ -62,6 +62,13 @@ export const useAdminData = () => {
 
   const fetchStats = async () => {
     try {
+      // Ensure session is valid before making queries
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No active session for admin data fetch');
+        return;
+      }
+
       // Get total users count
       const { count: usersCount } = await supabase
         .from('profiles')

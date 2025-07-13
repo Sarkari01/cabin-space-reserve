@@ -47,6 +47,15 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
     try {
       setLoading(true);
       
+      // Ensure session is valid before making queries
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No active session for transaction fetch');
+        setTransactions([]);
+        setLoading(false);
+        return;
+      }
+      
       let query = supabase
         .from("transactions")
         .select(`

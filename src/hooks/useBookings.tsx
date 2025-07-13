@@ -48,7 +48,17 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
 
     try {
       setLoading(true);
-      console.log("Fetching bookings for user:", user.id, "role:", effectiveRole);
+      
+      // Ensure session is valid before making queries
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No active session for booking fetch');
+        setBookings([]);
+        setLoading(false);
+        return;
+      }
+      
+      console.log("Fetching bookings for user:", user.id, "role:", effectiveRole, "session exists:", !!session);
       
       let query = supabase
         .from("bookings")

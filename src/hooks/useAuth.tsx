@@ -28,17 +28,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch user profile data
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching user profile for ID:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
+      console.log('Profile fetch result:', { data, error });
+
       if (error) {
         console.error('Error fetching user profile:', error);
         return;
       }
 
+      console.log('Setting user profile:', data, 'Role:', data.role);
       setUserProfile(data);
       setUserRole(data.role);
     } catch (error) {
@@ -50,10 +54,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state change:', event, 'Session exists:', !!session, 'User ID:', session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('Fetching profile for user:', session.user.id);
           // Fetch user profile when user is authenticated
           setTimeout(() => {
             fetchUserProfile(session.user.id);
@@ -70,11 +76,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', !!session, session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         fetchUserProfile(session.user.id);
+      } else {
+        console.log('No initial session found');
       }
       
       setLoading(false);
