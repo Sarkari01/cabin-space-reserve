@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
@@ -43,7 +43,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -118,7 +118,47 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, effectiveRole, userRole, toast]);
+
+  // Set up real-time subscription for bookings
+  useEffect(() => {
+    if (!user) return;
+
+    console.log("Setting up real-time subscription for bookings");
+    
+    // Initial fetch
+    fetchBookings();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('booking-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings'
+        },
+        (payload) => {
+          console.log('Real-time booking change:', payload);
+          
+          // Refetch bookings when there are changes
+          fetchBookings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log("Cleaning up real-time subscription");
+      supabase.removeChannel(channel);
+    };
+  }, [fetchBookings]);
+
+  // Manual refresh function that can be called from components
+  const refreshBookings = useCallback(() => {
+    console.log("Manual refresh triggered");
+    return fetchBookings();
+  }, [fetchBookings]);
 
   const createBooking = async (bookingData: {
     study_hall_id: string;
@@ -175,7 +215,8 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         description: "Booking created successfully",
       });
 
-      fetchBookings();
+      // Refresh bookings to show the new one
+      refreshBookings();
       return booking as Booking; // Return the actual booking object instead of true
     } catch (error) {
       console.error("Error creating booking:", error);
@@ -237,7 +278,8 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         description: "Booking status updated successfully",
       });
 
-      fetchBookings();
+      // Refresh bookings to show the updated status
+      refreshBookings();
       return true;
     } catch (error) {
       console.error("Error updating booking:", error);
@@ -251,48 +293,63 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
   };
 
   const cancelBooking = async (bookingId: string) => {
-    return updateBookingStatus(bookingId, "cancelled");
-  };
+    try {
+      // First get the booking to access seat_id
+      const { data: booking, error: fetchError } = await supabase
+        .from("bookings")
+        .select("seat_id")
+        .eq("id", bookingId)
+        .single();
 
-  useEffect(() => {
-    console.log('useBookings: useEffect triggered - user:', user?.id, 'effectiveRole:', effectiveRole);
-    fetchBookings();
-  }, [user, effectiveRole]);
+      if (fetchError) throw fetchError;
 
-  // Enhanced real-time subscription for bookings
-  useEffect(() => {
-    if (!user) return;
+      // Update booking status to cancelled
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "cancelled" })
+        .eq("id", bookingId);
 
-    const channel = supabase
-      .channel('bookings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bookings',
-          filter: effectiveRole === 'student' ? `user_id=eq.${user.id}` : undefined
-        },
-        (payload) => {
-          console.log('Real-time booking change detected:', payload);
-          
-          // Handle different types of changes
-          if (payload.eventType === 'INSERT') {
-            console.log('New booking created:', payload.new);
-          } else if (payload.eventType === 'UPDATE') {
-            console.log('Booking updated:', payload.new);
-          }
-          
-          // Refetch bookings when changes occur
-          fetchBookings();
+      if (error) throw error;
+
+      // Mark seat as available again
+      if (booking?.seat_id) {
+        console.log(`Marking seat ${booking.seat_id} as available after cancellation`);
+        
+        const { error: seatError } = await supabase
+          .from("seats")
+          .update({ is_available: true })
+          .eq("id", booking.seat_id);
+
+        if (seatError) {
+          console.error("Error updating seat availability:", seatError);
+          toast({
+            title: "Warning",
+            description: "Booking cancelled but seat may not be available yet",
+            variant: "destructive",
+          });
+        } else {
+          console.log("Seat marked as available successfully");
         }
-      )
-      .subscribe();
+      }
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, effectiveRole]);
+      toast({
+        title: "Success",
+        description: "Booking cancelled successfully",
+      });
+
+      // Refresh bookings to show the updated status
+      refreshBookings();
+      return true;
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel booking",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
   const updateBooking = async (bookingId: string, updates: Partial<Booking>) => {
     try {
@@ -308,7 +365,8 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         description: "Booking updated successfully",
       });
 
-      fetchBookings();
+      // Refresh bookings to show the updated information
+      refreshBookings();
       return true;
     } catch (error) {
       console.error("Error updating booking:", error);
@@ -325,9 +383,10 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
     bookings,
     loading,
     fetchBookings,
+    refreshBookings, // Export the manual refresh function
     createBooking,
     updateBookingStatus,
-    updateBooking,
     cancelBooking,
+    updateBooking,
   };
 };
