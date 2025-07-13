@@ -32,6 +32,14 @@ const PaymentSuccess = () => {
       });
     }
     
+    // For successful payments, show success message
+    if (bookingId || transactionId) {
+      toast({
+        title: "Payment Successful!",
+        description: "Your booking has been confirmed successfully.",
+      });
+    }
+    
     if (bookingId || transactionId || amount) {
       setBookingDetails({
         bookingId,
