@@ -91,11 +91,6 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
       console.log('✅ EKQR: Transaction created:', transaction.id);
 
-      // Test EKQR function health first
-      console.log('🔍 EKQR: Testing function health...');
-      const { data: healthCheck, error: healthError } = await supabase.functions.invoke('ekqr-payment/health');
-      console.log('💚 EKQR Health Check:', { healthCheck, healthError });
-
       // Create EKQR QR code using the edge function
       console.log('🌐 EKQR: Invoking edge function...');
       const { data: qrResponse, error } = await supabase.functions.invoke('ekqr-payment', {
@@ -107,7 +102,6 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
       });
 
       console.log('📡 EKQR: Function response:', { qrResponse, error });
-      console.log('📡 EKQR: Response type:', typeof qrResponse, 'Error type:', typeof error);
 
       if (error) {
         console.error('❌ EKQR Payment Error:', error);
