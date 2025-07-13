@@ -2,8 +2,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Clock, DollarSign, User, Building, Edit } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, DollarSign, User, Building, Edit, QrCode, Download } from "lucide-react";
 import { Booking } from "@/hooks/useBookings";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 
 interface BookingDetailModalProps {
   open: boolean;
@@ -26,6 +28,9 @@ export function BookingDetailModal({
   onEdit,
   loading = false 
 }: BookingDetailModalProps) {
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [showQR, setShowQR] = useState(false);
+  
   if (!booking) return null;
 
   const formatDate = (dateString: string) => {
@@ -50,6 +55,55 @@ export function BookingDetailModal({
         return 'outline';
       default:
         return 'secondary';
+    }
+  };
+
+  // Generate QR code when modal opens and booking is confirmed/completed
+  useEffect(() => {
+    if (open && booking && (booking.status === 'confirmed' || booking.status === 'completed')) {
+      generateQRCode();
+    }
+  }, [open, booking]);
+
+  const generateQRCode = async () => {
+    try {
+      const qrData = {
+        bookingId: booking.id,
+        bookingNumber: booking.booking_number,
+        userName: booking.user?.full_name || 'N/A',
+        studyHall: booking.study_hall?.name || 'Study Hall',
+        seat: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
+        period: booking.booking_period,
+        startDate: booking.start_date,
+        endDate: booking.end_date,
+        amount: booking.total_amount,
+        status: booking.status,
+        validFrom: booking.start_date,
+        validUntil: booking.end_date
+      };
+
+      const qrString = JSON.stringify(qrData);
+      const qrUrl = await QRCode.toDataURL(qrString, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
+      setQrCodeUrl(qrUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
+  };
+
+  const downloadQRCode = () => {
+    if (qrCodeUrl) {
+      const link = document.createElement('a');
+      link.download = `booking-qr-${booking.booking_number || booking.id.substring(0, 8)}.png`;
+      link.href = qrCodeUrl;
+      link.click();
     }
   };
 
@@ -190,6 +244,35 @@ export function BookingDetailModal({
               </CardContent>
             </Card>
           </div>
+
+          {/* QR Code Section (only for confirmed/completed bookings) */}
+          {(booking.status === 'confirmed' || booking.status === 'completed') && qrCodeUrl && (
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-3 flex items-center">
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Booking QR Code
+                </h4>
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="bg-white p-4 rounded-lg">
+                    <img src={qrCodeUrl} alt="Booking QR Code" className="w-48 h-48" />
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Show this QR code at the study hall for entry verification
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={downloadQRCode}
+                    className="flex items-center"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download QR Code
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Timestamps */}
           <Card>
