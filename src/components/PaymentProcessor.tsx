@@ -9,8 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, QrCode } from "lucide-react";
 
 interface PaymentProcessorProps {
-  bookingData: {
-    id: string;
+  bookingIntent: {
     study_hall_id: string;
     seat_id: string;
     booking_period: "daily" | "weekly" | "monthly";
@@ -22,7 +21,7 @@ interface PaymentProcessorProps {
   onCancel: () => void;
 }
 
-export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: PaymentProcessorProps) => {
+export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: PaymentProcessorProps) => {
   const [selectedMethod, setSelectedMethod] = useState("");
   const [processing, setProcessing] = useState(false);
   const [qrData, setQrData] = useState<any>(null);
@@ -71,7 +70,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
   const handleEKQRPayment = async () => {
     try {
-      console.log('💳 EKQR: Starting payment process for booking:', bookingData.id);
+      console.log('💳 EKQR: Starting payment process for booking intent');
       
       // Validate business settings first
       if (!settings?.ekqr_enabled) {
@@ -81,10 +80,10 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Create transaction record first
+      // Create transaction record without booking_id initially
       const transaction = await createTransaction({
-        booking_id: bookingData.id,
-        amount: bookingData.total_amount,
+        booking_id: null, // No booking exists yet
+        amount: bookingIntent.total_amount,
         payment_method: "ekqr",
       });
 
@@ -99,14 +98,15 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
       const { data: orderResponse, error } = await supabase.functions.invoke('ekqr-payment', {
         body: {
           action: 'createOrder',
-          amount: bookingData.total_amount,
-          bookingId: bookingData.id,
+          amount: bookingIntent.total_amount,
+          bookingId: transaction.id, // Use transaction ID as temporary identifier
           customerName: user?.user_metadata?.full_name || user?.email || 'Customer',
           customerEmail: user?.email || 'customer@example.com',
           customerMobile: user?.user_metadata?.phone || '9999999999',
-          studyHallId: bookingData.study_hall_id,
-          seatId: bookingData.seat_id,
-          redirectUrl: `${window.location.origin}/payment-success?booking_id=${bookingData.id}&amount=${bookingData.total_amount}&study_hall_id=${bookingData.study_hall_id}`
+          studyHallId: bookingIntent.study_hall_id,
+          seatId: bookingIntent.seat_id,
+          // Pass transaction ID in redirect to create booking after payment
+          redirectUrl: `${window.location.origin}/payment-success?transaction_id=${transaction.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`
         },
       });
 
@@ -192,11 +192,38 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
           clearInterval(pollInterval);
           await updateTransactionStatus(transactionId, 'completed');
           
-          // Update booking status
-          await supabase
-            .from('bookings')
-            .update({ status: 'confirmed' })
-            .eq('id', bookingData.id);
+          // Create booking after successful payment
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const bookingResult = await supabase
+              .from('bookings')
+              .insert({
+                ...bookingIntent,
+                user_id: user.id,
+                status: 'confirmed'
+              })
+              .select()
+              .single();
+
+            if (bookingResult.data) {
+              // Mark seat as unavailable
+              await supabase
+                .from('seats')
+                .update({ is_available: false })
+                .eq('id', bookingIntent.seat_id);
+
+              // Update transaction with booking_id
+              await supabase
+                .from('transactions')
+                .update({ booking_id: bookingResult.data.id })
+                .eq('id', transactionId);
+
+              // Redirect to success page instead of modal callback
+              const successUrl = `${window.location.origin}/payment-success?booking_id=${bookingResult.data.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`;
+              window.location.href = successUrl;
+              return;
+            }
+          }
 
           setShowQR(false);
           toast({
@@ -235,17 +262,17 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
   const handleRazorpayPayment = async () => {
     try {
-      console.log('💳 Razorpay: Starting payment process for booking:', bookingData.id);
+      console.log('💳 Razorpay: Starting payment process for booking intent');
       
       // Validate business settings first
       if (!settings?.razorpay_enabled) {
         throw new Error("Razorpay payments are currently disabled. Please try another payment method.");
       }
 
-      // Create transaction record first
+      // Create transaction record without booking_id initially
       const transaction = await createTransaction({
-        booking_id: bookingData.id,
-        amount: bookingData.total_amount,
+        booking_id: null, // No booking exists yet
+        amount: bookingIntent.total_amount,
         payment_method: "razorpay",
       });
 
@@ -260,8 +287,8 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
       const { data: orderResponse, error } = await supabase.functions.invoke('razorpay-payment', {
         body: {
           action: 'create_order',
-          amount: bookingData.total_amount,
-          booking_id: bookingData.id,
+          amount: bookingIntent.total_amount,
+          booking_id: transaction.id, // Use transaction ID as temporary identifier
         },
       });
 
@@ -322,7 +349,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         amount: orderResponse.amount,
         currency: orderResponse.currency || 'INR',
         name: "Study Hall Booking",
-        description: `${bookingData.booking_period} booking for ₹${bookingData.total_amount}`,
+        description: `${bookingIntent.booking_period} booking for ₹${bookingIntent.total_amount}`,
         order_id: orderResponse.order_id,
         handler: async function (response: any) {
           try {
@@ -347,8 +374,41 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
             console.log('✅ Payment verified successfully');
             
-            // Redirect to payment success page with booking details
-            const successUrl = `${window.location.origin}/payment-success?booking_id=${bookingData.id}&amount=${bookingData.total_amount}&study_hall_id=${bookingData.study_hall_id}`;
+            // Create booking after successful payment
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              const bookingResult = await supabase
+                .from('bookings')
+                .insert({
+                  ...bookingIntent,
+                  user_id: user.id,
+                  status: 'confirmed'
+                })
+                .select()
+                .single();
+
+              if (bookingResult.data) {
+                // Mark seat as unavailable
+                await supabase
+                  .from('seats')
+                  .update({ is_available: false })
+                  .eq('id', bookingIntent.seat_id);
+
+                // Update transaction with booking_id
+                await supabase
+                  .from('transactions')
+                  .update({ booking_id: bookingResult.data.id })
+                  .eq('id', transaction.id);
+
+                // Redirect to success page
+                const successUrl = `${window.location.origin}/payment-success?booking_id=${bookingResult.data.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`;
+                window.location.href = successUrl;
+                return;
+              }
+            }
+            
+            // Fallback redirect with transaction info
+            const successUrl = `${window.location.origin}/payment-success?transaction_id=${transaction.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`;
             window.location.href = successUrl;
           } catch (error) {
             console.error('💥 Payment verification error:', error);
@@ -396,18 +456,52 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
   };
 
   const handleOfflinePayment = async () => {
-    const transaction = await createTransaction({
-      booking_id: bookingData.id,
-      amount: bookingData.total_amount,
-      payment_method: "offline",
-    });
-
-    if (transaction) {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       toast({
-        title: "Booking Reserved",
-        description: "Your seat has been reserved. Please pay at the study hall.",
+        title: "Error",
+        description: "You must be logged in to make a booking",
+        variant: "destructive",
       });
-      onPaymentSuccess();
+      return;
+    }
+
+    // Create booking first for offline payment
+    const bookingResult = await supabase
+      .from('bookings')
+      .insert({
+        ...bookingIntent,
+        user_id: user.id,
+        status: 'pending' // Pending for offline payment
+      })
+      .select()
+      .single();
+
+    if (bookingResult.data) {
+      // Create transaction with booking_id
+      const transaction = await createTransaction({
+        booking_id: bookingResult.data.id,
+        amount: bookingIntent.total_amount,
+        payment_method: "offline",
+      });
+
+      if (transaction) {
+        // Mark seat as unavailable
+        await supabase
+          .from('seats')
+          .update({ is_available: false })
+          .eq('id', bookingIntent.seat_id);
+
+        toast({
+          title: "Booking Reserved",
+          description: "Your seat has been reserved. Please pay at the study hall.",
+        });
+        
+        // Redirect to success page
+        const successUrl = `${window.location.origin}/payment-success?booking_id=${bookingResult.data.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`;
+        window.location.href = successUrl;
+      }
     }
   };
 
@@ -447,7 +541,7 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
             )}
             
             <div className="text-sm text-muted-foreground space-y-1">
-              <p>Amount: ₹{bookingData.total_amount}</p>
+              <p>Amount: ₹{bookingIntent.total_amount}</p>
               <p>Order ID: {qrData.orderId}</p>
               <p className="text-orange-600 font-medium mt-2">
                 Do not close this window until payment is complete
@@ -473,15 +567,15 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
           <div className="text-sm space-y-1">
             <div className="flex justify-between">
               <span>Amount:</span>
-              <span>₹{bookingData.total_amount}</span>
+              <span>₹{bookingIntent.total_amount}</span>
             </div>
             <div className="flex justify-between">
               <span>Period:</span>
-              <span className="capitalize">{bookingData.booking_period}</span>
+              <span className="capitalize">{bookingIntent.booking_period}</span>
             </div>
             <div className="flex justify-between">
               <span>Duration:</span>
-              <span>{bookingData.start_date} to {bookingData.end_date}</span>
+              <span>{bookingIntent.start_date} to {bookingIntent.end_date}</span>
             </div>
           </div>
         </div>

@@ -36,14 +36,13 @@ interface BookingModalProps {
 }
 
 export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }: BookingModalProps) {
-  const { createBooking } = useBookings();
   const [selectedSeat, setSelectedSeat] = useState<string>("");
   const [bookingPeriod, setBookingPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [createdBooking, setCreatedBooking] = useState<any>(null);
+  const [bookingIntent, setBookingIntent] = useState<any>(null);
 
   const availableSeats = seats.filter(seat => seat.is_available);
 
@@ -97,44 +96,31 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
     setLoading(true);
     
-    // Create booking first
-    const bookingResult = await createBooking({
+    // Create booking intent (no actual booking yet)
+    const intent = {
       study_hall_id: studyHall.id,
       seat_id: selectedSeat,
       booking_period: bookingPeriod,
       start_date: startDate,
       end_date: endDate,
       total_amount: calculateAmount(),
-    });
+    };
 
-    if (bookingResult && typeof bookingResult === 'object') {
-      // Store booking data for payment processing with real booking ID
-      setCreatedBooking({
-        id: bookingResult.id, // Use the actual booking ID from database
-        study_hall_id: studyHall.id,
-        seat_id: selectedSeat,
-        booking_period: bookingPeriod,
-        start_date: startDate,
-        end_date: endDate,
-        total_amount: calculateAmount(),
-      });
-      setShowPayment(true);
-    }
-    
+    setBookingIntent(intent);
+    setShowPayment(true);
     setLoading(false);
   };
 
   const handlePaymentSuccess = () => {
     setShowPayment(false);
-    setCreatedBooking(null);
+    setBookingIntent(null);
     onOpenChange(false);
     onSuccess?.();
   };
 
   const handlePaymentCancel = () => {
     setShowPayment(false);
-    setCreatedBooking(null);
-    // Could add logic to cancel the booking here
+    setBookingIntent(null);
   };
 
   if (!studyHall) return null;
@@ -142,7 +128,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        {showPayment && createdBooking ? (
+        {showPayment && bookingIntent ? (
           <>
             <DialogHeader>
               <DialogTitle>Complete Payment</DialogTitle>
@@ -151,7 +137,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
               </DialogDescription>
             </DialogHeader>
             <PaymentProcessor
-              bookingData={createdBooking}
+              bookingIntent={bookingIntent}
               onPaymentSuccess={handlePaymentSuccess}
               onCancel={handlePaymentCancel}
             />
