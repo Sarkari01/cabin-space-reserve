@@ -121,10 +121,15 @@ async function createRazorpayOrder({ amount, booking_id }: CreateOrderRequest, k
   }
 
   try {
+    // Generate short receipt (max 40 chars for Razorpay)
+    const shortBookingId = booking_id.substring(0, 20);
+    const timestamp = Date.now().toString().slice(-8); // Last 8 digits
+    const receipt = `rcpt_${shortBookingId}_${timestamp}`.substring(0, 40);
+
     const orderData = {
       amount: Math.round(amount * 100), // Convert to paise (₹1 = 100 paise)
       currency: 'INR',
-      receipt: `booking_${booking_id}_${Date.now()}`,
+      receipt: receipt,
       payment_capture: 1,
       notes: {
         booking_id: booking_id,
@@ -132,6 +137,8 @@ async function createRazorpayOrder({ amount, booking_id }: CreateOrderRequest, k
         purpose: 'Study Hall Booking'
       }
     };
+
+    console.log('📄 Generated receipt:', receipt, '(length:', receipt.length, ')');
 
     console.log('📤 Sending order request to Razorpay:', JSON.stringify(orderData, null, 2));
 

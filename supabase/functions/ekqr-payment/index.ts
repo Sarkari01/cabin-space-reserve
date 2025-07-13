@@ -99,31 +99,64 @@ async function createQRCode(amount: number, bookingId: string, ekqrApiKey: strin
     throw new Error(`Invalid amount: ${amount}. Amount must be greater than 0.`);
   }
 
-  // EKQR API call - Using correct endpoint format
+  // EKQR API call - Using test endpoint first to verify connectivity
   const requestBody = {
     amount: Math.round(amount), // Ensure whole number
     purpose: 'Study Hall Booking',
-    order_id: `BOOKING_${bookingId}_${Date.now()}`,
+    order_id: `BOOKING_${bookingId.substring(0, 15)}_${Date.now()}`,
     callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/ekqr-payment/callback`
   };
   
-  const apiUrl = 'https://ekqr.co/api/qr/create';
+  // Try alternative EKQR API endpoints (common variations)
+  const possibleUrls = [
+    'https://api.ekqr.in/api/v1/qr/create',
+    'https://ekqr.in/api/qr/create', 
+    'https://api.ekqr.co/v1/qr/create',
+    'https://ekqr.co/api/qr/create'
+  ];
+  
+  const apiUrl = possibleUrls[0]; // Start with most likely correct endpoint
   
   console.log('🌐 [EKQR-PAYMENT] Making API request');
   console.log('📍 [EKQR-PAYMENT] Request URL:', apiUrl);
   console.log('📤 [EKQR-PAYMENT] Request body:', JSON.stringify(requestBody, null, 2));
   console.log('🔐 [EKQR-PAYMENT] API key preview:', `${ekqrApiKey.substring(0, 8)}...`);
   
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${ekqrApiKey}`,
-      'Accept': 'application/json',
-      'User-Agent': 'StudyHall-Payment/1.0'
-    },
-    body: JSON.stringify(requestBody),
-  });
+  let response;
+  let lastError;
+  
+  // Try different API endpoints and auth methods
+  for (const url of possibleUrls) {
+    try {
+      console.log(`🔄 Trying EKQR API endpoint: ${url}`);
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${ekqrApiKey}`,
+          'Accept': 'application/json',
+          'User-Agent': 'StudyHall-Payment/1.0'
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Success with endpoint: ${url}`);
+        break;
+      } else {
+        console.log(`❌ Failed with endpoint: ${url}, status: ${response.status}`);
+        lastError = `${url} returned ${response.status}`;
+      }
+    } catch (error) {
+      console.log(`❌ Network error with endpoint: ${url}`, error.message);
+      lastError = `${url} network error: ${error.message}`;
+      continue;
+    }
+  }
+  
+  if (!response || !response.ok) {
+    throw new Error(`All EKQR endpoints failed. Last error: ${lastError}`);
+  }
 
   console.log('[EKQR-PAYMENT] API response status:', response.status);
   console.log('[EKQR-PAYMENT] Response headers:', Object.fromEntries(response.headers.entries()));
@@ -173,21 +206,50 @@ async function createQRCode(amount: number, bookingId: string, ekqrApiKey: strin
 async function checkPaymentStatus(qrId: string, ekqrApiKey: string) {
   console.log('🔍 [EKQR-PAYMENT] Checking payment status for QR ID:', qrId);
 
-  // Check EKQR payment status - Using correct endpoint
-  const statusUrl = `https://ekqr.co/api/qr/status/${qrId}`;
+  // Check EKQR payment status - Try multiple endpoints
+  const possibleStatusUrls = [
+    `https://api.ekqr.in/api/v1/qr/status/${qrId}`,
+    `https://ekqr.in/api/qr/status/${qrId}`,
+    `https://api.ekqr.co/v1/qr/status/${qrId}`,
+    `https://ekqr.co/api/qr/status/${qrId}`
+  ];
   
   console.log('🔍 [EKQR-PAYMENT] Making status check API request');
-  console.log('📍 [EKQR-PAYMENT] Status check URL:', statusUrl);
   console.log('🔐 [EKQR-PAYMENT] API key preview:', `${ekqrApiKey.substring(0, 8)}...`);
   
-  const response = await fetch(statusUrl, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${ekqrApiKey}`,
-      'Accept': 'application/json',
-      'User-Agent': 'StudyHall-Payment/1.0'
-    },
-  });
+  let response;
+  let lastError;
+  
+  // Try different status endpoints
+  for (const statusUrl of possibleStatusUrls) {
+    try {
+      console.log(`🔄 Trying status endpoint: ${statusUrl}`);
+      response = await fetch(statusUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${ekqrApiKey}`,
+          'Accept': 'application/json',
+          'User-Agent': 'StudyHall-Payment/1.0'
+        },
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Status check success with: ${statusUrl}`);
+        break;
+      } else {
+        console.log(`❌ Status check failed with: ${statusUrl}, status: ${response.status}`);
+        lastError = `${statusUrl} returned ${response.status}`;
+      }
+    } catch (error) {
+      console.log(`❌ Status check network error with: ${statusUrl}`, error.message);
+      lastError = `${statusUrl} network error: ${error.message}`;
+      continue;
+    }
+  }
+  
+  if (!response || !response.ok) {
+    throw new Error(`All EKQR status endpoints failed. Last error: ${lastError}`);
+  }
 
   console.log('[EKQR-PAYMENT] Status check response status:', response.status);
   console.log('[EKQR-PAYMENT] Status check response headers:', Object.fromEntries(response.headers.entries()));
