@@ -108,8 +108,8 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           customerMobile: user?.user_metadata?.phone || '9999999999',
           studyHallId: bookingIntent.study_hall_id,
           seatId: bookingIntent.seat_id,
-          // Pass transaction ID in redirect to create booking after payment
-          redirectUrl: `${window.location.origin}/payment-success?transaction_id=${transaction.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`
+          // Use production domain for redirect
+          redirectUrl: `https://sarkarininja.com/payment-success?transaction_id=${transaction.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`
         },
       });
 

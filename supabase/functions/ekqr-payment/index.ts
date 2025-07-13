@@ -48,9 +48,9 @@ Deno.serve(async (req) => {
 async function createOrder(data: any, ekqrApiKey: string, req: Request) {
   console.log('Creating EKQR order:', data);
   
-  // Get the origin from the request headers for dynamic redirect URL
-  const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || 'https://sarkarininja.com';
-  const redirectUrl = data.redirectUrl || `${origin}/payment-success?booking_id=${data.bookingId}&amount=${data.amount}&study_hall_id=${data.studyHallId || ''}`;
+  // Use the user's real domain for redirect URL
+  const userDomain = 'https://sarkarininja.com';
+  const redirectUrl = data.redirectUrl || `${userDomain}/payment-success?booking_id=${data.bookingId}&amount=${data.amount}&study_hall_id=${data.studyHallId || ''}`;
   
   console.log('Using redirect URL:', redirectUrl);
   

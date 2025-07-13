@@ -140,7 +140,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         .insert({
           ...bookingData,
           user_id: user.id,
-          status: "pending"
+          status: "confirmed"
         })
         .select()
         .single();
