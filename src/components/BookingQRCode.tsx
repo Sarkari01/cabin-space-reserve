@@ -108,11 +108,11 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
         <div className="p-6 space-y-4">
           {/* QR Code */}
           <div className="text-center">
-            <div className="inline-block p-4 bg-white rounded-lg shadow-inner border">
+            <div className="inline-block p-2 sm:p-4 bg-white rounded-lg shadow-inner border">
               <img 
                 src={qrCodeData} 
                 alt="Booking QR Code" 
-                className="w-48 h-48 mx-auto"
+                className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 mx-auto"
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
@@ -121,7 +121,7 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
           </div>
 
           {/* Ticket Details */}
-          <div className="grid grid-cols-2 gap-4 text-sm border-t pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm border-t pt-4">
             <div className="space-y-2">
               <div>
                 <p className="text-muted-foreground text-xs uppercase tracking-wide">Study Hall</p>
@@ -162,12 +162,12 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
           {(userRole === 'merchant' || userRole === 'admin') && (
             <div className="border-t pt-4">
               <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">Customer</p>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="font-medium">{booking.user?.full_name || 'N/A'}</p>
                   <p className="text-muted-foreground">{booking.user?.email}</p>
                 </div>
-                <div className="text-right">
+                <div className="sm:text-right">
                   <p className="text-xs text-muted-foreground">Status</p>
                   <p className="font-medium text-success capitalize">{booking.status}</p>
                 </div>

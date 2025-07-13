@@ -673,21 +673,21 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
 
   if (showQR && qrData) {
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="w-full max-w-sm mx-auto">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <QrCode className="h-5 w-5" />
             Complete Your Payment
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
+        <CardContent className="space-y-4">
+          <div className="text-center space-y-3">
             
             {qrData.upiIntent && (
               <div className="space-y-2">
                 <Button 
                   onClick={() => window.open(qrData.upiIntent, '_blank')}
-                  className="w-full"
+                  className="w-full min-h-[44px]"
                 >
                   Pay with UPI App
                 </Button>
@@ -699,22 +699,26 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
                 <Button 
                   variant="outline"
                   onClick={() => window.open(qrData.paymentUrl, '_blank')}
-                  className="w-full"
+                  className="w-full min-h-[44px]"
                 >
                   Pay via Web
                 </Button>
               </div>
             )}
             
-            <div className="text-sm text-muted-foreground space-y-1">
+            <div className="text-sm text-muted-foreground space-y-1 bg-muted/30 p-3 rounded-lg">
               <p>Amount: ₹{bookingIntent.total_amount}</p>
-              <p>Order ID: {qrData.orderId}</p>
+              <p className="break-all">Order ID: {qrData.orderId}</p>
               <p className="text-orange-600 font-medium mt-2">
                 Do not close this window until payment is complete
               </p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => setShowQR(false)} className="w-full">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowQR(false)} 
+            className="w-full min-h-[44px]"
+          >
             Cancel Payment
           </Button>
         </CardContent>
@@ -723,26 +727,26 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
   }
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-4">
+    <div className="w-full max-w-sm mx-auto space-y-4">
       <Card>
-        <CardHeader>
-          <CardTitle>Complete Your Booking</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Complete Your Booking</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="space-y-2">
             <h4 className="font-medium">Booking Summary</h4>
-            <div className="text-sm space-y-1">
+            <div className="text-sm space-y-1 bg-muted/30 p-3 rounded-lg">
               <div className="flex justify-between">
                 <span>Amount:</span>
-                <span>₹{bookingIntent.total_amount}</span>
+                <span className="font-medium">₹{bookingIntent.total_amount}</span>
               </div>
               <div className="flex justify-between">
                 <span>Period:</span>
                 <span className="capitalize">{bookingIntent.booking_period}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between flex-wrap">
                 <span>Duration:</span>
-                <span>{bookingIntent.start_date} to {bookingIntent.end_date}</span>
+                <span className="text-right">{bookingIntent.start_date} to {bookingIntent.end_date}</span>
               </div>
             </div>
           </div>
@@ -753,19 +757,23 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           />
           
           {!selectedMethod && (
-            <div className="text-sm text-muted-foreground text-center">
+            <div className="text-sm text-muted-foreground text-center p-2 bg-muted/20 rounded">
               Please select a payment method to continue
             </div>
           )}
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onCancel} className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={onCancel} 
+              className="flex-1 min-h-[44px]"
+            >
               Cancel
             </Button>
             <Button 
               onClick={handlePayment} 
               disabled={!selectedMethod || processing}
-              className="flex-1"
+              className="flex-1 min-h-[44px]"
             >
               {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {selectedMethod === "offline" ? "Reserve Seat" : selectedMethod === "razorpay" ? "Pay with Razorpay" : "Pay Now"}
@@ -773,8 +781,6 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           </div>
         </CardContent>
       </Card>
-
-
     </div>
   );
 };

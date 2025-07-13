@@ -56,15 +56,15 @@ export function BookingDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
+          <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
             <span>Booking Details</span>
             <Badge variant={getStatusColor(booking.status)}>
               {booking.status.toUpperCase()}
             </Badge>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="break-all">
             Booking ID: {booking.id}
           </DialogDescription>
         </DialogHeader>
@@ -95,7 +95,7 @@ export function BookingDetailModal({
           </Card>
 
           {/* Booking Information */}
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card>
               <CardContent className="p-4">
                 <h4 className="font-medium mb-3 flex items-center">
@@ -204,7 +204,7 @@ export function BookingDetailModal({
                 <Clock className="h-4 w-4 mr-2" />
                 Booking Timeline
               </h4>
-              <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Created:</span>
                   <span className="font-medium">{formatDate(booking.created_at)}</span>
@@ -218,8 +218,12 @@ export function BookingDetailModal({
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="min-h-[44px]"
+            >
               Close
             </Button>
             
@@ -231,6 +235,7 @@ export function BookingDetailModal({
                   onOpenChange(false);
                 }}
                 disabled={loading}
+                className="min-h-[44px]"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Booking
@@ -244,6 +249,7 @@ export function BookingDetailModal({
                   onOpenChange(false);
                 }}
                 disabled={loading}
+                className="min-h-[44px]"
               >
                 {loading ? "Confirming..." : "Confirm Booking"}
               </Button>
@@ -257,6 +263,7 @@ export function BookingDetailModal({
                   onOpenChange(false);
                 }}
                 disabled={loading}
+                className="min-h-[44px]"
               >
                 {loading ? "Cancelling..." : "Cancel Booking"}
               </Button>

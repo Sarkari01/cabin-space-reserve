@@ -151,16 +151,20 @@ export const PaymentMethodSelector = ({ onMethodSelect, selectedMethod }: Paymen
             .map((method) => {
               const Icon = method.icon;
               return (
-                <div key={method.id} className="flex items-center space-x-2">
-                  <RadioGroupItem value={method.id} id={method.id} />
+                <div key={method.id} className="flex items-start space-x-3 p-1">
+                  <RadioGroupItem 
+                    value={method.id} 
+                    id={method.id} 
+                    className="mt-2 flex-shrink-0"
+                  />
                   <Label htmlFor={method.id} className="flex-1 cursor-pointer">
-                    <Card className="hover:bg-accent transition-colors">
-                      <CardHeader className="pb-2">
+                    <Card className="hover:bg-accent transition-colors min-h-[60px]">
+                      <CardHeader className="pb-2 px-3 py-3">
                         <CardTitle className="flex items-center gap-2 text-base">
-                          <Icon className="h-4 w-4" />
-                          {method.title}
+                          <Icon className="h-4 w-4 flex-shrink-0" />
+                          <span className="line-clamp-1">{method.title}</span>
                         </CardTitle>
-                        <CardDescription className="text-sm">
+                        <CardDescription className="text-sm line-clamp-2">
                           {method.description}
                         </CardDescription>
                       </CardHeader>

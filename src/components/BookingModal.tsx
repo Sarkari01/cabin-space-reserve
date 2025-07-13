@@ -140,7 +140,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto">
         {showPayment && bookingIntent ? (
           <>
             <DialogHeader>
@@ -197,14 +197,14 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                   ).map(([rowName, rowSeats]) => (
                     <div key={rowName} className="space-y-2">
                       <h4 className="text-sm font-medium text-muted-foreground">Row {rowName}</h4>
-                      <div className="grid grid-cols-6 gap-2">
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                         {(rowSeats as Seat[]).sort((a, b) => a.seat_number - b.seat_number).map((seat) => (
                           <button
                             key={seat.id}
                             type="button"
                             onClick={() => setSelectedSeat(seat.id)}
                             className={`
-                              w-8 h-8 rounded text-xs font-medium border-2 transition-all
+                              w-10 h-10 sm:w-8 sm:h-8 rounded text-xs font-medium border-2 transition-all touch-manipulation
                               ${selectedSeat === seat.id
                                 ? 'border-primary bg-primary text-primary-foreground'
                                 : seat.is_available
@@ -260,7 +260,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startDate">Start Date</Label>
               <Input
@@ -269,6 +269,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 required
+                className="w-full"
               />
             </div>
             <div className="space-y-2">
@@ -279,6 +280,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 required
+                className="w-full"
               />
             </div>
           </div>
@@ -292,11 +294,20 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </CardContent>
           </Card>
 
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              className="flex-1 min-h-[44px]"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !selectedSeat} className="flex-1">
+            <Button 
+              type="submit" 
+              disabled={loading || !selectedSeat} 
+              className="flex-1 min-h-[44px]"
+            >
               {loading ? "Booking..." : "Book Now"}
             </Button>
           </div>
