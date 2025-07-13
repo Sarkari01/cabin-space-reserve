@@ -251,6 +251,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
   };
 
   useEffect(() => {
+    console.log('useBookings: useEffect triggered - user:', user?.id, 'effectiveRole:', effectiveRole);
     fetchBookings();
   }, [user, effectiveRole]);
 
@@ -268,7 +269,8 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
           table: 'bookings'
         },
         (payload) => {
-          console.log('Booking change detected:', payload);
+          console.log('Real-time booking change detected:', payload);
+          console.log('Refreshing bookings due to real-time update...');
           fetchBookings(); // Refresh bookings when changes occur
         }
       )

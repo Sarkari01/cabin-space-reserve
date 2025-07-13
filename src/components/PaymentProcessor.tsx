@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { createBookingFromIntent } from "./BookingCreator";
 import { Loader2, QrCode } from "lucide-react";
 
 interface PaymentProcessorProps {
@@ -26,6 +28,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
   const [processing, setProcessing] = useState(false);
   const [qrData, setQrData] = useState<any>(null);
   const [showQR, setShowQR] = useState(false);
+  const { user } = useAuth();
   const { createTransaction, updateTransactionStatus } = useTransactions();
   const { settings } = useBusinessSettings();
   const { toast } = useToast();
@@ -193,44 +196,29 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           await updateTransactionStatus(transactionId, 'completed');
           
           // Create booking after successful payment
-          const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            const bookingResult = await supabase
-              .from('bookings')
-              .insert({
-                ...bookingIntent,
-                user_id: user.id,
-                status: 'confirmed'
-              })
-              .select()
-              .single();
-
-            if (bookingResult.data) {
-              // Mark seat as unavailable
-              await supabase
-                .from('seats')
-                .update({ is_available: false })
-                .eq('id', bookingIntent.seat_id);
-
-              // Update transaction with booking_id
-              await supabase
-                .from('transactions')
-                .update({ booking_id: bookingResult.data.id })
-                .eq('id', transactionId);
-
-              // Redirect to success page instead of modal callback
-              const successUrl = `${window.location.origin}/payment-success?booking_id=${bookingResult.data.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`;
-              window.location.href = successUrl;
-              return;
+            try {
+              console.log('EKQR: Creating booking after successful payment');
+              const booking = await createBookingFromIntent(bookingIntent, user.id, transactionId);
+              console.log('EKQR: Booking created successfully:', booking);
+              
+              setShowQR(false);
+              toast({
+                title: "Payment Successful!",
+                description: "Your booking has been confirmed!",
+              });
+              
+              // Call success callback
+              onPaymentSuccess();
+            } catch (error) {
+              console.error('EKQR: Error creating booking after payment:', error);
+              toast({
+                title: "Payment Successful, Booking Error",
+                description: "Payment completed but booking creation failed. Please contact support.",
+                variant: "destructive",
+              });
             }
           }
-
-          setShowQR(false);
-          toast({
-            title: "Payment Successful",
-            description: "Your booking has been confirmed!",
-          });
-          onPaymentSuccess();
         } else if (statusResponse?.status === 'failed') {
           clearInterval(pollInterval);
           await updateTransactionStatus(transactionId, 'failed');
@@ -375,41 +363,28 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             console.log('✅ Payment verified successfully');
             
             // Create booking after successful payment
-            const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-              const bookingResult = await supabase
-                .from('bookings')
-                .insert({
-                  ...bookingIntent,
-                  user_id: user.id,
-                  status: 'confirmed'
-                })
-                .select()
-                .single();
-
-              if (bookingResult.data) {
-                // Mark seat as unavailable
-                await supabase
-                  .from('seats')
-                  .update({ is_available: false })
-                  .eq('id', bookingIntent.seat_id);
-
-                // Update transaction with booking_id
-                await supabase
-                  .from('transactions')
-                  .update({ booking_id: bookingResult.data.id })
-                  .eq('id', transaction.id);
-
-                // Redirect to success page
-                const successUrl = `${window.location.origin}/payment-success?booking_id=${bookingResult.data.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`;
-                window.location.href = successUrl;
-                return;
+              try {
+                console.log('Razorpay: Creating booking after successful payment');
+                const booking = await createBookingFromIntent(bookingIntent, user.id, transaction.id);
+                console.log('Razorpay: Booking created successfully:', booking);
+                
+                toast({
+                  title: "Payment Successful!",
+                  description: "Your booking has been confirmed!",
+                });
+                
+                // Call success callback
+                onPaymentSuccess();
+              } catch (error) {
+                console.error('Razorpay: Error creating booking after payment:', error);
+                toast({
+                  title: "Payment Successful, Booking Error",
+                  description: "Payment completed but booking creation failed. Please contact support.",
+                  variant: "destructive",
+                });
               }
             }
-            
-            // Fallback redirect with transaction info
-            const successUrl = `${window.location.origin}/payment-success?transaction_id=${transaction.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`;
-            window.location.href = successUrl;
           } catch (error) {
             console.error('💥 Payment verification error:', error);
             toast({
@@ -456,8 +431,6 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
   };
 
   const handleOfflinePayment = async () => {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast({
         title: "Error",
@@ -467,41 +440,39 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       return;
     }
 
-    // Create booking first for offline payment
-    const bookingResult = await supabase
-      .from('bookings')
-      .insert({
-        ...bookingIntent,
-        user_id: user.id,
-        status: 'pending' // Pending for offline payment
-      })
-      .select()
-      .single();
-
-    if (bookingResult.data) {
-      // Create transaction with booking_id
+    try {
+      console.log('Offline: Creating transaction and booking');
+      
+      // Create transaction record first
       const transaction = await createTransaction({
-        booking_id: bookingResult.data.id,
+        booking_id: null, // Will be updated after booking creation
         amount: bookingIntent.total_amount,
         payment_method: "offline",
       });
 
-      if (transaction) {
-        // Mark seat as unavailable
-        await supabase
-          .from('seats')
-          .update({ is_available: false })
-          .eq('id', bookingIntent.seat_id);
-
-        toast({
-          title: "Booking Reserved",
-          description: "Your seat has been reserved. Please pay at the study hall.",
-        });
-        
-        // Redirect to success page
-        const successUrl = `${window.location.origin}/payment-success?booking_id=${bookingResult.data.id}&amount=${bookingIntent.total_amount}&study_hall_id=${bookingIntent.study_hall_id}`;
-        window.location.href = successUrl;
+      if (!transaction) {
+        throw new Error("Failed to create transaction record");
       }
+
+      // Create booking using the centralized function
+      const booking = await createBookingFromIntent(bookingIntent, user.id, transaction.id);
+      console.log('Offline: Booking created successfully:', booking);
+
+      toast({
+        title: "Booking Reserved",
+        description: "Your seat has been reserved. Please pay at the study hall.",
+      });
+      
+      // Call success callback
+      onPaymentSuccess();
+      
+    } catch (error: any) {
+      console.error('Offline payment error:', error);
+      toast({
+        title: "Booking Error",
+        description: error.message || "Failed to create booking",
+        variant: "destructive",
+      });
     }
   };
 
