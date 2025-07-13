@@ -78,6 +78,9 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         throw new Error("EKQR payments are currently disabled. Please try another payment method.");
       }
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
       // Create transaction record first
       const transaction = await createTransaction({
         booking_id: bookingData.id,
@@ -91,24 +94,29 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
 
       console.log('✅ EKQR: Transaction created:', transaction.id);
 
-      // Create EKQR QR code using the edge function
+      // Create EKQR order using the edge function
       console.log('🌐 EKQR: Invoking edge function...');
-      const { data: qrResponse, error } = await supabase.functions.invoke('ekqr-payment', {
+      const { data: orderResponse, error } = await supabase.functions.invoke('ekqr-payment', {
         body: {
-          action: 'createQR',
+          action: 'createOrder',
           amount: bookingData.total_amount,
           bookingId: bookingData.id,
+          customerName: user?.user_metadata?.full_name || user?.email || 'Customer',
+          customerEmail: user?.email || 'customer@example.com',
+          customerMobile: user?.user_metadata?.phone || '9999999999',
+          studyHallId: bookingData.study_hall_id,
+          seatId: bookingData.seat_id
         },
       });
 
-      console.log('📡 EKQR: Function response:', { qrResponse, error });
+      console.log('📡 EKQR: Function response:', { orderResponse, error });
 
       if (error) {
         console.error('❌ EKQR Payment Error:', error);
         
         // Provide more user-friendly error messages
-        let userMessage = "Failed to generate QR code. Please try again.";
-        if (error.message?.includes('MISSING_API_KEY')) {
+        let userMessage = "Failed to create payment order. Please try again.";
+        if (error.message?.includes('EKQR_API_KEY not configured')) {
           userMessage = "EKQR payment service is not configured. Please contact support.";
         } else if (error.message?.includes('Invalid amount')) {
           userMessage = "Invalid payment amount. Please refresh and try again.";
@@ -121,23 +129,37 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
           description: userMessage,
           variant: "destructive",
         });
-        throw new Error(error.message || 'Failed to generate QR code');
+        throw new Error(error.message || 'Failed to create order');
       }
 
-      if (!qrResponse?.qr_image_url || !qrResponse?.qr_id) {
-        throw new Error("Invalid QR code response received");
+      if (!orderResponse?.success || !orderResponse?.orderId) {
+        throw new Error("Invalid order response received");
       }
 
-      console.log('✅ EKQR: QR code generated successfully');
-      setQrData(qrResponse);
+      // Update transaction with EKQR order details
+      await supabase
+        .from('transactions')
+        .update({
+          payment_id: orderResponse.orderId,
+          payment_data: {
+            sessionId: orderResponse.sessionId,
+            paymentUrl: orderResponse.paymentUrl,
+            upiIntent: orderResponse.upiIntent,
+            isUtrRequired: orderResponse.isUtrRequired
+          }
+        })
+        .eq('id', transaction.id);
+
+      console.log('✅ EKQR: Order created successfully');
+      setQrData(orderResponse);
       setShowQR(true);
 
       // Start polling for payment status
-      startPaymentPolling(qrResponse.qr_id, transaction.id);
+      startPaymentPolling(orderResponse.orderId, transaction.id);
 
       toast({
-        title: "QR Code Generated",
-        description: "Scan the QR code with any UPI app to complete payment",
+        title: "Payment Options Ready",
+        description: "Choose your preferred payment method below",
       });
     } catch (error) {
       console.error('💥 EKQR payment error:', error);
@@ -149,28 +171,39 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
     }
   };
 
-  const startPaymentPolling = (qrId: string, transactionId: string) => {
+  const startPaymentPolling = (orderId: string, transactionId: string) => {
     const pollInterval = setInterval(async () => {
       try {
+        // Get today's date in YYYY-MM-DD format for txn_date
+        const today = new Date().toISOString().split('T')[0];
+        
         const { data: statusResponse, error } = await supabase.functions.invoke('ekqr-payment', {
           body: {
             action: 'checkStatus',
-            transactionId: qrId,
+            clientTxnId: orderId,
+            txnDate: today
           },
         });
 
         if (error) throw error;
 
-        if (statusResponse.status === 'success') {
+        if (statusResponse?.success && statusResponse.status === 'success') {
           clearInterval(pollInterval);
           await updateTransactionStatus(transactionId, 'completed');
+          
+          // Update booking status
+          await supabase
+            .from('bookings')
+            .update({ status: 'confirmed' })
+            .eq('id', bookingData.id);
+
           setShowQR(false);
           toast({
             title: "Payment Successful",
             description: "Your booking has been confirmed!",
           });
           onPaymentSuccess();
-        } else if (statusResponse.status === 'failed') {
+        } else if (statusResponse?.status === 'failed') {
           clearInterval(pollInterval);
           await updateTransactionStatus(transactionId, 'failed');
           setShowQR(false);
@@ -384,21 +417,41 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <QrCode className="h-5 w-5" />
-            Scan QR Code to Pay
+            Complete Your Payment
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center space-y-4">
-            <div className="bg-white p-4 rounded-lg inline-block">
-              <img 
-                src={qrData.qr_image_url} 
-                alt="Payment QR Code" 
-                className="w-48 h-48 mx-auto"
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p>Scan this QR code with any UPI app to pay ₹{bookingData.total_amount}</p>
-              <p className="mt-2">Waiting for payment confirmation...</p>
+            
+            {qrData.upiIntent && (
+              <div className="space-y-2">
+                <Button 
+                  onClick={() => window.open(qrData.upiIntent, '_blank')}
+                  className="w-full"
+                >
+                  Pay with UPI App
+                </Button>
+              </div>
+            )}
+            
+            {qrData.paymentUrl && (
+              <div className="space-y-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => window.open(qrData.paymentUrl, '_blank')}
+                  className="w-full"
+                >
+                  Pay via Web
+                </Button>
+              </div>
+            )}
+            
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>Amount: ₹{bookingData.total_amount}</p>
+              <p>Order ID: {qrData.orderId}</p>
+              <p className="text-orange-600 font-medium mt-2">
+                Do not close this window until payment is complete
+              </p>
             </div>
           </div>
           <Button variant="outline" onClick={() => setShowQR(false)} className="w-full">
