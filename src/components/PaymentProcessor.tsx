@@ -105,7 +105,8 @@ export const PaymentProcessor = ({ bookingData, onPaymentSuccess, onCancel }: Pa
           customerEmail: user?.email || 'customer@example.com',
           customerMobile: user?.user_metadata?.phone || '9999999999',
           studyHallId: bookingData.study_hall_id,
-          seatId: bookingData.seat_id
+          seatId: bookingData.seat_id,
+          redirectUrl: `https://jseyxxsptcckjumjcljk.lovable.app/payment-success?booking_id=${bookingData.id}&amount=${bookingData.total_amount}&study_hall_id=${bookingData.study_hall_id}`
         },
       });
 

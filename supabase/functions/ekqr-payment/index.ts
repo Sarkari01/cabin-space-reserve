@@ -56,7 +56,7 @@ async function createOrder(data: any, ekqrApiKey: string) {
     customer_name: data.customerName || 'Customer',
     customer_email: data.customerEmail || 'customer@example.com',
     customer_mobile: data.customerMobile || '9999999999',
-    redirect_url: data.redirectUrl || 'https://your-app.com/payment-success',
+    redirect_url: data.redirectUrl || 'https://jseyxxsptcckjumjcljk.lovable.app/payment-success',
     udf1: `booking_id:${data.bookingId}`,
     udf2: `study_hall_id:${data.studyHallId || ''}`,
     udf3: `seat_id:${data.seatId || ''}`
