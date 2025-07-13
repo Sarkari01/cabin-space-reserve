@@ -115,7 +115,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
   };
 
   const createTransaction = async (transactionData: {
-    booking_id: string | null;
+    booking_id: string;
     amount: number;
     payment_method: "ekqr" | "offline" | "razorpay";
     payment_id?: string;

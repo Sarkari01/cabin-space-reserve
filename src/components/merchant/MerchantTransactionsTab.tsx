@@ -3,13 +3,12 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Eye, CheckCircle, XCircle, Clock, DollarSign, AlertTriangle } from "lucide-react";
+import { Loader2, Eye, CheckCircle, XCircle, Clock, DollarSign } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { canMerchantConfirmTransaction, getTransactionDisplayStatus } from "@/utils/transactionHelpers";
 
 export const MerchantTransactionsTab = () => {
   const { transactions, loading, updateTransactionStatus } = useTransactions("merchant");
@@ -58,30 +57,15 @@ export const MerchantTransactionsTab = () => {
 
   const handleStatusUpdate = async (transactionId: string, newStatus: "completed" | "failed") => {
     setUpdatingId(transactionId);
-    console.log('🔄 Updating transaction status:', { transactionId, newStatus });
+    console.log('Updating transaction status:', { transactionId, newStatus });
     
-    try {
-      const transaction = transactions.find(t => t.id === transactionId);
+    // For offline payments being confirmed, also update booking status
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (transaction && transaction.payment_method === 'offline' && newStatus === 'completed') {
+      console.log('Confirming offline payment - updating booking status');
       
-      if (!transaction) {
-        toast.error("Transaction not found");
-        setUpdatingId(null);
-        return;
-      }
-
-      // First, check if booking exists
-      if (!transaction.booking_id) {
-        console.error('❌ Cannot update transaction without booking_id');
-        toast.error("Cannot confirm payment - booking not found. Please contact support.");
-        setUpdatingId(null);
-        return;
-      }
-
-      // For offline payments being confirmed, also update booking status
-      if (transaction.payment_method === 'offline' && newStatus === 'completed') {
-        console.log('✅ Confirming offline payment - updating booking status');
-        
-        // Update booking status to confirmed and payment_status to paid
+      // Update booking status to confirmed and payment_status to paid
+      if (transaction.booking_id) {
         const { error: bookingError } = await supabase
           .from('bookings')
           .update({ 
@@ -91,38 +75,24 @@ export const MerchantTransactionsTab = () => {
           .eq('id', transaction.booking_id);
 
         if (bookingError) {
-          console.error('❌ Error updating booking status:', bookingError);
+          console.error('Error updating booking status:', bookingError);
           toast.error("Failed to update booking status");
           setUpdatingId(null);
           return;
         }
-        
-        console.log('✅ Booking status updated successfully');
       }
-
-      // Update transaction status
-      const success = await updateTransactionStatus(transactionId, newStatus);
-      if (success) {
-        toast.success(`Payment ${newStatus === 'completed' ? 'confirmed' : 'rejected'} successfully`);
-      } else {
-        toast.error("Failed to update transaction status");
-      }
-    } catch (error) {
-      console.error('❌ Error in handleStatusUpdate:', error);
-      toast.error("An unexpected error occurred");
     }
-    
+
+    const success = await updateTransactionStatus(transactionId, newStatus);
+    if (success) {
+      toast.success(`Payment ${newStatus === 'completed' ? 'confirmed' : 'rejected'}`);
+    } else {
+      toast.error("Failed to update transaction status");
+    }
     setUpdatingId(null);
   };
 
-  // Only show transactions that are properly linked to bookings for merchant actions
   const filteredTransactions = transactions.filter((transaction) => {
-    // Skip orphaned transactions (those without booking_id) for merchant view
-    if (!transaction.booking_id) {
-      console.warn('Skipping orphaned transaction:', transaction.id);
-      return false;
-    }
-    
     const matchesStatus = statusFilter === "all" || transaction.status === statusFilter;
     const matchesSearch = searchTerm === "" || 
       transaction.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -246,15 +216,9 @@ export const MerchantTransactionsTab = () => {
                         {transaction.booking.seat?.seat_id && ` • Seat: ${transaction.booking.seat.seat_id}`}
                       </div>
                     )}
-                    {!transaction.booking_id && (
-                      <div className="text-sm text-red-600 flex items-center gap-1">
-                        <AlertTriangle className="h-4 w-4" />
-                        Orphaned transaction - contact support
-                      </div>
-                    )}
                   </div>
                   
-                  {canMerchantConfirmTransaction(transaction) && (
+                  {transaction.status === "pending" && transaction.payment_method === "offline" && (
                     <div className="flex gap-2">
                       <Button
                         size="sm"
