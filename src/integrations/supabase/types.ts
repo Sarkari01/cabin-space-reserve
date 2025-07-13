@@ -356,6 +356,35 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          study_hall_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          study_hall_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          study_hall_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_study_hall_id_fkey"
+            columns: ["study_hall_id"]
+            isOneToOne: false
+            referencedRelation: "study_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_posts: {
         Row: {
           content: string
@@ -389,6 +418,42 @@ export type Database = {
           updated_at?: string
           video_url?: string | null
           visible_to?: Database["public"]["Enums"]["news_visibility"]
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -590,6 +655,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_settings: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          email_notifications: boolean | null
+          id: string
+          language: string | null
+          location: string | null
+          phone_verified: boolean | null
+          push_notifications: boolean | null
+          theme: string | null
+          timezone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          location?: string | null
+          phone_verified?: boolean | null
+          push_notifications?: boolean | null
+          theme?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          location?: string | null
+          phone_verified?: boolean | null
+          push_notifications?: boolean | null
+          theme?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

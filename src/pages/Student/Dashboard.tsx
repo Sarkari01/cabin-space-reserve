@@ -445,29 +445,29 @@ const StudentDashboard = () => {
                   {favorites.map((favorite) => (
                     <Card key={favorite.id} className="hover:shadow-md transition-shadow">
                       <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                        {favorite.study_hall?.image_url ? (
+                        {favorite.study_halls?.image_url ? (
                           <img 
-                            src={favorite.study_hall.image_url} 
-                            alt={favorite.study_hall.name}
+                            src={favorite.study_halls.image_url} 
+                            alt={favorite.study_halls.name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                            <span className="text-muted-foreground">{favorite.study_hall?.name}</span>
+                            <span className="text-muted-foreground">{favorite.study_halls?.name}</span>
                           </div>
                         )}
                       </div>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-semibold">{favorite.study_hall?.name}</h4>
-                          <Badge variant="outline">{favorite.study_hall?.total_seats} seats</Badge>
+                          <h4 className="font-semibold">{favorite.study_halls?.name}</h4>
+                          <Badge variant="outline">Study Hall</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3 flex items-center">
                           <MapPin className="h-3 w-3 mr-1" />
-                          {favorite.study_hall?.location}
+                          {favorite.study_halls?.location}
                         </p>
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold">₹{favorite.study_hall?.daily_price}/day</span>
+                          <span className="font-semibold">₹{favorite.study_halls?.daily_price}/day</span>
                           <div className="space-x-2">
                             <Button 
                               size="sm" 
@@ -476,7 +476,7 @@ const StudentDashboard = () => {
                             >
                               <Heart className="h-4 w-4 fill-red-500 text-red-500" />
                             </Button>
-                            <Button size="sm" onClick={() => handleViewStudyHall(favorite.study_hall)}>
+                            <Button size="sm" onClick={() => favorite.study_halls && handleViewStudyHall(favorite.study_halls)}>
                               View
                             </Button>
                           </div>

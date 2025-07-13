@@ -1,70 +1,63 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { useToast } from "./use-toast";
+import { toast } from "@/hooks/use-toast";
 
 export interface Favorite {
   id: string;
   user_id: string;
   study_hall_id: string;
   created_at: string;
-  study_hall?: {
+  study_halls?: {
     id: string;
     name: string;
     location: string;
-    image_url?: string;
     daily_price: number;
-    total_seats: number;
-    status: string;
+    image_url?: string;
   };
 }
 
 export const useFavorites = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const fetchFavorites = async () => {
-    if (!user) return;
+    if (!user) {
+      setFavorites([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("study_halls")
+        .from("favorites")
         .select(`
-          id,
-          name,
-          location,
-          image_url,
-          daily_price,
-          total_seats,
-          status
+          *,
+          study_halls (
+            id,
+            name,
+            location,
+            daily_price,
+            image_url
+          )
         `)
-        .eq("status", "active");
+        .eq("user_id", user.id);
 
-      if (error) throw error;
-      
-      // For now, we'll simulate favorites with localStorage until migration is applied
-      const favoriteIds = JSON.parse(localStorage.getItem(`favorites_${user.id}`) || "[]");
-      const favoriteStudyHalls = (data || []).filter(hall => favoriteIds.includes(hall.id));
-      
-      const favoritesWithStudyHall = favoriteStudyHalls.map(hall => ({
-        id: `fav_${hall.id}`,
-        user_id: user.id,
-        study_hall_id: hall.id,
-        created_at: new Date().toISOString(),
-        study_hall: hall
-      }));
+      if (error) {
+        console.error("Error fetching favorites:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load favorites",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      setFavorites(favoritesWithStudyHall);
+      setFavorites(data || []);
     } catch (error) {
-      console.error("Error fetching favorites:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch favorites",
-        variant: "destructive",
-      });
+      console.error("Unexpected error fetching favorites:", error);
     } finally {
       setLoading(false);
     }
@@ -73,59 +66,88 @@ export const useFavorites = () => {
   const addToFavorites = async (studyHallId: string) => {
     if (!user) {
       toast({
-        title: "Error",
-        description: "You must be logged in to add favorites",
-        variant: "destructive",
+        title: "Authentication required",
+        description: "Please log in to add favorites",
+        variant: "destructive"
       });
       return false;
     }
 
     try {
-      // For now, use localStorage until migration is applied
-      const favoriteIds = JSON.parse(localStorage.getItem(`favorites_${user.id}`) || "[]");
-      if (!favoriteIds.includes(studyHallId)) {
-        favoriteIds.push(studyHallId);
-        localStorage.setItem(`favorites_${user.id}`, JSON.stringify(favoriteIds));
+      const { error } = await supabase
+        .from("favorites")
+        .insert({
+          user_id: user.id,
+          study_hall_id: studyHallId
+        });
+
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          toast({
+            title: "Already in favorites",
+            description: "This study hall is already in your favorites",
+            variant: "destructive"
+          });
+        } else {
+          console.error("Error adding to favorites:", error);
+          toast({
+            title: "Error",
+            description: "Failed to add to favorites",
+            variant: "destructive"
+          });
+        }
+        return false;
       }
 
+      await fetchFavorites(); // Refresh the list
       toast({
         title: "Success",
-        description: "Added to favorites",
+        description: "Added to favorites"
       });
-
-      fetchFavorites();
       return true;
     } catch (error) {
-      console.error("Error adding to favorites:", error);
+      console.error("Unexpected error adding to favorites:", error);
       toast({
         title: "Error",
-        description: "Failed to add to favorites",
-        variant: "destructive",
+        description: "An unexpected error occurred",
+        variant: "destructive"
       });
       return false;
     }
   };
 
   const removeFromFavorites = async (studyHallId: string) => {
-    try {
-      // For now, use localStorage until migration is applied
-      const favoriteIds = JSON.parse(localStorage.getItem(`favorites_${user.id}`) || "[]");
-      const updatedFavorites = favoriteIds.filter((id: string) => id !== studyHallId);
-      localStorage.setItem(`favorites_${user.id}`, JSON.stringify(updatedFavorites));
+    if (!user) return false;
 
+    try {
+      const { error } = await supabase
+        .from("favorites")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("study_hall_id", studyHallId);
+
+      if (error) {
+        console.error("Error removing from favorites:", error);
+        toast({
+          title: "Error",
+          description: "Failed to remove from favorites",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      await fetchFavorites(); // Refresh the list
       toast({
         title: "Success",
-        description: "Removed from favorites",
+        description: "Removed from favorites"
       });
-
-      fetchFavorites();
       return true;
     } catch (error) {
-      console.error("Error removing from favorites:", error);
+      console.error("Unexpected error removing from favorites:", error);
       toast({
         title: "Error",
-        description: "Failed to remove from favorites",
-        variant: "destructive",
+        description: "An unexpected error occurred",
+        variant: "destructive"
       });
       return false;
     }
@@ -135,16 +157,50 @@ export const useFavorites = () => {
     return favorites.some(fav => fav.study_hall_id === studyHallId);
   };
 
+  const toggleFavorite = async (studyHallId: string) => {
+    if (isFavorite(studyHallId)) {
+      return await removeFromFavorites(studyHallId);
+    } else {
+      return await addToFavorites(studyHallId);
+    }
+  };
+
   useEffect(() => {
     fetchFavorites();
+  }, [user]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('favorites-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'favorites',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          fetchFavorites();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   return {
     favorites,
     loading,
-    fetchFavorites,
     addToFavorites,
     removeFromFavorites,
     isFavorite,
+    toggleFavorite,
+    refetch: fetchFavorites
   };
 };
