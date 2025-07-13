@@ -270,14 +270,15 @@ async function verifyRazorpayPayment(
       );
     }
 
-    // Update transaction status
+    // Update transaction status (preserve existing payment_data including bookingIntent)
+    const updatedPaymentData = transaction.payment_data || {};
     const { error: updateError } = await supabase
       .from('transactions')
       .update({ 
         status: 'completed',
         payment_id: razorpay_payment_id,
         payment_data: {
-          ...transaction.payment_data,
+          ...updatedPaymentData,
           razorpay_payment_id,
           razorpay_order_id,
           razorpay_signature,
