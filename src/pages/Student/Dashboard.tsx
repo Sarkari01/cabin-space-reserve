@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Calendar, Users, Search, Heart, Clock, DollarSign, Eye, BookOpen, Star, Filter } from "lucide-react";
+import { MapPin, Calendar, Users, Search, Heart, Clock, DollarSign, Eye, BookOpen, Star, Filter, TrendingUp } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudyHalls, useSeats } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
@@ -16,11 +17,15 @@ import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
 import { StudentTransactionsTab } from "@/components/student/StudentTransactionsTab";
+import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading } = useStudyHalls();
   const { bookings, loading: bookingsLoading, cancelBooking } = useBookings();
   const { favorites, addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
+  const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   
   const [activeTab, setActiveTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
@@ -134,60 +139,61 @@ const StudentDashboard = () => {
               {/* Rest of overview content */}
               {/* Welcome Section */}
               <div className="mb-8">
-                <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back!</h2>
-                <p className="text-muted-foreground">Manage your bookings and discover new study spaces</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back!</h2>
+                    <p className="text-muted-foreground">Manage your bookings and discover new study spaces</p>
+                  </div>
+                  <RealTimeIndicator lastUpdate={lastUpdate} />
+                </div>
               </div>
 
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Active Bookings</p>
-                        <p className="text-2xl font-bold">{upcomingBookings.length}</p>
-                      </div>
-                      <Calendar className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Favorite Halls</p>
-                        <p className="text-2xl font-bold">{favorites.length}</p>
-                      </div>
-                      <Heart className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Total Visits</p>
-                        <p className="text-2xl font-bold">{completedBookings.length}</p>
-                      </div>
-                      <Users className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Total Spent</p>
-                        <p className="text-2xl font-bold">₹{totalSpent.toLocaleString()}</p>
-                      </div>
-                      <DollarSign className="h-8 w-8 text-primary" />
-                    </div>
-                  </CardContent>
-                </Card>
+                <StatCard
+                  title="Active Bookings"
+                  value={analytics.studentStats?.upcomingBookings || upcomingBookings.length}
+                  icon={Calendar}
+                  loading={analyticsLoading}
+                />
+                <StatCard
+                  title="Favorite Halls"
+                  value={analytics.studentStats?.favoriteHalls || favorites.length}
+                  icon={Heart}
+                  loading={analyticsLoading}
+                />
+                <StatCard
+                  title="Total Visits"
+                  value={analytics.studentStats?.completedBookings || completedBookings.length}
+                  icon={Users}
+                  trend={{ value: 15, label: "this month" }}
+                  loading={analyticsLoading}
+                />
+                <StatCard
+                  title="Total Spent"
+                  value={`₹${(analytics.studentStats?.totalSpent || totalSpent).toLocaleString()}`}
+                  icon={DollarSign}
+                  trend={{ value: analytics.revenueGrowth || 8, label: "from last month" }}
+                  loading={analyticsLoading}
+                />
               </div>
+
+              {/* Analytics Chart */}
+              {analytics.bookingsTrend.length > 0 && (
+                <div className="mb-8">
+                  <AnalyticsChart
+                    title="Your Booking Activity"
+                    description="Your booking and spending patterns over the last 30 days"
+                    data={analytics.bookingsTrend}
+                    type="line"
+                    dataKey="revenue"
+                    trend={analytics.revenueGrowth}
+                    value={`₹${analytics.totalRevenue.toLocaleString()}`}
+                    onRefresh={refreshAnalytics}
+                    loading={analyticsLoading}
+                  />
+                </div>
+              )}
 
               {/* Recent Bookings */}
               <Card>

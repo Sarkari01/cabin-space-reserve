@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock } from "lucide-react";
+import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { StudyHallModal } from "@/components/StudyHallModal";
@@ -15,12 +15,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudyHalls } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
+import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { BookingEditModal } from "@/components/BookingEditModal";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
 import { MerchantTransactionsTab } from "@/components/merchant/MerchantTransactionsTab";
+import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
@@ -28,6 +32,7 @@ const MerchantDashboard = () => {
   const location = useLocation();
   const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
   const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking, refreshBookings } = useBookings(userRole === "admin" ? "admin" : "merchant");
+  const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
@@ -80,27 +85,27 @@ const MerchantDashboard = () => {
   const stats = [
     {
       title: "Total Study Halls",
-      value: studyHalls.length.toString(),
+      value: analytics.merchantStats?.totalStudyHalls || studyHalls.length,
       icon: Home,
-      change: "+1 this month"
+      trend: { value: 5, label: "this month" }
     },
     {
       title: "Total Seats",
-      value: studyHalls.reduce((acc, hall) => acc + hall.total_seats, 0).toString(),
+      value: analytics.merchantStats?.totalSeats || studyHalls.reduce((acc, hall) => acc + hall.total_seats, 0),
       icon: Users,
-      change: "+20 this month"
+      trend: { value: 12, label: "this month" }
     },
     {
       title: "Active Study Halls",
-      value: studyHalls.filter(hall => hall.status === 'active').length.toString(),
+      value: analytics.merchantStats?.activeStudyHalls || studyHalls.filter(hall => hall.status === 'active').length,
       icon: Calendar,
-      change: "+12 this week"
+      trend: { value: 8, label: "this week" }
     },
     {
-      title: "Total Revenue",
-      value: "₹" + studyHalls.reduce((acc, hall) => acc + (hall.daily_price * hall.total_seats), 0).toLocaleString(),
+      title: "Monthly Earnings",
+      value: `₹${(analytics.merchantStats?.monthlyEarnings || analytics.totalRevenue).toLocaleString()}`,
       icon: DollarSign,
-      change: "+15% this month"
+      trend: { value: analytics.revenueGrowth || 15, label: "from last month" }
     }
   ];
 
@@ -259,15 +264,20 @@ const MerchantDashboard = () => {
         {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-foreground mb-2">
-              Merchant Dashboard
-              {userRole === "admin" && (
-                <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-md">
-                  Admin View
-                </span>
-              )}
-            </h2>
-            <p className="text-muted-foreground">Welcome back, {user?.email || 'Merchant'}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-foreground mb-2">
+                  Merchant Dashboard
+                  {userRole === "admin" && (
+                    <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-md">
+                      Admin View
+                    </span>
+                  )}
+                </h2>
+                <p className="text-muted-foreground">Welcome back, {user?.email || 'Merchant'}</p>
+              </div>
+              <RealTimeIndicator lastUpdate={lastUpdate} />
+            </div>
           </div>
           <Button onClick={handleAddStudyHall}>
             <Plus className="h-4 w-4 mr-2" />
@@ -277,24 +287,47 @@ const MerchantDashboard = () => {
 
         {/* Stats Cards - Show only on overview tab */}
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <Card key={index}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
-                    </div>
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <stat.icon className="h-5 w-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {stats.map((stat, index) => (
+                <StatCard
+                  key={index}
+                  title={stat.title}
+                  value={stat.value.toString()}
+                  icon={stat.icon}
+                  trend={stat.trend}
+                  loading={analyticsLoading}
+                />
+              ))}
+            </div>
+
+            {/* Analytics Charts */}
+            <div className="grid lg:grid-cols-2 gap-6 mb-8">
+              <AnalyticsChart
+                title="Revenue Trend"
+                description="Daily earnings over the last 30 days"
+                data={analytics.bookingsTrend}
+                type="line"
+                dataKey="revenue"
+                trend={analytics.revenueGrowth}
+                value={`₹${analytics.totalRevenue.toLocaleString()}`}
+                onRefresh={refreshAnalytics}
+                loading={analyticsLoading}
+              />
+              {analytics.studyHallPerformance && (
+                <AnalyticsChart
+                  title="Study Hall Performance"
+                  description="Revenue by study hall"
+                  data={analytics.studyHallPerformance}
+                  type="bar"
+                  dataKey="revenue"
+                  xAxisKey="name"
+                  onRefresh={refreshAnalytics}
+                  loading={analyticsLoading}
+                />
+              )}
+            </div>
+          </>
         )}
 
         {/* Main Content based on active tab */}

@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar } from "lucide-react";
+import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3, Activity } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
 import { useBookings } from "@/hooks/useBookings";
+import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { UserModal } from "@/components/admin/UserModal";
 import { BannersTab } from "@/components/admin/BannersTab";
 import { BusinessSettingsTab } from "@/components/admin/BusinessSettingsTab";
@@ -21,6 +22,9 @@ import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { MerchantDetailModal } from "@/components/admin/MerchantDetailModal";
 import { MerchantEditModal } from "@/components/admin/MerchantEditModal";
+import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -37,6 +41,7 @@ const AdminDashboard = () => {
     updateStudyHallStatus 
   } = useAdminData();
   const { bookings, loading: bookingsLoading } = useBookings();
+  const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -180,27 +185,27 @@ const AdminDashboard = () => {
   const displayStats = [
     {
       title: "Total Users",
-      value: stats.totalUsers.toString(),
+      value: analytics.platformStats?.totalUsers || stats.totalUsers,
       icon: Users,
-      change: "+12% from last month"
+      trend: { value: 12, label: "from last month" }
     },
     {
       title: "Active Study Halls",
-      value: stats.activeStudyHalls.toString(),
+      value: analytics.platformStats?.totalStudyHalls || stats.activeStudyHalls,
       icon: Building,
-      change: "+3 this week"
+      trend: { value: 8, label: "this week" }
     },
     {
       title: "Monthly Revenue",
-      value: `₹${stats.monthlyRevenue.toLocaleString()}`,
+      value: `₹${(analytics.platformStats?.monthlyRevenue || stats.monthlyRevenue).toLocaleString()}`,
       icon: DollarSign,
-      change: "+18% from last month"
+      trend: { value: analytics.revenueGrowth || 18, label: "from last month" }
     },
     {
       title: "Total Bookings",
-      value: stats.totalBookings.toString(),
+      value: analytics.platformStats?.totalBookings || stats.totalBookings,
       icon: TrendingUp,
-      change: "+2.4% from last month"
+      trend: { value: 2.4, label: "from last month" }
     }
   ];
 
@@ -230,29 +235,67 @@ const AdminDashboard = () => {
             <div className="space-y-6">
               {/* Welcome Section */}
               <div className="mb-8">
-                <h2 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h2>
-                <p className="text-muted-foreground">Monitor and manage the entire platform</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h2>
+                    <p className="text-muted-foreground">Monitor and manage the entire platform</p>
+                  </div>
+                  <RealTimeIndicator lastUpdate={lastUpdate} />
+                </div>
               </div>
 
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {displayStats.map((stat, index) => (
-                  <Card key={index}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                          <p className="text-2xl font-bold">{stat.value}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
-                        </div>
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <stat.icon className="h-5 w-5 text-primary" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <StatCard 
+                    key={index}
+                    title={stat.title}
+                    value={stat.value.toString()}
+                    icon={stat.icon}
+                    trend={stat.trend}
+                    loading={analyticsLoading}
+                  />
                 ))}
               </div>
+
+              {/* Analytics Charts */}
+              <div className="grid lg:grid-cols-2 gap-6 mb-8">
+                <AnalyticsChart
+                  title="Revenue Trend"
+                  description="Daily revenue over the last 30 days"
+                  data={analytics.bookingsTrend}
+                  type="line"
+                  dataKey="revenue"
+                  trend={analytics.revenueGrowth}
+                  value={`₹${analytics.totalRevenue.toLocaleString()}`}
+                  onRefresh={refreshAnalytics}
+                  loading={analyticsLoading}
+                />
+                <AnalyticsChart
+                  title="Booking Trends"
+                  description="Daily bookings over the last 30 days"
+                  data={analytics.bookingsTrend}
+                  type="bar"
+                  dataKey="bookings"
+                  onRefresh={refreshAnalytics}
+                  loading={analyticsLoading}
+                />
+              </div>
+
+              {/* User Growth Chart */}
+              {analytics.userGrowth && (
+                <div className="mb-8">
+                  <AnalyticsChart
+                    title="User Growth"
+                    description="User registrations over the last 30 days"
+                    data={analytics.userGrowth}
+                    type="line"
+                    dataKey="users"
+                    onRefresh={refreshAnalytics}
+                    loading={analyticsLoading}
+                  />
+                </div>
+              )}
 
               {/* Recent Activity */}
               <div className="grid lg:grid-cols-2 gap-6">
