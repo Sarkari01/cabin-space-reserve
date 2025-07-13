@@ -97,10 +97,17 @@ const PaymentSuccess = () => {
           )}
 
           <div className="pt-4">
-            <Button onClick={handleGoToDashboard} className="w-full">
+            <Button 
+              onClick={handleGoToDashboard} 
+              className="w-full mb-2"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Go to Dashboard
             </Button>
+            
+            <p className="text-xs text-muted-foreground">
+              Your booking will be visible in your dashboard
+            </p>
           </div>
         </CardContent>
       </Card>

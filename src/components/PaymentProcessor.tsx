@@ -176,6 +176,9 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
   };
 
   const startPaymentPolling = (orderId: string, transactionId: string) => {
+    console.log('🔄 Starting payment polling for order:', orderId, 'transaction:', transactionId);
+    let hasCreatedBooking = false; // Prevent duplicate booking creation
+    
     const pollInterval = setInterval(async () => {
       try {
         // Get today's date in YYYY-MM-DD format for txn_date
@@ -191,16 +194,19 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
 
         if (error) throw error;
 
-        if (statusResponse?.success && statusResponse.status === 'success') {
+        if (statusResponse?.success && statusResponse.status === 'success' && !hasCreatedBooking) {
+          hasCreatedBooking = true; // Prevent duplicate bookings
           clearInterval(pollInterval);
+          
+          console.log('✅ EKQR: Payment confirmed, updating transaction status');
           await updateTransactionStatus(transactionId, 'completed');
           
           // Create booking after successful payment
           if (user) {
             try {
-              console.log('EKQR: Creating booking after successful payment');
+              console.log('🏗️ EKQR: Creating booking after successful payment');
               const booking = await createBookingFromIntent(bookingIntent, user.id, transactionId);
-              console.log('EKQR: Booking created successfully:', booking);
+              console.log('✅ EKQR: Booking created successfully:', booking);
               
               setShowQR(false);
               toast({
@@ -211,7 +217,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
               // Call success callback
               onPaymentSuccess();
             } catch (error) {
-              console.error('EKQR: Error creating booking after payment:', error);
+              console.error('❌ EKQR: Error creating booking after payment:', error);
               toast({
                 title: "Payment Successful, Booking Error",
                 description: "Payment completed but booking creation failed. Please contact support.",
@@ -219,7 +225,8 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
               });
             }
           }
-        } else if (statusResponse?.status === 'failed') {
+        } else if (statusResponse?.status === 'failed' && !hasCreatedBooking) {
+          hasCreatedBooking = true; // Prevent further attempts
           clearInterval(pollInterval);
           await updateTransactionStatus(transactionId, 'failed');
           setShowQR(false);
@@ -230,14 +237,14 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           });
         }
       } catch (error) {
-        console.error('Error checking payment status:', error);
+        console.error('❌ Error checking payment status:', error);
       }
     }, 5000); // Poll every 5 seconds
 
     // Stop polling after 10 minutes
     setTimeout(() => {
       clearInterval(pollInterval);
-      if (showQR) {
+      if (showQR && !hasCreatedBooking) {
         setShowQR(false);
         toast({
           title: "Payment Timeout",
