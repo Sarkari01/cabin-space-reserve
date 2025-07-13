@@ -255,6 +255,21 @@ async function verifyRazorpayPayment(
       );
     }
 
+    // Get transaction and check if booking already exists
+    const { data: transaction, error: txnError } = await supabase
+      .from('transactions')
+      .select('*, booking_id')
+      .eq('id', transaction_id)
+      .single();
+
+    if (txnError || !transaction) {
+      console.error('Failed to find transaction:', txnError);
+      return new Response(
+        JSON.stringify({ error: 'Transaction not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Update transaction status
     const { error: updateError } = await supabase
       .from('transactions')
@@ -262,6 +277,7 @@ async function verifyRazorpayPayment(
         status: 'completed',
         payment_id: razorpay_payment_id,
         payment_data: {
+          ...transaction.payment_data,
           razorpay_payment_id,
           razorpay_order_id,
           razorpay_signature,
@@ -276,6 +292,64 @@ async function verifyRazorpayPayment(
         JSON.stringify({ error: 'Failed to update transaction status' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Create booking if it doesn't exist
+    if (!transaction.booking_id) {
+      console.log('✅ Razorpay Payment verified, creating booking');
+      
+      try {
+        // Get the booking intent data from transaction payment_data
+        const bookingIntentData = transaction.payment_data?.bookingIntent;
+        
+        if (!bookingIntentData) {
+          console.error('No booking intent data found in transaction');
+          throw new Error('Booking intent data not found');
+        }
+
+        // Create the booking
+        const { data: booking, error: bookingError } = await supabase
+          .from('bookings')
+          .insert({
+            user_id: transaction.user_id,
+            study_hall_id: bookingIntentData.study_hall_id,
+            seat_id: bookingIntentData.seat_id,
+            booking_period: bookingIntentData.booking_period,
+            start_date: bookingIntentData.start_date,
+            end_date: bookingIntentData.end_date,
+            total_amount: bookingIntentData.total_amount,
+            status: 'confirmed',
+            payment_status: 'paid'
+          })
+          .select()
+          .single();
+
+        if (bookingError) {
+          console.error('Failed to create booking:', bookingError);
+          throw new Error('Failed to create booking');
+        }
+
+        console.log('✅ Booking created:', booking.id);
+
+        // Link transaction to booking
+        await supabase
+          .from('transactions')
+          .update({ booking_id: booking.id })
+          .eq('id', transaction_id);
+
+        // Mark seat as unavailable
+        await supabase
+          .from('seats')
+          .update({ is_available: false })
+          .eq('id', bookingIntentData.seat_id);
+
+        console.log('✅ Razorpay Payment and booking process completed successfully');
+      } catch (error) {
+        console.error('❌ Error creating booking after payment:', error);
+        // Continue as payment was successful
+      }
+    } else {
+      console.log('Booking already exists for this transaction');
     }
 
     console.log('✅ Payment verified and transaction updated successfully');
