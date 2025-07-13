@@ -193,7 +193,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
         const { data: statusResponse, error } = await supabase.functions.invoke('ekqr-payment', {
           body: {
             action: 'checkStatus',
-            clientTxnId: transactionId, // Use transaction ID, not order ID
+            clientTxnId: orderId, // Use EKQR order ID for status check
             txnDate: today
           },
         });

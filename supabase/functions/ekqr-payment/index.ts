@@ -48,23 +48,27 @@ Deno.serve(async (req) => {
 async function createOrder(data: any, ekqrApiKey: string, req: Request) {
   console.log('Creating EKQR order:', data);
   
+  // Generate a unique EKQR order ID
+  const ekqrOrderId = `EKQR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   // Get the correct domain from request headers or use fallback
   const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || 'https://jseyxxsptcckjumjcljk.lovableproject.com';
   const redirectUrl = data.redirectUrl || `${origin}/payment-success?booking_id=${data.bookingId}&amount=${data.amount}&study_hall_id=${data.studyHallId || ''}`;
   
   console.log('Using redirect URL:', redirectUrl);
   console.log('Request origin:', origin);
+  console.log(`Creating EKQR order with ID: ${ekqrOrderId} for transaction: ${data.bookingId}`);
   
   const requestBody = {
     key: ekqrApiKey,
-    client_txn_id: data.bookingId,
+    client_txn_id: ekqrOrderId, // Use unique EKQR order ID
     amount: data.amount.toString(),
     p_info: `Study Hall Booking - ${data.bookingId}`,
     customer_name: data.customerName || 'Customer',
     customer_email: data.customerEmail || 'customer@example.com',
     customer_mobile: data.customerMobile || '9999999999',
     redirect_url: redirectUrl,
-    udf1: `booking_id:${data.bookingId}`,
+    udf1: `transaction_id:${data.bookingId}`, // Store transaction ID in UDF1
     udf2: `study_hall_id:${data.studyHallId || ''}`,
     udf3: `seat_id:${data.seatId || ''}`
   };
@@ -84,10 +88,28 @@ async function createOrder(data: any, ekqrApiKey: string, req: Request) {
     throw new Error(responseData.msg || 'Failed to create EKQR order');
   }
 
+  // Update transaction with EKQR order ID for polling
+  const supabaseService = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  await supabaseService
+    .from('transactions')
+    .update({
+      qr_id: ekqrOrderId, // Store EKQR order ID for status polling
+      payment_data: {
+        ...((await supabaseService.from('transactions').select('payment_data').eq('id', data.bookingId).single()).data?.payment_data || {}),
+        ekqr_order_id: ekqrOrderId,
+        order_id: responseData.data.order_id
+      }
+    })
+    .eq('id', data.bookingId);
+
   return new Response(
     JSON.stringify({
       success: true,
-      orderId: responseData.data.order_id,
+      orderId: ekqrOrderId, // Return our EKQR order ID for polling
       paymentUrl: responseData.data.payment_url,
       sessionId: responseData.data.session_id,
       upiIntent: responseData.data.upi_intent,
@@ -139,13 +161,13 @@ async function checkOrderStatus(data: any, ekqrApiKey: string) {
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
 
-        console.log('🔍 EKQR: Finding transaction with ID:', data.clientTxnId);
+        console.log('🔍 EKQR: Finding transaction with EKQR order ID:', data.clientTxnId);
         
-        // Find the transaction using the client_txn_id (which is our transaction ID)
+        // Find the transaction using the qr_id (which is our EKQR order ID)
         const { data: transaction, error: txnError } = await supabaseService
           .from('transactions')
           .select('*, booking_id')
-          .eq('id', data.clientTxnId)
+          .eq('qr_id', data.clientTxnId)
           .single();
 
         if (txnError) {
