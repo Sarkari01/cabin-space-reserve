@@ -460,27 +460,41 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
     }
 
     try {
-      console.log('Offline: Creating transaction and booking');
+      console.log('=== Starting offline payment process ===');
       
-      // Create transaction record first
-      const transaction = await createTransaction({
-        booking_id: null, // Will be updated after booking creation
-        amount: bookingIntent.total_amount,
-        payment_method: "offline",
-      });
-
-      if (!transaction) {
-        throw new Error("Failed to create transaction record");
-      }
-
-      // Create booking for offline payment (immediate but pending)
+      // Create booking first with pending status
       const booking = await createBookingFromIntent(
         bookingIntent, 
         user.id, 
-        transaction.id, 
-        'pending', 
-        'unpaid'
+        undefined, // No transaction ID yet
+        'pending', // booking status - waiting for merchant confirmation
+        'unpaid'   // payment status - will be paid at merchant
       );
+
+      if (!booking) {
+        throw new Error("Failed to create booking");
+      }
+
+      console.log('Booking created for offline payment:', booking);
+
+      // Create transaction and link to booking
+      const transaction = await createTransaction({
+        booking_id: booking.id,
+        amount: bookingIntent.total_amount,
+        payment_method: "offline",
+        payment_id: `offline_${Date.now()}`,
+        payment_data: { 
+          method: 'offline',
+          timestamp: new Date().toISOString(),
+          status: 'pending'
+        }
+      });
+
+      if (!transaction) {
+        console.error('Failed to create transaction, but booking exists:', booking.id);
+      }
+
+      console.log('Transaction created for offline payment:', transaction);
       console.log('Offline: Booking created successfully:', booking);
 
       toast({

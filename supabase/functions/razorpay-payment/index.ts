@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
   try {
     console.log('🔧 Razorpay: Initializing Supabase client');
-    const supabase = createClient(
+    const supabaseServiceRole = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
@@ -85,13 +85,13 @@ Deno.serve(async (req) => {
       if (!requestData.amount || !requestData.booking_id) {
         throw new Error('Missing required parameters: amount and booking_id');
       }
-      return await createRazorpayOrder(requestData as CreateOrderRequest, keyId, keySecret);
+      return await createRazorpayOrder(requestData as CreateOrderRequest, keyId, keySecret, supabaseServiceRole);
     } else if (action === 'verify_payment') {
       const verifyData = requestData as VerifyPaymentRequest;
       if (!verifyData.razorpay_payment_id || !verifyData.razorpay_order_id || !verifyData.razorpay_signature || !verifyData.transaction_id) {
         throw new Error('Missing required parameters for payment verification');
       }
-      return await verifyRazorpayPayment(verifyData, supabase, keySecret);
+      return await verifyRazorpayPayment(verifyData, supabaseServiceRole, keySecret);
     } else {
       return new Response(
         JSON.stringify({ 
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
   }
 });
 
-async function createRazorpayOrder({ amount, booking_id }: CreateOrderRequest, keyId: string, keySecret: string) {
+async function createRazorpayOrder({ amount, booking_id }: CreateOrderRequest, keyId: string, keySecret: string, supabaseServiceRole: any) {
   console.log('💳 Creating Razorpay order for amount: ₹', amount, 'booking:', booking_id);
 
   // Validate amount
@@ -141,7 +141,6 @@ async function createRazorpayOrder({ amount, booking_id }: CreateOrderRequest, k
     };
 
     console.log('📄 Generated receipt:', receipt, '(length:', receipt.length, ')');
-
     console.log('📤 Sending order request to Razorpay:', JSON.stringify(orderData, null, 2));
 
     const auth = btoa(`${keyId}:${keySecret}`);
@@ -159,7 +158,6 @@ async function createRazorpayOrder({ amount, booking_id }: CreateOrderRequest, k
     const responseText = await response.text();
     console.log('📊 Razorpay API response status:', response.status);
     console.log('📥 Razorpay API response:', responseText);
-    console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       console.error('❌ Razorpay API Error - Status:', response.status);
@@ -216,7 +214,7 @@ async function createRazorpayOrder({ amount, booking_id }: CreateOrderRequest, k
 
 async function verifyRazorpayPayment(
   { razorpay_payment_id, razorpay_order_id, razorpay_signature, transaction_id }: VerifyPaymentRequest,
-  supabase: any,
+  supabaseServiceRole: any,
   keySecret: string
 ) {
   console.log('🔍 Verifying Razorpay payment:', razorpay_payment_id);
@@ -255,8 +253,30 @@ async function verifyRazorpayPayment(
       );
     }
 
-    // Update transaction status
-    const { error: updateError } = await supabase
+    // Get transaction data
+    const { data: transaction, error: transactionError } = await supabaseServiceRole
+      .from('transactions')
+      .select('*')
+      .eq('id', transaction_id)
+      .single();
+
+    if (transactionError || !transaction) {
+      console.error('Error fetching transaction:', transactionError);
+      return new Response(
+        JSON.stringify({ error: 'Transaction not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // If verification is successful, create booking
+    console.log('Payment verification successful, creating booking...');
+    
+    // Get booking intent from transaction - we'll need to reconstruct it
+    // For now, we'll get the booking details from the payment flow
+    // This should be improved to store booking intent in transaction
+    
+    // Update transaction status first
+    const { error: updateError } = await supabaseServiceRole
       .from('transactions')
       .update({ 
         status: 'completed',
