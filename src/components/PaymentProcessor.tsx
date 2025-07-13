@@ -201,7 +201,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           hasCreatedBooking = true; // Prevent duplicate bookings
           clearInterval(pollInterval);
           
-          console.log('✅ EKQR: Payment confirmed - booking should be created by edge function');
+          console.log('✅ EKQR: Payment confirmed - booking created by edge function');
           
           setShowQR(false);
           toast({
