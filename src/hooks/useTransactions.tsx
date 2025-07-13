@@ -206,7 +206,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
     fetchTransactions();
   }, [user, effectiveRole]);
 
-  // Real-time subscription for transactions
+  // Enhanced real-time subscription for transactions
   useEffect(() => {
     if (!user) return;
 
@@ -217,9 +217,25 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
         {
           event: '*',
           schema: 'public',
-          table: 'transactions'
+          table: 'transactions',
+          filter: effectiveRole === 'student' ? `user_id=eq.${user.id}` : undefined
         },
-        () => {
+        (payload) => {
+          console.log('Real-time transaction change detected:', payload);
+          
+          // Handle different types of changes
+          if (payload.eventType === 'UPDATE') {
+            console.log('Transaction status updated:', payload.new);
+            
+            // Show toast notification for status changes
+            if (payload.new?.status === 'completed') {
+              console.log('Payment completed successfully!');
+            } else if (payload.new?.status === 'failed') {
+              console.log('Payment failed!');
+            }
+          }
+          
+          // Refetch transactions when changes occur
           fetchTransactions();
         }
       )
@@ -228,7 +244,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin") =>
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, effectiveRole]);
 
   return {
     transactions,

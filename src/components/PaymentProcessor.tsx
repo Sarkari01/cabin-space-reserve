@@ -19,7 +19,7 @@ interface PaymentProcessorProps {
     end_date: string;
     total_amount: number;
   };
-  onPaymentSuccess: () => void;
+  onPaymentSuccess: (booking?: any) => void;
   onCancel: () => void;
 }
 
@@ -177,122 +177,123 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
     }
   };
 
-  const startPaymentPolling = (orderId: string, transactionId: string) => {
-    console.log('🔄 EKQR: Starting payment polling for order:', orderId, 'transaction:', transactionId);
-    let hasCreatedBooking = false;
-    let retryCount = 0;
-    const maxRetries = 36; // 6 minutes max (10 seconds * 36)
+  const startPaymentPolling = async (orderId: string, transactionId: string) => {
+    console.log('Starting enhanced payment polling for order:', orderId);
+    setShowQR(true);
     
-    const pollInterval = setInterval(async () => {
-      try {
-        // Get today's date in YYYY-MM-DD format for txn_date
-        const today = new Date().toISOString().split('T')[0];
-        
-        console.log(`🔄 EKQR: Polling attempt ${retryCount + 1}/${maxRetries} for order ${orderId}`);
-        
-        const { data: statusResponse, error } = await supabase.functions.invoke('ekqr-payment', {
-          body: {
-            action: 'checkStatus',
-            clientTxnId: orderId, // Use EKQR order ID for status check
-            txnDate: today
-          },
+    const maxAttempts = 120; // Poll for 10 minutes (every 5 seconds)
+    let attempts = 0;
+    let backoffDelay = 5000; // Start with 5 second delay
+    
+    const pollPaymentStatus = async (): Promise<boolean> => {
+      if (attempts >= maxAttempts) {
+        console.log('Payment polling timeout reached');
+        setProcessing(false);
+        setShowQR(false);
+        toast({
+          title: "Payment Verification Timeout",
+          description: "Payment verification taking longer than expected. Please check your bookings or contact support.",
+          variant: "destructive",
         });
-
-        console.log('📥 EKQR: Poll response:', { statusResponse, error });
-
-        if (error) {
-          console.error('❌ EKQR: Status check error:', error);
-          retryCount++;
-          
-          // For network/connection errors, retry with exponential backoff
-          if (retryCount < maxRetries) {
-            const backoffDelay = Math.min(5000 + (retryCount * 1000), 15000); // Max 15 seconds
-            console.log(`🔄 Network error, retrying in ${backoffDelay/1000} seconds...`);
-            setTimeout(() => {}, backoffDelay - 5000); // Adjust next poll timing
-            return;
-          } else {
-            console.error('💥 EKQR: Max retries exceeded, stopping polling');
-            clearInterval(pollInterval);
-            if (!hasCreatedBooking) {
-              setShowQR(false);
-              setProcessing(false);
-              toast({
-                title: "Status Check Failed",
-                description: "Unable to verify payment status. Please check your booking in the dashboard or contact support if payment was made.",
-                variant: "destructive",
-              });
-            }
-          }
-          return;
-        }
-
-        // Reset retry count on successful response
-        retryCount = 0;
-
-        // Check if payment was successful
-        if (statusResponse?.success && statusResponse.status === 'success' && !hasCreatedBooking) {
-          hasCreatedBooking = true;
-          clearInterval(pollInterval);
-          
-          console.log('🎉 EKQR: Payment confirmed - booking created automatically by edge function');
-          setShowQR(false);
+        return false;
+      }
+      
+      attempts++;
+      console.log(`Enhanced payment polling attempt ${attempts}/${maxAttempts}`);
+      
+      try {
+        // First check local transaction status (faster via real-time)
+        const { data: transactionCheck } = await supabase
+          .from('transactions')
+          .select('status, booking_id')
+          .eq('id', transactionId)
+          .single();
+        
+        if (transactionCheck?.status === 'completed') {
+          console.log('Payment confirmed via real-time update!');
           setProcessing(false);
-          
+          setShowQR(false);
           toast({
             title: "Payment Successful!",
             description: "Your booking has been confirmed!",
           });
           
-          onPaymentSuccess();
-        } else if (statusResponse?.status === 'failed' && !hasCreatedBooking) {
-          hasCreatedBooking = true;
-          clearInterval(pollInterval);
-          await updateTransactionStatus(transactionId, 'failed');
-          setShowQR(false);
-          setProcessing(false);
+          // Fetch the booking details if available
+          if (transactionCheck.booking_id) {
+            const { data: booking } = await supabase
+              .from('bookings')
+              .select('*, study_hall:study_halls(*), seat:seats(*)')
+              .eq('id', transactionCheck.booking_id)
+              .single();
+            
+            if (booking) {
+              onPaymentSuccess(booking);
+              return true;
+            }
+          }
           
-          toast({
-            title: "Payment Failed",
-            description: "Payment was not completed. Please try again.",
-            variant: "destructive",
-          });
-        } else if (statusResponse?.status === 'pending' || statusResponse?.status === 'created') {
-          console.log('⏳ EKQR: Payment still pending, continuing to poll...');
-        } else {
-          console.log('❓ EKQR: Unknown status:', statusResponse?.status);
+          // Fallback - just trigger success
+          onPaymentSuccess(null);
+          return true;
         }
-      } catch (error) {
-        console.error('💥 EKQR: Unexpected error during status check:', error);
-        retryCount++;
         
-        if (retryCount >= maxRetries) {
-          clearInterval(pollInterval);
-          if (!hasCreatedBooking) {
-            setShowQR(false);
-            setProcessing(false);
-            toast({
-              title: "Payment Status Check Failed",
-              description: "Unable to verify payment status. Please check your booking in the dashboard.",
-              variant: "destructive",
-            });
+        // If still pending locally, check with EKQR API (with exponential backoff for API calls)
+        if (attempts % 3 === 0) { // Only call EKQR API every 3rd attempt to reduce load
+          const { data, error } = await supabase.functions.invoke('ekqr-payment', {
+            body: { 
+              action: 'checkOrderStatus',
+              orderId: orderId,
+              transactionId: transactionId
+            }
+          });
+          
+          if (!error && data) {
+            console.log('EKQR payment status response:', data);
+            
+            if (data.status === 'SUCCESS' || data.paid === true) {
+              console.log('Payment successful via EKQR API!');
+              setProcessing(false);
+              setShowQR(false);
+              toast({
+                title: "Payment Successful!",
+                description: "Your booking has been confirmed!",
+              });
+              onPaymentSuccess(data.booking);
+              return true;
+            } else if (data.status === 'FAILED') {
+              console.log('Payment failed via EKQR API');
+              setProcessing(false);
+              setShowQR(false);
+              toast({
+                title: "Payment Failed",
+                description: "Payment was not completed. Please try again.",
+                variant: "destructive",
+              });
+              return false;
+            }
           }
         }
+        
+        // Exponential backoff for delays (but cap at 10 seconds)
+        if (attempts > 10) {
+          backoffDelay = Math.min(backoffDelay * 1.1, 10000);
+        }
+        
+        // Continue polling if still pending
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        return pollPaymentStatus();
+        
+      } catch (error) {
+        console.error('Payment polling error:', error);
+        
+        // If we get errors, slow down the polling
+        backoffDelay = Math.min(backoffDelay * 1.5, 15000);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        return pollPaymentStatus();
       }
-    }, 10000); // Poll every 10 seconds
-
-    // Stop polling after 12 minutes
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      if (showQR && !hasCreatedBooking) {
-        setShowQR(false);
-        setProcessing(false);
-        toast({
-          title: "Payment Timeout",
-          description: "Payment verification timeout. Please check your booking status in the dashboard.",
-          variant: "destructive",
-        });
-      }
-    }, 720000); // 12 minutes
+    };
+    
+    pollPaymentStatus();
   };
 
   const handleRazorpayPayment = async () => {

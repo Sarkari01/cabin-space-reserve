@@ -259,7 +259,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
     fetchBookings();
   }, [user, effectiveRole]);
 
-  // Real-time subscription for bookings
+  // Enhanced real-time subscription for bookings
   useEffect(() => {
     if (!user) return;
 
@@ -270,12 +270,21 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         {
           event: '*',
           schema: 'public',
-          table: 'bookings'
+          table: 'bookings',
+          filter: effectiveRole === 'student' ? `user_id=eq.${user.id}` : undefined
         },
         (payload) => {
           console.log('Real-time booking change detected:', payload);
-          console.log('Refreshing bookings due to real-time update...');
-          fetchBookings(); // Refresh bookings when changes occur
+          
+          // Handle different types of changes
+          if (payload.eventType === 'INSERT') {
+            console.log('New booking created:', payload.new);
+          } else if (payload.eventType === 'UPDATE') {
+            console.log('Booking updated:', payload.new);
+          }
+          
+          // Refetch bookings when changes occur
+          fetchBookings();
         }
       )
       .subscribe();
@@ -283,7 +292,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, effectiveRole]);
 
   const updateBooking = async (bookingId: string, updates: Partial<Booking>) => {
     try {
