@@ -111,11 +111,24 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     setLoading(false);
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (bookingData?: any) => {
     setShowPayment(false);
     setBookingIntent(null);
     onOpenChange(false);
-    onSuccess?.();
+    
+    // If we have booking data, navigate to payment success page with details
+    if (bookingData) {
+      const params = new URLSearchParams({
+        booking_id: bookingData.id,
+        amount: bookingData.total_amount.toString(),
+        study_hall_name: bookingData.study_hall?.name || '',
+        seat_info: `${bookingData.seat?.row_name}${bookingData.seat?.seat_number}` || '',
+      });
+      window.location.href = `/payment-success?${params.toString()}`;
+    } else {
+      // Fallback: refresh the current page or call onSuccess
+      onSuccess?.();
+    }
   };
 
   const handlePaymentCancel = () => {

@@ -533,15 +533,47 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
               throw new Error(verifyError.message || 'Payment verification failed');
             }
 
-            console.log('✅ Payment verified successfully - booking created automatically by edge function');
+            console.log('✅ Payment verified successfully - fetching booking data...');
+            
+            // Fetch the created booking data with study hall and seat details
+            const { data: transactionWithBooking, error: fetchError } = await supabase
+              .from('transactions')
+              .select(`
+                booking:bookings(
+                  *,
+                  study_hall:study_halls(name, location),
+                  seat:seats(seat_id, row_name, seat_number)
+                )
+              `)
+              .eq('id', transaction.id)
+              .single();
+            
+            if (fetchError) {
+              console.error('Failed to fetch booking after payment:', fetchError);
+              // Still show success but without booking data
+              toast({
+                title: "Payment Successful!",
+                description: "Your booking has been confirmed! Check your dashboard for details.",
+              });
+              onPaymentSuccess();
+              return;
+            }
+            
+            const bookingData = transactionWithBooking?.booking;
             
             toast({
               title: "Payment Successful!",
               description: "Your booking has been confirmed!",
             });
             
-            // Call success callback
-            onPaymentSuccess();
+            // Pass booking data to success callback for proper redirection
+            if (bookingData) {
+              console.log('Passing booking data to success callback:', bookingData);
+              onPaymentSuccess(bookingData);
+            } else {
+              console.log('No booking data found, triggering success without data');
+              onPaymentSuccess();
+            }
           } catch (error) {
             console.error('💥 Payment verification error:', error);
             toast({
