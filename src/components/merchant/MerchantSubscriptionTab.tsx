@@ -85,7 +85,7 @@ export const MerchantSubscriptionTab = () => {
       </div>
 
       {/* Current Subscription Status */}
-      {subscription ? (
+      {subscription && subscription.status === "active" ? (
         <Card className="border-2 border-primary/20">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -98,7 +98,7 @@ export const MerchantSubscriptionTab = () => {
                   </CardDescription>
                 </div>
               </div>
-              <Badge variant={subscription.status === "active" ? "default" : "secondary"}>
+              <Badge variant="default">
                 {subscription.status}
               </Badge>
             </div>
@@ -233,6 +233,61 @@ export const MerchantSubscriptionTab = () => {
             </div>
           </CardContent>
         </Card>
+      ) : subscription && subscription.status === "cancelled" ? (
+        /* Cancelled Subscription - Show Reactivation Options */
+        <div className="space-y-6">
+          <Card className="border-2 border-orange-200 bg-orange-50">
+            <CardContent className="pt-6 text-center">
+              <X className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Subscription Cancelled</h3>
+              <p className="text-muted-foreground mb-4">
+                Your {subscription.plan.name} plan was cancelled. You can reactivate or choose a different plan.
+              </p>
+              <Button onClick={() => setUpgradeDialogOpen(true)}>
+                Reactivate or Choose New Plan
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Available Plans for Reactivation */}
+          <div className="grid md:grid-cols-3 gap-4">
+            {plans.map((plan) => (
+              <Card key={plan.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    {getPlanIcon(plan.name)}
+                    <CardTitle className="text-lg">{plan.name}</CardTitle>
+                  </div>
+                  <CardDescription>
+                    ₹{plan.price.toLocaleString()}/{plan.duration}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-sm space-y-1 mb-4">
+                    <li>• Max Study Halls: {plan.max_study_halls || "Unlimited"}</li>
+                    <li>• Max Bookings/Month: {plan.max_bookings_per_month || "Unlimited"}</li>
+                    {plan.analytics_access && <li>• Advanced Analytics</li>}
+                    {plan.priority_support && <li>• Priority Support</li>}
+                  </ul>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleSubscribeToPlan(plan.id)}
+                    disabled={actionLoading}
+                    variant={subscription.plan_id === plan.id ? "default" : "outline"}
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : subscription.plan_id === plan.id ? (
+                      "Reactivate"
+                    ) : (
+                      "Subscribe"
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       ) : (
         /* No Subscription - Show Plans */
         <div className="space-y-6">

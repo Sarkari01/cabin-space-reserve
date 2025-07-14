@@ -48,14 +48,15 @@ export const useMerchantSubscriptions = () => {
           plan:subscription_plans(*)
         `)
         .eq("merchant_id", user.id)
-        .eq("status", "active")
-        .single();
+        .order("created_at", { ascending: false })
+        .limit(1);
 
-      if (error && error.code !== "PGRST116") {
+      if (error) {
         throw error;
       }
 
-      setSubscription(data || null);
+      // Set the subscription (could be active, cancelled, or null)
+      setSubscription(data && data.length > 0 ? data[0] : null);
       setError(null);
     } catch (err: any) {
       console.error("Error fetching merchant subscription:", err);
@@ -73,28 +74,64 @@ export const useMerchantSubscriptions = () => {
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 1); // Default to 1 month
 
-      const { data, error } = await supabase
+      // Check if merchant already has a subscription record
+      const { data: existingSubscription } = await supabase
         .from("merchant_subscriptions")
-        .insert({
-          merchant_id: user.id,
-          plan_id: planId,
-          status: "active",
-          start_date: startDate,
-          end_date: endDate.toISOString(),
-          payment_method: paymentMethod,
-          auto_renew: true,
-        })
-        .select(`
-          *,
-          plan:subscription_plans(*)
-        `)
+        .select("id")
+        .eq("merchant_id", user.id)
         .single();
+
+      let data, error;
+
+      if (existingSubscription) {
+        // Update existing subscription record
+        const result = await supabase
+          .from("merchant_subscriptions")
+          .update({
+            plan_id: planId,
+            status: "active",
+            start_date: startDate,
+            end_date: endDate.toISOString(),
+            payment_method: paymentMethod,
+            auto_renew: true,
+          })
+          .eq("id", existingSubscription.id)
+          .select(`
+            *,
+            plan:subscription_plans(*)
+          `)
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        // Create new subscription record
+        const result = await supabase
+          .from("merchant_subscriptions")
+          .insert({
+            merchant_id: user.id,
+            plan_id: planId,
+            status: "active",
+            start_date: startDate,
+            end_date: endDate.toISOString(),
+            payment_method: paymentMethod,
+            auto_renew: true,
+          })
+          .select(`
+            *,
+            plan:subscription_plans(*)
+          `)
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
 
       setSubscription(data);
       toast({
-        title: "Subscription Created",
+        title: "Subscription Activated",
         description: "Your subscription has been activated successfully.",
       });
 
