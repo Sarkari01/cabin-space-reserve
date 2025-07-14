@@ -27,6 +27,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 import UserProfileSettings from "@/components/UserProfileSettings";
 import { SubscriptionPlansTab } from "@/components/admin/SubscriptionPlansTab";
+import { MerchantSubscriptionManagementTab } from "@/components/admin/MerchantSubscriptionManagementTab";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -717,6 +718,9 @@ const AdminDashboard = () => {
 
           {/* Subscription Plans Tab */}
           {activeTab === "subscription-plans" && <SubscriptionPlansTab />}
+
+          {/* Merchant Subscriptions Tab */}
+          {activeTab === "merchant-subscriptions" && <MerchantSubscriptionManagementTab />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && (

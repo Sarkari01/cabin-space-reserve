@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMerchantSubscriptions } from "@/hooks/useMerchantSubscriptions";
 import { useSubscriptionPlans } from "@/hooks/useSubscriptionPlans";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,10 +23,22 @@ export const MerchantSubscriptionTab = () => {
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const handleSubscribeToPlan = async (planId: string) => {
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  const handleSubscribeToPlan = async (planId: string, paymentMethod: string = "razorpay") => {
     try {
       setActionLoading(true);
-      await createSubscription(planId);
+      await createSubscription(planId, paymentMethod);
       setUpgradeDialogOpen(false);
     } catch (error) {
       console.error("Error subscribing to plan:", error);
@@ -191,19 +203,31 @@ export const MerchantSubscriptionTab = () => {
                             {plan.analytics_access && <li>• Advanced Analytics</li>}
                             {plan.priority_support && <li>• Priority Support</li>}
                           </ul>
-                          <Button 
-                            className="w-full" 
-                            disabled={subscription.plan_id === plan.id || actionLoading}
-                            onClick={() => handleSubscribeToPlan(plan.id)}
-                          >
-                            {actionLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : subscription.plan_id === plan.id ? (
-                              "Current Plan"
-                            ) : (
-                              "Upgrade"
+                          <div className="space-y-2">
+                            <Button 
+                              className="w-full" 
+                              disabled={subscription.plan_id === plan.id || actionLoading}
+                              onClick={() => handleSubscribeToPlan(plan.id, "razorpay")}
+                            >
+                              {actionLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : subscription.plan_id === plan.id ? (
+                                "Current Plan"
+                              ) : (
+                                "Pay with Razorpay"
+                              )}
+                            </Button>
+                            {subscription.plan_id !== plan.id && (
+                              <Button 
+                                variant="outline"
+                                className="w-full" 
+                                disabled={actionLoading}
+                                onClick={() => handleSubscribeToPlan(plan.id, "offline")}
+                              >
+                                Pay Offline
+                              </Button>
                             )}
-                          </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -324,17 +348,27 @@ export const MerchantSubscriptionTab = () => {
                     {plan.analytics_access && <li>• Advanced Analytics</li>}
                     {plan.priority_support && <li>• Priority Support</li>}
                   </ul>
-                  <Button 
-                    className="w-full" 
-                    onClick={() => handleSubscribeToPlan(plan.id)}
-                    disabled={actionLoading}
-                  >
-                    {actionLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Subscribe"
-                    )}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      className="w-full" 
+                      onClick={() => handleSubscribeToPlan(plan.id, "razorpay")}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Pay with Razorpay"
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="w-full" 
+                      onClick={() => handleSubscribeToPlan(plan.id, "offline")}
+                      disabled={actionLoading}
+                    >
+                      Pay Offline
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

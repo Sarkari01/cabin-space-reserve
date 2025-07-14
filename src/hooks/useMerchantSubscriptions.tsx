@@ -66,76 +66,159 @@ export const useMerchantSubscriptions = () => {
     }
   };
 
-  const createSubscription = async (planId: string, paymentMethod: string = "offline") => {
+  const createSubscription = async (planId: string, paymentMethod: string = "razorpay") => {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      const startDate = new Date().toISOString();
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1); // Default to 1 month
-
-      // Check if merchant already has a subscription record
-      const { data: existingSubscription } = await supabase
-        .from("merchant_subscriptions")
-        .select("id")
-        .eq("merchant_id", user.id)
+      // Get plan details for payment
+      const { data: plan, error: planError } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("id", planId)
         .single();
 
-      let data, error;
-
-      if (existingSubscription) {
-        // Update existing subscription record
-        const result = await supabase
-          .from("merchant_subscriptions")
-          .update({
-            plan_id: planId,
-            status: "active",
-            start_date: startDate,
-            end_date: endDate.toISOString(),
-            payment_method: paymentMethod,
-            auto_renew: true,
-          })
-          .eq("id", existingSubscription.id)
-          .select(`
-            *,
-            plan:subscription_plans(*)
-          `)
-          .single();
-        
-        data = result.data;
-        error = result.error;
-      } else {
-        // Create new subscription record
-        const result = await supabase
-          .from("merchant_subscriptions")
-          .insert({
-            merchant_id: user.id,
-            plan_id: planId,
-            status: "active",
-            start_date: startDate,
-            end_date: endDate.toISOString(),
-            payment_method: paymentMethod,
-            auto_renew: true,
-          })
-          .select(`
-            *,
-            plan:subscription_plans(*)
-          `)
-          .single();
-        
-        data = result.data;
-        error = result.error;
+      if (planError || !plan) {
+        throw new Error("Plan not found");
       }
 
-      if (error) throw error;
+      if (paymentMethod === "razorpay") {
+        // Create Razorpay order for subscription
+        const { data: orderData, error: orderError } = await supabase.functions.invoke('subscription-payment', {
+          body: {
+            action: 'create_subscription_order',
+            plan_id: planId,
+            merchant_id: user.id,
+            amount: plan.price
+          }
+        });
 
-      setSubscription(data);
-      toast({
-        title: "Subscription Activated",
-        description: "Your subscription has been activated successfully.",
-      });
+        if (orderError || !orderData.success) {
+          throw new Error(orderData?.error || "Failed to create payment order");
+        }
 
-      return data;
+        // Open Razorpay checkout
+        const options = {
+          key: orderData.key_id,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: "StudyHall Subscription",
+          description: `${plan.name} Plan Subscription`,
+          order_id: orderData.order_id,
+          handler: async function (response: any) {
+            try {
+              // Verify payment
+              const { data: verifyData, error: verifyError } = await supabase.functions.invoke('subscription-payment', {
+                body: {
+                  action: 'verify_subscription_payment',
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature,
+                  subscription_transaction_id: orderData.transaction_id
+                }
+              });
+
+              if (verifyError || !verifyData.success) {
+                throw new Error("Payment verification failed");
+              }
+
+              toast({
+                title: "Payment Successful",
+                description: "Your subscription has been activated successfully.",
+              });
+
+              // Refresh subscription data
+              await fetchSubscription();
+            } catch (error) {
+              console.error("Payment verification error:", error);
+              toast({
+                title: "Payment Error",
+                description: "Payment verification failed. Please contact support.",
+                variant: "destructive",
+              });
+            }
+          },
+          prefill: {
+            email: user.email,
+          },
+          theme: {
+            color: "#3B82F6"
+          }
+        };
+
+        // Open Razorpay checkout in new tab
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+        
+        return null; // Payment flow will handle subscription creation
+      } else {
+        // Offline payment method - create subscription directly
+        const startDate = new Date().toISOString();
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 1);
+
+        // Check if merchant already has a subscription record
+        const { data: existingSubscription } = await supabase
+          .from("merchant_subscriptions")
+          .select("id")
+          .eq("merchant_id", user.id)
+          .single();
+
+        let data, error;
+
+        if (existingSubscription) {
+          // Update existing subscription record
+          const result = await supabase
+            .from("merchant_subscriptions")
+            .update({
+              plan_id: planId,
+              status: "active",
+              start_date: startDate,
+              end_date: endDate.toISOString(),
+              payment_method: paymentMethod,
+              auto_renew: true,
+            })
+            .eq("id", existingSubscription.id)
+            .select(`
+              *,
+              plan:subscription_plans(*)
+            `)
+            .single();
+          
+          data = result.data;
+          error = result.error;
+        } else {
+          // Create new subscription record
+          const result = await supabase
+            .from("merchant_subscriptions")
+            .insert({
+              merchant_id: user.id,
+              plan_id: planId,
+              status: "active",
+              start_date: startDate,
+              end_date: endDate.toISOString(),
+              payment_method: paymentMethod,
+              auto_renew: true,
+            })
+            .select(`
+              *,
+              plan:subscription_plans(*)
+            `)
+            .single();
+          
+          data = result.data;
+          error = result.error;
+        }
+
+        if (error) throw error;
+
+        setSubscription(data);
+        toast({
+          title: "Subscription Activated",
+          description: "Your subscription has been activated successfully.",
+        });
+
+        return data;
+      }
     } catch (err: any) {
       console.error("Error creating subscription:", err);
       toast({
