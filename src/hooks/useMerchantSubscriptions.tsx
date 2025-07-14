@@ -81,7 +81,10 @@ export const useMerchantSubscriptions = () => {
         throw new Error("Plan not found");
       }
 
-      if (paymentMethod === "razorpay") {
+      // Only Razorpay payment is supported for subscriptions
+      if (paymentMethod !== "razorpay") {
+        throw new Error("Only Razorpay payment method is supported for subscriptions");
+      }
         // Create Razorpay order for subscription
         const { data: orderData, error: orderError } = await supabase.functions.invoke('subscription-payment', {
           body: {
@@ -151,75 +154,6 @@ export const useMerchantSubscriptions = () => {
         rzp.open();
         
         return null; // Payment flow will handle subscription creation
-      } else {
-        // Offline payment method - create subscription directly
-        const startDate = new Date().toISOString();
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + 1);
-
-        // Check if merchant already has a subscription record
-        const { data: existingSubscription } = await supabase
-          .from("merchant_subscriptions")
-          .select("id")
-          .eq("merchant_id", user.id)
-          .single();
-
-        let data, error;
-
-        if (existingSubscription) {
-          // Update existing subscription record
-          const result = await supabase
-            .from("merchant_subscriptions")
-            .update({
-              plan_id: planId,
-              status: "active",
-              start_date: startDate,
-              end_date: endDate.toISOString(),
-              payment_method: paymentMethod,
-              auto_renew: true,
-            })
-            .eq("id", existingSubscription.id)
-            .select(`
-              *,
-              plan:subscription_plans(*)
-            `)
-            .single();
-          
-          data = result.data;
-          error = result.error;
-        } else {
-          // Create new subscription record
-          const result = await supabase
-            .from("merchant_subscriptions")
-            .insert({
-              merchant_id: user.id,
-              plan_id: planId,
-              status: "active",
-              start_date: startDate,
-              end_date: endDate.toISOString(),
-              payment_method: paymentMethod,
-              auto_renew: true,
-            })
-            .select(`
-              *,
-              plan:subscription_plans(*)
-            `)
-            .single();
-          
-          data = result.data;
-          error = result.error;
-        }
-
-        if (error) throw error;
-
-        setSubscription(data);
-        toast({
-          title: "Subscription Activated",
-          description: "Your subscription has been activated successfully.",
-        });
-
-        return data;
-      }
     } catch (err: any) {
       console.error("Error creating subscription:", err);
       toast({
