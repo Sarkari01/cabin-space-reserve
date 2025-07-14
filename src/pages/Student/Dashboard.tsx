@@ -381,7 +381,7 @@ const StudentDashboard = () => {
                               </span>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              <div>Booking ID: {booking.id.substring(0, 8)}...</div>
+                              <div>Booking #{booking.booking_number?.toString().padStart(6, '0') || 'Pending'}</div>
                               <div>
                                 Period: {booking.booking_period} • Created: {formatDate(booking.created_at)}
                               </div>

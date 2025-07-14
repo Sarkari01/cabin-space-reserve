@@ -206,7 +206,8 @@ const MerchantDashboard = () => {
     const matchesStatus = filterStatus === "all" || booking.status === filterStatus;
     const matchesUser = !searchUser || 
       (booking.user?.full_name?.toLowerCase().includes(searchUser.toLowerCase()) ||
-       booking.user?.email?.toLowerCase().includes(searchUser.toLowerCase()));
+       booking.user?.email?.toLowerCase().includes(searchUser.toLowerCase()) ||
+       booking.booking_number?.toString().includes(searchUser));
     
     let matchesDate = true;
     if (filterDateFrom) {
@@ -223,7 +224,7 @@ const MerchantDashboard = () => {
     // Create CSV content
     const headers = ["Booking ID", "User Name", "Email", "Study Hall", "Seat", "Period", "Start Date", "End Date", "Amount", "Status", "Created"];
     const csvData = filteredBookings.map(booking => [
-      booking.id.substring(0, 8),
+      booking.booking_number?.toString().padStart(6, '0') || 'Pending',
       booking.user?.full_name || 'N/A',
       booking.user?.email || 'N/A',
       booking.study_hall?.name || 'N/A',
@@ -636,9 +637,9 @@ const MerchantDashboard = () => {
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Search User</label>
+                  <label className="text-sm font-medium mb-2 block">Search Bookings</label>
                   <Input
-                    placeholder="Search by name or email"
+                    placeholder="Search by booking #, name, or email"
                     value={searchUser}
                     onChange={(e) => setSearchUser(e.target.value)}
                   />
@@ -694,7 +695,7 @@ const MerchantDashboard = () => {
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Booking ID:</span>
-                              <span className="font-mono text-xs">{booking.id.substring(0, 12)}...</span>
+                              <span className="font-mono text-xs">#{booking.booking_number?.toString().padStart(6, '0') || 'Pending'}</span>
                             </div>
                           </div>
                         </div>
@@ -1411,7 +1412,7 @@ const MerchantDashboard = () => {
                               {booking.booking_period} booking
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              <div>Booking ID: {booking.id.substring(0, 8)}...</div>
+                              <div>Booking #{booking.booking_number?.toString().padStart(6, '0') || 'Pending'}</div>
                               <div>Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}</div>
                               <div>Created: {formatDate(booking.created_at)}</div>
                             </div>

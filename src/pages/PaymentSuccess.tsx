@@ -47,7 +47,8 @@ const PaymentSuccess = () => {
             .select(`
               *,
               study_hall:study_halls(name, location),
-              seat:seats(seat_id, row_name, seat_number)
+              seat:seats(seat_id, row_name, seat_number),
+              booking_number
             `)
             .eq('id', bookingId)
             .single();
@@ -55,6 +56,7 @@ const PaymentSuccess = () => {
           if (!bookingError && booking) {
             const details = {
               bookingId: booking.id,
+              bookingNumber: booking.booking_number,
               studyHallName: booking.study_hall?.name,
               seatInfo: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
               amount: booking.total_amount,
@@ -98,7 +100,8 @@ const PaymentSuccess = () => {
               booking:bookings(
                 *,
                 study_hall:study_halls(name, location),
-                seat:seats(seat_id, row_name, seat_number)
+                seat:seats(seat_id, row_name, seat_number),
+                booking_number
               )
             `)
             .eq('id', transactionId)
@@ -108,6 +111,7 @@ const PaymentSuccess = () => {
             if (transaction.booking) {
               setBookingDetails({
                 bookingId: transaction.booking.id,
+                bookingNumber: transaction.booking.booking_number,
                 studyHallName: transaction.booking.study_hall?.name,
                 seatInfo: `${transaction.booking.seat?.row_name}${transaction.booking.seat?.seat_number}`,
                 amount: transaction.booking.total_amount,
@@ -202,8 +206,8 @@ const PaymentSuccess = () => {
           
           {bookingDetails && (
             <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
-              {bookingDetails.bookingId && (
-                <p><strong>Booking ID:</strong> {bookingDetails.bookingId.substring(0, 8)}...</p>
+              {(bookingDetails.bookingNumber || bookingDetails.bookingId) && (
+                <p><strong>Booking ID:</strong> #{bookingDetails.bookingNumber?.toString().padStart(6, '0') || 'Pending'}</p>
               )}
               {bookingDetails.studyHallName && (
                 <p><strong>Study Hall:</strong> {bookingDetails.studyHallName}</p>

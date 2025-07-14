@@ -33,7 +33,7 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
         end_date: booking.end_date,
         amount: Number(booking.total_amount),
         status: booking.status,
-        verification_hash: `${booking.id.substring(0, 8)}-${Date.now()}`,
+        verification_hash: `${booking.booking_number || booking.id.substring(0, 8)}-${Date.now()}`,
         generated_at: new Date().toISOString()
       };
 
@@ -63,7 +63,7 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
 
     const link = document.createElement('a');
     link.href = qrCodeData;
-    link.download = `booking-ticket-${booking.booking_number || booking.id.substring(0, 8)}.png`;
+    link.download = `booking-ticket-${booking.booking_number || 'ticket'}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -100,7 +100,7 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
             <span className="font-bold text-lg">STUDY HALL TICKET</span>
           </div>
           <p className="text-sm opacity-90">
-            Booking #{booking.booking_number || booking.id.substring(0, 8)}
+            Booking #{booking.booking_number?.toString().padStart(6, '0') || 'Pending'}
           </p>
         </div>
 

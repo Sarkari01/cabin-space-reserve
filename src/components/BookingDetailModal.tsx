@@ -65,7 +65,7 @@ export function BookingDetailModal({
             </Badge>
           </DialogTitle>
           <DialogDescription className="break-all">
-            Booking ID: {booking.id}
+            Booking #{booking.booking_number || 'Pending'}
           </DialogDescription>
         </DialogHeader>
 
