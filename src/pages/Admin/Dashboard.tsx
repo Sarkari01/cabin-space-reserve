@@ -26,6 +26,7 @@ import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 import UserProfileSettings from "@/components/UserProfileSettings";
+import { SubscriptionPlansTab } from "@/components/admin/SubscriptionPlansTab";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -713,6 +714,9 @@ const AdminDashboard = () => {
           
           {/* Chat Tab */}
           {activeTab === "chat" && <ChatTab userRole="admin" />}
+
+          {/* Subscription Plans Tab */}
+          {activeTab === "subscription-plans" && <SubscriptionPlansTab />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && (

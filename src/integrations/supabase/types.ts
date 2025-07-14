@@ -385,6 +385,66 @@ export type Database = {
           },
         ]
       }
+      merchant_subscriptions: {
+        Row: {
+          auto_renew: boolean | null
+          created_at: string
+          end_date: string | null
+          id: string
+          last_payment_date: string | null
+          merchant_id: string
+          next_payment_date: string | null
+          payment_method: string | null
+          plan_id: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          last_payment_date?: string | null
+          merchant_id: string
+          next_payment_date?: string | null
+          payment_method?: string | null
+          plan_id: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_renew?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          last_payment_date?: string | null
+          merchant_id?: string
+          next_payment_date?: string | null
+          payment_method?: string | null
+          plan_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_subscriptions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_posts: {
         Row: {
           content: string
@@ -592,6 +652,108 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          analytics_access: boolean | null
+          created_at: string
+          duration: string
+          features: Json
+          id: string
+          max_bookings_per_month: number | null
+          max_study_halls: number | null
+          name: string
+          price: number
+          priority_support: boolean | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          analytics_access?: boolean | null
+          created_at?: string
+          duration: string
+          features?: Json
+          id?: string
+          max_bookings_per_month?: number | null
+          max_study_halls?: number | null
+          name: string
+          price: number
+          priority_support?: boolean | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          analytics_access?: boolean | null
+          created_at?: string
+          duration?: string
+          features?: Json
+          id?: string
+          max_bookings_per_month?: number | null
+          max_study_halls?: number | null
+          name?: string
+          price?: number
+          priority_support?: boolean | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          merchant_id: string
+          payment_data: Json | null
+          payment_id: string | null
+          payment_method: string
+          status: string
+          subscription_id: string
+          transaction_number: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          merchant_id: string
+          payment_data?: Json | null
+          payment_id?: string | null
+          payment_method?: string
+          status?: string
+          subscription_id: string
+          transaction_number?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          payment_data?: Json | null
+          payment_id?: string | null
+          payment_method?: string
+          status?: string
+          subscription_id?: string
+          transaction_number?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_transactions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_subscriptions"
             referencedColumns: ["id"]
           },
         ]
