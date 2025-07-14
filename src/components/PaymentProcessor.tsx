@@ -326,11 +326,18 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             description: "Your booking has been confirmed!",
           });
           
-          // Pass the booking data if available
+          // Navigate to success page with booking ID if available
           const bookingData = transactionCheck.booking;
-          if (bookingData) {
-            console.log('Passing booking data to success callback:', bookingData);
-            onPaymentSuccess(bookingData);
+          if (bookingData?.id) {
+            console.log('Redirecting to success page with booking ID:', bookingData.id);
+            
+            const successParams = new URLSearchParams({
+              booking_id: bookingData.id,
+              amount: bookingIntent.total_amount.toString(),
+              study_hall_id: bookingIntent.study_hall_id
+            });
+            
+            window.location.href = `/payment-success?${successParams.toString()}`;
           } else {
             console.log('No booking data found, triggering success without data');
             onPaymentSuccess(null);
@@ -360,7 +367,23 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
                 description: "Your booking has been confirmed!",
               });
               
-              // Pass booking data if available from EKQR response
+              // Navigate to success page with booking ID if available
+              if (data.booking?.id || data.bookingId) {
+                const bookingId = data.booking?.id || data.bookingId;
+                console.log('Redirecting to success page with booking ID:', bookingId);
+                
+                // Construct redirect URL with proper booking data
+                const successParams = new URLSearchParams({
+                  booking_id: bookingId,
+                  amount: bookingIntent.total_amount.toString(),
+                  study_hall_id: bookingIntent.study_hall_id
+                });
+                
+                window.location.href = `/payment-success?${successParams.toString()}`;
+                return true;
+              }
+              
+              // Fallback: Pass booking data directly
               if (data.booking) {
                 console.log('Passing booking data from EKQR response:', data.booking);
                 onPaymentSuccess(data.booking);
@@ -379,7 +402,18 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
                   .eq('id', transactionId)
                   .single();
                 
-                onPaymentSuccess(updatedTransaction?.booking || null);
+                if (updatedTransaction?.booking?.id) {
+                  // Redirect to success page with proper booking ID
+                  const successParams = new URLSearchParams({
+                    booking_id: updatedTransaction.booking.id,
+                    amount: bookingIntent.total_amount.toString(),
+                    study_hall_id: bookingIntent.study_hall_id
+                  });
+                  
+                  window.location.href = `/payment-success?${successParams.toString()}`;
+                } else {
+                  onPaymentSuccess(updatedTransaction?.booking || null);
+                }
               }
               return true;
             } else if (data.status === 'failed') {

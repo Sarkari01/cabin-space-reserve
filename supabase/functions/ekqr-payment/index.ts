@@ -178,7 +178,8 @@ async function checkOrderStatus(data: any, ekqrApiKey: string, supabase: any) {
           customerVpa: responseData.data.customer_vpa,
           upiTxnId: responseData.data.upi_txn_id,
           remark: responseData.data.remark,
-          booking: booking
+          booking: booking,
+          bookingId: booking?.id // Include booking ID for redirect
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

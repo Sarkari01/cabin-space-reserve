@@ -69,7 +69,6 @@ serve(async (req) => {
           const { data: newBooking, error: bookingError } = await supabase
             .from('bookings')
             .insert({
-              id: transaction.booking_id,
               user_id: transaction.user_id,
               study_hall_id: intent.study_hall_id,
               seat_id: intent.seat_id,
@@ -77,7 +76,7 @@ serve(async (req) => {
               start_date: intent.start_date,
               end_date: intent.end_date,
               total_amount: intent.total_amount,
-              status: 'active',
+              status: 'confirmed',
               payment_status: 'paid'
             })
             .select()
@@ -102,18 +101,25 @@ serve(async (req) => {
         }
       }
 
-      // Update transaction status
+      // Update transaction status and link to booking if one was created
+      const updateData: any = {
+        status: 'completed',
+        payment_data: {
+          ...transaction.payment_data,
+          webhookReceived: true,
+          webhookTimestamp: payload.timestamp,
+          transactionId: payload.transactionId
+        }
+      };
+
+      // Link booking to transaction if it was created
+      if (newBooking) {
+        updateData.booking_id = newBooking.id;
+      }
+
       const { error: updateError } = await supabase
         .from('transactions')
-        .update({
-          status: 'completed',
-          payment_data: {
-            ...transaction.payment_data,
-            webhookReceived: true,
-            webhookTimestamp: payload.timestamp,
-            transactionId: payload.transactionId
-          }
-        })
+        .update(updateData)
         .eq('id', transaction.id);
 
       if (updateError) {
