@@ -30,13 +30,13 @@ export function CommunityTab({ userRole }: CommunityTabProps = {}) {
   const [uploading, setUploading] = useState(false);
 
   const handleFileUpload = async (file: File) => {
-    if (!file) return null;
+    if (!file || !user) return null;
 
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `community/${fileName}`;
+      const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('community-media')
