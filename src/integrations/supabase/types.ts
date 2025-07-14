@@ -874,6 +874,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_recover_pending_ekqr_payments: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_failed_transactions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_short_id: {
         Args: { table_name: string; column_name: string }
         Returns: number

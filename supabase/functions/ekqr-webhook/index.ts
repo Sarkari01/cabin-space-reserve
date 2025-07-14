@@ -51,43 +51,55 @@ serve(async (req) => {
     if (payload.status === 'SUCCESS' && transaction.status === 'pending') {
       console.log('Processing successful payment for transaction:', transaction.id);
 
-      // Get booking data from the transaction
-      const { data: existingBooking } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', transaction.booking_id)
-        .single();
+      // Get booking intent data from transaction
+      const bookingIntentData = transaction.payment_data as any;
+      let bookingCreated = false;
+      let newBooking = null;
 
-      if (!existingBooking && transaction.booking_id) {
-        // Get the booking intent data from transaction payment_data
-        const bookingData = transaction.payment_data as any;
+      // Check if booking already exists
+      if (transaction.booking_id) {
+        const { data: existingBooking } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('id', transaction.booking_id)
+          .single();
         
-        if (bookingData?.bookingIntent) {
-          const intent = bookingData.bookingIntent;
-          
-          // Create the booking
-          const { data: newBooking, error: bookingError } = await supabase
-            .from('bookings')
-            .insert({
-              user_id: transaction.user_id,
-              study_hall_id: intent.study_hall_id,
-              seat_id: intent.seat_id,
-              booking_period: intent.booking_period,
-              start_date: intent.start_date,
-              end_date: intent.end_date,
-              total_amount: intent.total_amount,
-              status: 'confirmed',
-              payment_status: 'paid'
-            })
-            .select()
-            .single();
+        if (existingBooking) {
+          console.log('Booking already exists:', transaction.booking_id);
+          newBooking = existingBooking;
+          bookingCreated = true;
+        }
+      }
 
-          if (bookingError) {
-            console.error('Error creating booking:', bookingError);
-            throw bookingError;
-          }
+      // Create booking if it doesn't exist and we have booking intent data
+      if (!bookingCreated && bookingIntentData?.bookingIntent) {
+        const intent = bookingIntentData.bookingIntent;
+        
+        console.log('Creating booking from webhook with intent:', intent);
+        
+        const { data: createdBooking, error: bookingError } = await supabase
+          .from('bookings')
+          .insert({
+            user_id: transaction.user_id,
+            study_hall_id: intent.study_hall_id,
+            seat_id: intent.seat_id,
+            booking_period: intent.booking_period,
+            start_date: intent.start_date,
+            end_date: intent.end_date,
+            total_amount: intent.total_amount,
+            status: 'confirmed',
+            payment_status: 'paid'
+          })
+          .select()
+          .single();
 
-          console.log('Created booking:', newBooking.id);
+        if (bookingError) {
+          console.error('Error creating booking from webhook:', bookingError);
+          // Continue anyway to update transaction status
+        } else {
+          console.log('Created booking from webhook:', createdBooking.id);
+          newBooking = createdBooking;
+          bookingCreated = true;
 
           // Mark seat as unavailable
           const { error: seatError } = await supabase
@@ -96,23 +108,24 @@ serve(async (req) => {
             .eq('id', intent.seat_id);
 
           if (seatError) {
-            console.error('Error updating seat:', seatError);
+            console.error('Error updating seat from webhook:', seatError);
           }
         }
       }
 
-      // Update transaction status and link to booking if one was created
+      // Update transaction status
       const updateData: any = {
         status: 'completed',
         payment_data: {
           ...transaction.payment_data,
           webhookReceived: true,
           webhookTimestamp: payload.timestamp,
-          transactionId: payload.transactionId
+          transactionId: payload.transactionId,
+          processedAt: new Date().toISOString()
         }
       };
 
-      // Link booking to transaction if it was created
+      // Link booking to transaction if one was created
       if (newBooking) {
         updateData.booking_id = newBooking.id;
       }
@@ -123,7 +136,7 @@ serve(async (req) => {
         .eq('id', transaction.id);
 
       if (updateError) {
-        console.error('Error updating transaction:', updateError);
+        console.error('Error updating transaction from webhook:', updateError);
         throw updateError;
       }
 
@@ -132,7 +145,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         success: true, 
         message: 'Payment processed successfully',
-        transactionId: transaction.id 
+        transactionId: transaction.id,
+        bookingId: newBooking?.id || null
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
