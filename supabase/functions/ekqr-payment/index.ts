@@ -90,22 +90,42 @@ async function createOrder(data: any, ekqrApiKey: string, req: Request, supabase
 
   // Update transaction with EKQR order ID for polling (skip for test transactions)
   if (!data.bookingId?.startsWith('test-')) {
+    console.log('Updating transaction with EKQR order ID:', ekqrOrderId);
+    
+    // Get existing payment data first
+    const { data: existingTransaction, error: fetchError } = await supabase
+      .from('transactions')
+      .select('payment_data')
+      .eq('id', data.bookingId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Failed to fetch existing transaction:', fetchError);
+    }
+    
+    const existingPaymentData = existingTransaction?.payment_data || {};
+    
     const { error: updateError } = await supabase
       .from('transactions')
       .update({
         qr_id: ekqrOrderId, // Store EKQR order ID for status polling
+        payment_id: responseData.data.order_id, // Also store EKQR's internal order ID
         payment_data: {
-          ...((await supabase.from('transactions').select('payment_data').eq('id', data.bookingId).single()).data?.payment_data || {}),
+          ...existingPaymentData,
           ekqr_order_id: ekqrOrderId,
           order_id: responseData.data.order_id,
-          session_id: responseData.data.session_id
+          session_id: responseData.data.session_id,
+          payment_url: responseData.data.payment_url,
+          created_at: new Date().toISOString()
         }
       })
       .eq('id', data.bookingId);
     
     if (updateError) {
-      console.error('Failed to update transaction:', updateError);
+      console.error('❌ Failed to update transaction with EKQR order ID:', updateError);
       // Don't throw error for transaction update failures, order was created successfully
+    } else {
+      console.log('✅ Successfully updated transaction with EKQR order ID');
     }
   } else {
     console.log('Skipping database update for test transaction:', data.bookingId);

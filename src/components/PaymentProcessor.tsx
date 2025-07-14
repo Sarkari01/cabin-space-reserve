@@ -348,124 +348,145 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
         // If still pending locally, check with EKQR API (with exponential backoff for API calls)
         if (attempts % 2 === 0) { // Call EKQR API every 2nd attempt (every 10 seconds)
           console.log('🔍 Checking EKQR payment status via API...');
-          const { data, error } = await supabase.functions.invoke('ekqr-payment', {
-            body: { 
-              action: 'checkOrderStatus',
-              orderId: orderId,
-              transactionId: transactionId,
-              txnDate: new Date().toISOString().split('T')[0] // Add current date
-            }
-          });
           
-          console.log('📡 EKQR API response:', { data, error });
+          // Get the most recent transaction data to check for qr_id
+          const { data: latestTransaction } = await supabase
+            .from('transactions')
+            .select('qr_id, payment_id, payment_data')
+            .eq('id', transactionId)
+            .single();
           
-          if (!error && data) {
-            console.log('✅ EKQR payment status response received:', data);
+          // Use multiple fallback options for order ID
+          const paymentData = latestTransaction?.payment_data as any;
+          const orderIdToUse = orderId || 
+                              latestTransaction?.qr_id || 
+                              paymentData?.ekqr_order_id ||
+                              latestTransaction?.payment_id;
+          
+          if (!orderIdToUse) {
+            console.log('⚠️ No order ID available for EKQR status check, skipping API call');
+          } else {
+            console.log(`🔍 Using order ID for status check: ${orderIdToUse}`);
             
-            // Check for success with multiple indicators
-            const isPaymentSuccessful = data.status === 'success' || 
-                                      data.paid === true || 
-                                      data.booking?.id;
+            const { data, error } = await supabase.functions.invoke('ekqr-payment', {
+              body: { 
+                action: 'checkOrderStatus',
+                orderId: orderIdToUse,
+                transactionId: transactionId,
+                txnDate: new Date().toISOString().split('T')[0] // Add current date
+              }
+            });
+          
+            console.log('📡 EKQR API response:', { data, error });
             
-            if (isPaymentSuccessful) {
-              console.log('🎉 Payment successful via EKQR API!');
-              setProcessing(false);
-              setShowQR(false);
-              toast({
-                title: "Payment Successful!",
-                description: "Your booking has been confirmed!",
-              });
+            if (!error && data) {
+              console.log('✅ EKQR payment status response received:', data);
               
-              // Navigate to success page with booking ID if available
-              if (data.booking?.id || data.bookingId) {
-                const bookingId = data.booking?.id || data.bookingId;
-                console.log('🏃 Redirecting to success page with booking ID:', bookingId);
-                
-                // Construct redirect URL with proper booking data
-                const successParams = new URLSearchParams({
-                  booking_id: bookingId,
-                  amount: bookingIntent.total_amount.toString(),
-                  study_hall_id: bookingIntent.study_hall_id,
-                  transaction_id: transactionId
+              // Check for success with multiple indicators
+              const isPaymentSuccessful = data.status === 'success' || 
+                                        data.paid === true || 
+                                        data.booking?.id;
+              
+              if (isPaymentSuccessful) {
+                console.log('🎉 Payment successful via EKQR API!');
+                setProcessing(false);
+                setShowQR(false);
+                toast({
+                  title: "Payment Successful!",
+                  description: "Your booking has been confirmed!",
                 });
                 
-                window.location.href = `/payment-success?${successParams.toString()}`;
-                return true;
-              }
-              
-              // Fallback: Pass booking data directly
-              if (data.booking) {
-                console.log('✅ Passing booking data from EKQR response:', data.booking);
-                onPaymentSuccess(data.booking);
-              } else {
-                // Try to fetch the booking using the transaction data
-                console.log('🔍 Fetching booking data after EKQR success');
-                const { data: updatedTransaction } = await supabase
-                  .from('transactions')
-                  .select(`
-                    booking:bookings(
-                      *,
-                      study_hall:study_halls(name, location),
-                      seat:seats(seat_id, row_name, seat_number)
-                    )
-                  `)
-                  .eq('id', transactionId)
-                  .single();
-                
-                if (updatedTransaction?.booking?.id) {
-                  // Redirect to success page with proper booking ID
+                // Navigate to success page with booking ID if available
+                if (data.booking?.id || data.bookingId) {
+                  const bookingId = data.booking?.id || data.bookingId;
+                  console.log('🏃 Redirecting to success page with booking ID:', bookingId);
+                  
+                  // Construct redirect URL with proper booking data
                   const successParams = new URLSearchParams({
-                    booking_id: updatedTransaction.booking.id,
+                    booking_id: bookingId,
                     amount: bookingIntent.total_amount.toString(),
                     study_hall_id: bookingIntent.study_hall_id,
                     transaction_id: transactionId
                   });
                   
                   window.location.href = `/payment-success?${successParams.toString()}`;
+                  return true;
+                }
+                
+                // Fallback: Pass booking data directly
+                if (data.booking) {
+                  console.log('✅ Passing booking data from EKQR response:', data.booking);
+                  onPaymentSuccess(data.booking);
                 } else {
-                  console.log('⚠️ No booking found, triggering manual recovery...');
+                  // Try to fetch the booking using the transaction data
+                  console.log('🔍 Fetching booking data after EKQR success');
+                  const { data: updatedTransaction } = await supabase
+                    .from('transactions')
+                    .select(`
+                      booking:bookings(
+                        *,
+                        study_hall:study_halls(name, location),
+                        seat:seats(seat_id, row_name, seat_number)
+                      )
+                    `)
+                    .eq('id', transactionId)
+                    .single();
                   
-                  // Try manual recovery
-                  try {
-                    const { data: recoveryData } = await supabase.functions.invoke('manual-ekqr-recovery', {
-                      body: {
-                        action: 'createBookingForTransaction',
-                        transactionId: transactionId
-                      }
+                  if (updatedTransaction?.booking?.id) {
+                    // Redirect to success page with proper booking ID
+                    const successParams = new URLSearchParams({
+                      booking_id: updatedTransaction.booking.id,
+                      amount: bookingIntent.total_amount.toString(),
+                      study_hall_id: bookingIntent.study_hall_id,
+                      transaction_id: transactionId
                     });
                     
-                    if (recoveryData?.success && recoveryData?.bookingId) {
-                      console.log('✅ Manual recovery successful:', recoveryData.bookingId);
-                      
-                      const successParams = new URLSearchParams({
-                        booking_id: recoveryData.bookingId,
-                        amount: bookingIntent.total_amount.toString(),
-                        study_hall_id: bookingIntent.study_hall_id,
-                        transaction_id: transactionId
+                    window.location.href = `/payment-success?${successParams.toString()}`;
+                  } else {
+                    console.log('⚠️ No booking found, triggering manual recovery...');
+                    
+                    // Try manual recovery
+                    try {
+                      const { data: recoveryData } = await supabase.functions.invoke('manual-ekqr-recovery', {
+                        body: {
+                          action: 'createBookingForTransaction',
+                          transactionId: transactionId
+                        }
                       });
                       
-                      window.location.href = `/payment-success?${successParams.toString()}`;
-                      return true;
+                      if (recoveryData?.success && recoveryData?.bookingId) {
+                        console.log('✅ Manual recovery successful:', recoveryData.bookingId);
+                        
+                        const successParams = new URLSearchParams({
+                          booking_id: recoveryData.bookingId,
+                          amount: bookingIntent.total_amount.toString(),
+                          study_hall_id: bookingIntent.study_hall_id,
+                          transaction_id: transactionId
+                        });
+                        
+                        window.location.href = `/payment-success?${successParams.toString()}`;
+                        return true;
+                      }
+                    } catch (recoveryError) {
+                      console.error('❌ Manual recovery failed:', recoveryError);
                     }
-                  } catch (recoveryError) {
-                    console.error('❌ Manual recovery failed:', recoveryError);
+                    
+                    // Final fallback
+                    onPaymentSuccess(null);
                   }
-                  
-                  // Final fallback
-                  onPaymentSuccess(null);
                 }
+                return true;
+              } else if (data.status === 'failed') {
+                console.log('❌ Payment failed via EKQR API:', data.remark);
+                setProcessing(false);
+                setShowQR(false);
+                toast({
+                  title: "Payment Failed",
+                  description: "Payment was not completed. Please try again.",
+                  variant: "destructive",
+                });
+                return false;
               }
-              return true;
-            } else if (data.status === 'failed') {
-              console.log('❌ Payment failed via EKQR API:', data.remark);
-              setProcessing(false);
-              setShowQR(false);
-              toast({
-                title: "Payment Failed",
-                description: "Payment was not completed. Please try again.",
-                variant: "destructive",
-              });
-              return false;
             }
           }
         }
