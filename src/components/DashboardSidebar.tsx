@@ -16,6 +16,7 @@ import {
   Heart,
   CreditCard,
   Receipt,
+  AlertCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -82,6 +83,7 @@ const sidebarItems = {
     { title: "Chat", url: "/admin/dashboard", icon: MessageSquare, tab: "chat" },
     { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
     { title: "Profile", url: "/admin/dashboard", icon: Settings, tab: "profile" },
+    { title: "EKQR Recovery", url: "/admin/dashboard", icon: AlertCircle, tab: "ekqr-recovery" },
   ],
 };
 

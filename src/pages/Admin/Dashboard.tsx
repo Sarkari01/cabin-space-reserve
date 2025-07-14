@@ -29,6 +29,7 @@ import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 import UserProfileSettings from "@/components/UserProfileSettings";
 import { SubscriptionPlansTab } from "@/components/admin/SubscriptionPlansTab";
 import { MerchantSubscriptionManagementTab } from "@/components/admin/MerchantSubscriptionManagementTab";
+import EKQRRecoveryTab from "@/components/admin/EKQRRecoveryTab";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -725,6 +726,9 @@ const AdminDashboard = () => {
 
           {/* Merchant Subscriptions Tab */}
           {activeTab === "merchant-subscriptions" && <MerchantSubscriptionManagementTab />}
+
+          {/* EKQR Recovery Tab */}
+          {activeTab === "ekqr-recovery" && <EKQRRecoveryTab />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && (
