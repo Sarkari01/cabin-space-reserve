@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Heart,
   CreditCard,
+  Receipt,
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,6 +56,7 @@ const sidebarItems = {
     { title: "My Study Halls", url: "/merchant/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/merchant/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Subscriptions", url: "/merchant/dashboard", icon: CreditCard, tab: "subscriptions" },
+    { title: "Subscription Transactions", url: "/merchant/dashboard", icon: Receipt, tab: "subscription-transactions" },
     { title: "Transactions", url: "/merchant/dashboard", icon: CreditCard, tab: "transactions" },
     { title: "Users", url: "/merchant/dashboard", icon: Users, tab: "users" },
     { title: "Analytics", url: "/merchant/dashboard", icon: BarChart3, tab: "analytics" },
@@ -70,6 +72,7 @@ const sidebarItems = {
     { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Transactions", url: "/admin/dashboard", icon: CreditCard, tab: "transactions" },
+    { title: "Subscription Transactions", url: "/admin/dashboard", icon: Receipt, tab: "subscription-transactions" },
     { title: "Subscription Plans", url: "/admin/dashboard", icon: Shield, tab: "subscription-plans" },
     { title: "Merchant Subscriptions", url: "/admin/dashboard", icon: CreditCard, tab: "merchant-subscriptions" },
     { title: "Banners", url: "/admin/dashboard", icon: BookOpen, tab: "banners" },

@@ -14,6 +14,7 @@ import { BannersTab } from "@/components/admin/BannersTab";
 import { BusinessSettingsTab } from "@/components/admin/BusinessSettingsTab";
 import { TransactionsTab } from "@/components/admin/TransactionsTab";
 import { TransactionsManagementTab } from "@/components/admin/TransactionsManagementTab";
+import { AdminSubscriptionTransactionsTab } from "@/components/admin/AdminSubscriptionTransactionsTab";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
@@ -706,6 +707,9 @@ const AdminDashboard = () => {
           
           {/* Transactions Tab */}
           {activeTab === "transactions" && <TransactionsManagementTab />}
+          
+          {/* Subscription Transactions Tab */}
+          {activeTab === "subscription-transactions" && <AdminSubscriptionTransactionsTab />}
           
           {/* News Tab */}
           {activeTab === "news" && <NewsTab userRole="admin" />}
