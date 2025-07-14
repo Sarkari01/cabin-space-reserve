@@ -42,6 +42,7 @@ export const MerchantSubscriptionTab = () => {
       setUpgradeDialogOpen(false);
     } catch (error) {
       console.error("Error subscribing to plan:", error);
+      // Error is already handled by useMerchantSubscriptions hook
     } finally {
       setActionLoading(false);
     }

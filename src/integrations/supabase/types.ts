@@ -711,7 +711,7 @@ export type Database = {
           payment_id: string | null
           payment_method: string
           status: string
-          subscription_id: string
+          subscription_id: string | null
           transaction_number: number | null
           updated_at: string
         }
@@ -724,7 +724,7 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string
           status?: string
-          subscription_id: string
+          subscription_id?: string | null
           transaction_number?: number | null
           updated_at?: string
         }
@@ -737,7 +737,7 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string
           status?: string
-          subscription_id?: string
+          subscription_id?: string | null
           transaction_number?: number | null
           updated_at?: string
         }

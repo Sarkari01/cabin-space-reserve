@@ -120,7 +120,7 @@ async function createSubscriptionOrder(
       throw new Error('Plan not found');
     }
 
-    // Create subscription transaction record
+    // Create subscription transaction record with null subscription_id initially
     const { data: transaction, error: transactionError } = await supabase
       .from('subscription_transactions')
       .insert({

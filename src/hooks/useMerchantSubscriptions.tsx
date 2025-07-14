@@ -93,7 +93,8 @@ export const useMerchantSubscriptions = () => {
         });
 
         if (orderError || !orderData.success) {
-          throw new Error(orderData?.error || "Failed to create payment order");
+          console.error('Payment order creation failed:', orderError, orderData);
+          throw new Error(orderData?.error || orderError?.message || "Failed to create payment order");
         }
 
         // Open Razorpay checkout
@@ -222,8 +223,8 @@ export const useMerchantSubscriptions = () => {
     } catch (err: any) {
       console.error("Error creating subscription:", err);
       toast({
-        title: "Error",
-        description: err.message,
+        title: "Subscription Error",
+        description: err.message || "Failed to create subscription. Please try again or contact support.",
         variant: "destructive",
       });
       throw err;
