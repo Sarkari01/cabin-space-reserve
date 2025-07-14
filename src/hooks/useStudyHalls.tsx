@@ -13,6 +13,7 @@ export interface StudyHall {
   rows: number;
   seats_per_row: number;
   custom_row_names: string[];
+  amenities: string[];
   daily_price: number;
   weekly_price: number;
   monthly_price: number;
@@ -58,7 +59,14 @@ export const useStudyHalls = () => {
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
-      setStudyHalls(data || []);
+      
+      // Transform the data to ensure amenities is properly typed
+      const transformedData = (data || []).map(hall => ({
+        ...hall,
+        amenities: Array.isArray(hall.amenities) ? hall.amenities : []
+      })) as StudyHall[];
+      
+      setStudyHalls(transformedData);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -156,6 +164,34 @@ export const useStudyHalls = () => {
     }
   };
 
+  const toggleStudyHallStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    
+    try {
+      const { error } = await supabase
+        .from('study_halls')
+        .update({ status: newStatus })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      await fetchStudyHalls();
+      toast({
+        title: "Success",
+        description: `Study hall ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`,
+      });
+      
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update study hall status",
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   useEffect(() => {
     fetchStudyHalls();
   }, [user]);
@@ -167,6 +203,7 @@ export const useStudyHalls = () => {
     createStudyHall,
     updateStudyHall,
     deleteStudyHall,
+    toggleStudyHallStatus,
   };
 };
 

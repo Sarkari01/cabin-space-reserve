@@ -590,6 +590,7 @@ export type Database = {
       }
       study_halls: {
         Row: {
+          amenities: Json | null
           created_at: string
           custom_row_names: string[]
           daily_price: number
@@ -609,6 +610,7 @@ export type Database = {
           weekly_price: number
         }
         Insert: {
+          amenities?: Json | null
           created_at?: string
           custom_row_names?: string[]
           daily_price?: number
@@ -628,6 +630,7 @@ export type Database = {
           weekly_price?: number
         }
         Update: {
+          amenities?: Json | null
           created_at?: string
           custom_row_names?: string[]
           daily_price?: number

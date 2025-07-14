@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Minus, Grid3X3, DollarSign, Upload, X } from "lucide-react";
+import { Plus, Minus, Grid3X3, DollarSign, Upload, X, Wifi, Snowflake, Car, Coffee, Printer, Monitor } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSeats } from "@/hooks/useStudyHalls";
@@ -29,6 +29,7 @@ interface StudyHall {
   rows: number;
   seats_per_row: number;
   custom_row_names: string[];
+  amenities: string[];
   daily_price: number;
   weekly_price: number;
   monthly_price: number;
@@ -57,6 +58,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     rows: 4,
     seats_per_row: 5,
     custom_row_names: ["A", "B", "C", "D"],
+    amenities: [],
     daily_price: 100,
     weekly_price: 500,
     monthly_price: 1500,
@@ -80,6 +82,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
         rows: 4,
         seats_per_row: 5,
         custom_row_names: ["A", "B", "C", "D"],
+        amenities: [],
         daily_price: 100,
         weekly_price: 500,
         monthly_price: 1500,
@@ -212,8 +215,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">Basic Details</TabsTrigger>
+              <TabsTrigger value="amenities">Amenities</TabsTrigger>
               <TabsTrigger value="layout">Seat Layout</TabsTrigger>
             </TabsList>
 
@@ -439,6 +443,145 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                     </div>
                   ))}
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="amenities" className="space-y-4">
+              <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                <h4 className="font-semibold mb-2">Study Hall Amenities</h4>
+                <p className="text-sm text-muted-foreground">
+                  Select amenities available in your study hall to help students find the perfect study space.
+                </p>
+              </div>
+              
+              {/* Predefined Amenities */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Popular Amenities</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                    {[
+                      { name: "WiFi", icon: Wifi },
+                      { name: "Air Conditioning", icon: Snowflake },
+                      { name: "Parking", icon: Car },
+                      { name: "Cafeteria", icon: Coffee },
+                      { name: "Printer/Scanner", icon: Printer },
+                      { name: "Projector/Screen", icon: Monitor },
+                    ].map((amenity) => {
+                      const isSelected = formData.amenities.includes(amenity.name);
+                      const IconComponent = amenity.icon;
+                      
+                      return (
+                        <Button
+                          key={amenity.name}
+                          type="button"
+                          variant={isSelected ? "default" : "outline"}
+                          className="h-auto p-3 flex flex-col items-center space-y-2"
+                          onClick={() => {
+                            if (isReadOnly) return;
+                            
+                            const newAmenities = isSelected
+                              ? formData.amenities.filter(a => a !== amenity.name)
+                              : [...formData.amenities, amenity.name];
+                              
+                            setFormData(prev => ({ ...prev, amenities: newAmenities }));
+                          }}
+                          disabled={isReadOnly}
+                        >
+                          <IconComponent className="h-5 w-5" />
+                          <span className="text-xs text-center">{amenity.name}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Amenities */}
+                <div>
+                  <Label className="text-base font-medium">Custom Amenities</Label>
+                  <div className="space-y-2 mt-2">
+                    <div className="flex flex-wrap gap-2">
+                      {formData.amenities
+                        .filter(amenity => !["WiFi", "Air Conditioning", "Parking", "Cafeteria", "Printer/Scanner", "Projector/Screen"].includes(amenity))
+                        .map((amenity, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center space-x-1"
+                          >
+                            <span>{amenity}</span>
+                            {!isReadOnly && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() => {
+                                  const newAmenities = formData.amenities.filter(a => a !== amenity);
+                                  setFormData(prev => ({ ...prev, amenities: newAmenities }));
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </Badge>
+                        ))}
+                    </div>
+                    
+                    {!isReadOnly && (
+                      <div className="flex space-x-2">
+                        <Input
+                          placeholder="Add custom amenity..."
+                          className="flex-1"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const input = e.target as HTMLInputElement;
+                              const value = input.value.trim();
+                              if (value && !formData.amenities.includes(value)) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  amenities: [...prev.amenities, value]
+                                }));
+                                input.value = '';
+                              }
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={(e) => {
+                            const input = (e.target as HTMLElement).previousElementSibling as HTMLInputElement;
+                            const value = input.value.trim();
+                            if (value && !formData.amenities.includes(value)) {
+                              setFormData(prev => ({
+                                ...prev,
+                                amenities: [...prev.amenities, value]
+                              }));
+                              input.value = '';
+                            }
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Selected Amenities Preview */}
+                {formData.amenities.length > 0 && (
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <h5 className="font-medium mb-2">Selected Amenities ({formData.amenities.length})</h5>
+                    <div className="flex flex-wrap gap-1">
+                      {formData.amenities.map((amenity, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {amenity}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

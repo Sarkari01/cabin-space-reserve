@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock, TrendingUp } from "lucide-react";
+import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock, TrendingUp, Power, PowerOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { StudyHallModal } from "@/components/StudyHallModal";
@@ -33,7 +33,7 @@ const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall } = useStudyHalls();
+  const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall, toggleStudyHallStatus } = useStudyHalls();
   const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking, refreshBookings } = useBookings(userRole === "admin" ? "admin" : "merchant");
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   
@@ -377,9 +377,24 @@ const MerchantDashboard = () => {
                         <p className="text-sm text-muted-foreground">{studyHall.location}</p>
                         <p className="text-xs text-muted-foreground">{studyHall.description}</p>
                       </div>
-                      <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
-                        {studyHall.status}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
+                          {studyHall.status}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleStudyHallStatus(studyHall.id, studyHall.status)}
+                          className="h-8 w-8 p-0"
+                          title={studyHall.status === "active" ? "Deactivate" : "Activate"}
+                        >
+                          {studyHall.status === "active" ? (
+                            <PowerOff className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <Power className="h-4 w-4 text-green-600" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 mb-4">
@@ -400,6 +415,25 @@ const MerchantDashboard = () => {
                         <p className="font-semibold text-xs">{studyHall.custom_row_names.slice(0, 3).join(', ')}{studyHall.custom_row_names.length > 3 ? '...' : ''}</p>
                       </div>
                     </div>
+                    
+                    {/* Amenities */}
+                    {studyHall.amenities && studyHall.amenities.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm text-muted-foreground mb-2">Amenities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {studyHall.amenities.slice(0, 4).map((amenity, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {amenity}
+                            </Badge>
+                          ))}
+                          {studyHall.amenities.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{studyHall.amenities.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex space-x-2">
                       <Button 
@@ -1258,9 +1292,24 @@ const MerchantDashboard = () => {
                         <p className="text-sm text-muted-foreground">{studyHall.location}</p>
                         <p className="text-xs text-muted-foreground">{studyHall.description}</p>
                       </div>
-                      <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
-                        {studyHall.status}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
+                          {studyHall.status}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleStudyHallStatus(studyHall.id, studyHall.status)}
+                          className="h-8 w-8 p-0"
+                          title={studyHall.status === "active" ? "Deactivate" : "Activate"}
+                        >
+                          {studyHall.status === "active" ? (
+                            <PowerOff className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <Power className="h-4 w-4 text-green-600" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 mb-4">
@@ -1281,6 +1330,25 @@ const MerchantDashboard = () => {
                         <p className="font-semibold text-xs">{studyHall.custom_row_names.slice(0, 3).join(', ')}{studyHall.custom_row_names.length > 3 ? '...' : ''}</p>
                       </div>
                     </div>
+                    
+                    {/* Amenities */}
+                    {studyHall.amenities && studyHall.amenities.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm text-muted-foreground mb-2">Amenities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {studyHall.amenities.slice(0, 4).map((amenity, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {amenity}
+                            </Badge>
+                          ))}
+                          {studyHall.amenities.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{studyHall.amenities.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex space-x-2">
                       <Button 

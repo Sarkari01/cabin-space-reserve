@@ -21,6 +21,7 @@ interface StudyHallData {
   rows: number;
   seats_per_row: number;
   status: string;
+  amenities?: string[];
   created_at: string;
   owner?: {
     full_name?: string;
@@ -190,6 +191,23 @@ export function StudyHallDetailModal({
                   </div>
                 </CardContent>
               </Card>
+
+              {studyHall.amenities && studyHall.amenities.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Amenities</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {studyHall.amenities.map((amenity, index) => (
+                        <Badge key={index} variant="outline">
+                          {amenity}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {studyHall.description && (
                 <Card>
