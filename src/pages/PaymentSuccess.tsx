@@ -20,6 +20,8 @@ const PaymentSuccess = () => {
   useEffect(() => {
     console.log('PaymentSuccess: Component mounted');
     const initializeSuccessPage = async () => {
+      setLoading(true);
+      
       // Extract booking info from URL params if available
       const bookingId = searchParams.get('booking_id');
       const transactionId = searchParams.get('transaction_id');
@@ -39,8 +41,11 @@ const PaymentSuccess = () => {
         return;
       }
       
-      // For successful payments, try to fetch the actual booking data
-      if (bookingId) {
+      let bookingData = null;
+      
+      // Try to fetch booking by ID first (highest priority)
+      if (bookingId && bookingId !== 'undefined' && bookingId !== 'null' && bookingId !== 'Pending') {
+        console.log('🔍 Fetching booking by ID:', bookingId);
         try {
           const { data: booking, error: bookingError } = await supabase
             .from('bookings')
@@ -54,7 +59,8 @@ const PaymentSuccess = () => {
             .single();
 
           if (!bookingError && booking) {
-            const details = {
+            console.log('✅ Booking found:', booking);
+            bookingData = {
               bookingId: booking.id,
               bookingNumber: booking.booking_number,
               studyHallName: booking.study_hall?.name,
@@ -62,9 +68,9 @@ const PaymentSuccess = () => {
               amount: booking.total_amount,
               startDate: booking.start_date,
               endDate: booking.end_date,
-              period: booking.booking_period
+              period: booking.booking_period,
+              status: booking.status
             };
-            setBookingDetails(details);
 
             // Generate QR code preview for confirmed bookings
             if (booking.status === 'confirmed' || booking.status === 'completed') {
@@ -72,6 +78,7 @@ const PaymentSuccess = () => {
                 const qrData = {
                   type: "study_hall_booking",
                   booking_id: booking.id,
+                  booking_number: booking.booking_number,
                   study_hall: booking.study_hall?.name,
                   seat: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
                   amount: booking.total_amount
@@ -86,12 +93,17 @@ const PaymentSuccess = () => {
                 console.error('Error generating QR preview:', error);
               }
             }
+          } else {
+            console.error('❌ Error fetching booking:', bookingError);
           }
         } catch (error) {
-          console.error('Error fetching booking details:', error);
+          console.error('❌ Exception fetching booking details:', error);
         }
-      } else if (transactionId) {
-        // Try to fetch transaction and linked booking
+      }
+      
+      // Fallback: Try to fetch via transaction ID if no booking found
+      if (!bookingData && transactionId) {
+        console.log('🔍 Fetching transaction by ID:', transactionId);
         try {
           const { data: transaction, error: txnError } = await supabase
             .from('transactions')
@@ -108,8 +120,11 @@ const PaymentSuccess = () => {
             .single();
 
           if (!txnError && transaction) {
+            console.log('✅ Transaction found:', transaction);
+            
             if (transaction.booking) {
-              setBookingDetails({
+              console.log('✅ Booking found via transaction:', transaction.booking);
+              bookingData = {
                 bookingId: transaction.booking.id,
                 bookingNumber: transaction.booking.booking_number,
                 studyHallName: transaction.booking.study_hall?.name,
@@ -117,36 +132,124 @@ const PaymentSuccess = () => {
                 amount: transaction.booking.total_amount,
                 startDate: transaction.booking.start_date,
                 endDate: transaction.booking.end_date,
-                period: transaction.booking.booking_period
-              });
+                period: transaction.booking.booking_period,
+                status: transaction.booking.status
+              };
+            } else if (transaction.payment_method === 'ekqr' && transaction.status === 'pending') {
+              console.log('⚠️ Found EKQR transaction without booking - attempting recovery...');
+              
+              try {
+                const { data: recoveryData, error: recoveryError } = await supabase.functions.invoke('manual-ekqr-recovery', {
+                  body: {
+                    action: 'createBookingForTransaction',
+                    transactionId: transactionId
+                  }
+                });
+                
+                console.log('🔧 Recovery attempt result:', { recoveryData, recoveryError });
+                
+                if (!recoveryError && recoveryData?.success && recoveryData?.bookingId) {
+                  console.log('✅ Booking recovery successful! Fetching booking data...');
+                  
+                  // Fetch the newly created booking
+                  const { data: newBooking, error: newBookingError } = await supabase
+                    .from('bookings')
+                    .select(`
+                      *,
+                      study_hall:study_halls(name, location),
+                      seat:seats(seat_id, row_name, seat_number),
+                      booking_number
+                    `)
+                    .eq('id', recoveryData.bookingId)
+                    .single();
+                  
+                  if (!newBookingError && newBooking) {
+                    console.log('✅ Recovered booking data:', newBooking);
+                    bookingData = {
+                      bookingId: newBooking.id,
+                      bookingNumber: newBooking.booking_number,
+                      studyHallName: newBooking.study_hall?.name,
+                      seatInfo: `${newBooking.seat?.row_name}${newBooking.seat?.seat_number}`,
+                      amount: newBooking.total_amount,
+                      startDate: newBooking.start_date,
+                      endDate: newBooking.end_date,
+                      period: newBooking.booking_period,
+                      status: newBooking.status
+                    };
+                    
+                    toast({
+                      title: "Booking Recovered!",
+                      description: "Your booking has been successfully created.",
+                    });
+                  }
+                } else {
+                  console.error('❌ Booking recovery failed:', recoveryError);
+                  toast({
+                    title: "Booking Creation Issue",
+                    description: "Your payment was successful but there was an issue creating your booking. Please contact support.",
+                    variant: "destructive",
+                  });
+                }
+              } catch (recoveryError) {
+                console.error('❌ Exception during booking recovery:', recoveryError);
+                toast({
+                  title: "Recovery Failed",
+                  description: "Unable to recover booking. Please contact support with your transaction ID.",
+                  variant: "destructive",
+                });
+              }
             } else {
-              setBookingDetails({
+              // Transaction found but no booking yet
+              bookingData = {
                 transactionId: transaction.id,
                 amount: transaction.amount,
                 status: 'Payment processed, booking being created...'
-              });
+              };
             }
+          } else {
+            console.error('❌ Error fetching transaction:', txnError);
           }
         } catch (error) {
-          console.error('Error fetching transaction details:', error);
+          console.error('❌ Exception fetching transaction details:', error);
         }
       }
       
-      // Set basic booking details from URL params if no database data
-      if (!bookingDetails && (bookingId || transactionId || amount)) {
+      // Set booking details
+      if (bookingData) {
+        setBookingDetails(bookingData);
+        
+        // Show appropriate success message
+        if (bookingData.bookingNumber) {
+          toast({
+            title: "Payment Successful!",
+            description: "Your booking has been confirmed successfully.",
+          });
+        } else if (bookingData.status && bookingData.status.includes('being created')) {
+          toast({
+            title: "Payment Processed",
+            description: "Your booking is being created. Please wait...",
+          });
+        }
+      } else {
+        // No booking data found - show error
+        const errorMessage = bookingId === 'Pending' || !bookingId || bookingId === 'null' 
+          ? "Booking creation is pending. Please check your bookings or contact support if this persists."
+          : "Booking not found. Please check your bookings or contact support.";
+        
+        toast({
+          title: "Booking Issue",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        // Set fallback data for display
         setBookingDetails({
-          bookingId,
+          bookingId: 'Pending',
           transactionId,
-          amount,
-          studyHallId
+          amount: amount ? parseFloat(amount) : 0,
+          status: 'Unable to load booking details'
         });
       }
-
-      // Show success message
-      toast({
-        title: "Payment Successful!",
-        description: "Your booking has been confirmed successfully.",
-      });
 
       setLoading(false);
     };

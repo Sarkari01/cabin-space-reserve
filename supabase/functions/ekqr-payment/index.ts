@@ -150,7 +150,7 @@ async function checkOrderStatus(data: any, ekqrApiKey: string, supabase: any) {
     });
 
     const responseData = await response.json();
-    console.log('📥 EKQR: Status response:', responseData);
+    console.log('📥 EKQR: Raw API response:', JSON.stringify(responseData, null, 2));
     
     if (!response.ok) {
       console.error('❌ EKQR: HTTP error:', response.status, response.statusText);
@@ -162,8 +162,24 @@ async function checkOrderStatus(data: any, ekqrApiKey: string, supabase: any) {
       throw new Error(responseData.msg || 'API returned error status');
     }
 
+    // Enhanced status checking - check multiple success indicators
+    const paymentStatus = responseData.data?.status?.toLowerCase();
+    const isSuccess = paymentStatus === 'success' || 
+                     paymentStatus === 'completed' || 
+                     paymentStatus === 'paid' ||
+                     responseData.data?.paid === true ||
+                     responseData.data?.payment_status === 'success';
+
+    console.log('🔍 EKQR: Payment status analysis:', {
+      paymentStatus,
+      isSuccess,
+      rawStatus: responseData.data?.status,
+      paid: responseData.data?.paid,
+      paymentStatus: responseData.data?.payment_status
+    });
+
     // If payment is successful, create booking automatically
-    if (responseData.data.status === 'success') {
+    if (isSuccess) {
       console.log('✅ EKQR: Payment successful, processing booking creation');
       
       const booking = await createBookingFromPayment(supabase, orderIdToCheck, responseData.data, data.transactionId);
@@ -171,7 +187,7 @@ async function checkOrderStatus(data: any, ekqrApiKey: string, supabase: any) {
       return new Response(
         JSON.stringify({
           success: true,
-          status: responseData.data.status,
+          status: 'success',
           paid: true,
           transactionId: responseData.data.id,
           amount: responseData.data.amount,
@@ -185,15 +201,41 @@ async function checkOrderStatus(data: any, ekqrApiKey: string, supabase: any) {
       );
     }
     
+    // Check if payment failed
+    const isFailed = paymentStatus === 'failed' || 
+                    paymentStatus === 'cancelled' ||
+                    paymentStatus === 'timeout' ||
+                    responseData.data?.paid === false;
+
+    if (isFailed) {
+      console.log('❌ EKQR: Payment failed with status:', paymentStatus);
+      // Update transaction status to failed
+      const { error: updateError } = await supabase
+        .from('transactions')
+        .update({ 
+          status: 'failed',
+          payment_data: {
+            ...((await supabase.from('transactions').select('payment_data').eq('qr_id', orderIdToCheck).single()).data?.payment_data || {}),
+            ekqr_failure_reason: responseData.data?.remark || 'Payment failed',
+            failed_at: new Date().toISOString()
+          }
+        })
+        .eq('qr_id', orderIdToCheck);
+      
+      if (updateError) {
+        console.error('❌ EKQR: Failed to update transaction status:', updateError);
+      }
+    }
+    
     // Return status for pending or failed payments
     return new Response(
       JSON.stringify({
         success: true,
-        status: responseData.data.status,
-        paid: responseData.data.status === 'success',
-        transactionId: responseData.data.id,
-        amount: responseData.data.amount,
-        remark: responseData.data.remark
+        status: responseData.data?.status || 'pending',
+        paid: isSuccess,
+        transactionId: responseData.data?.id,
+        amount: responseData.data?.amount,
+        remark: responseData.data?.remark || 'Payment status check completed'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
