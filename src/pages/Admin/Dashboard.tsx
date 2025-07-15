@@ -11,6 +11,7 @@ import { useBookings } from "@/hooks/useBookings";
 import { supabase } from "@/integrations/supabase/client";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { UserModal } from "@/components/admin/UserModal";
+import { AdvancedUserManagement } from "@/components/admin/AdvancedUserManagement";
 import { BannersTab } from "@/components/admin/BannersTab";
 import { BusinessSettingsTab } from "@/components/admin/BusinessSettingsTab";
 import { TransactionsTab } from "@/components/admin/TransactionsTab";
@@ -471,86 +472,7 @@ const AdminDashboard = () => {
           )}
 
           {/* Users Tab */}
-          {activeTab === "users" && (
-            <div className="space-y-6">
-              <PageHeader
-                title="User Management"
-                description="Manage all platform users"
-                breadcrumbs={[
-                  { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
-                  { label: "User Management", active: true }
-                ]}
-                actions={
-                  <Button onClick={() => setUserModalOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add User
-                  </Button>
-                }
-              />
-
-              {/* Enhanced Users Table */}
-              <ResponsiveTable
-                data={filteredUsers}
-                columns={[
-                  {
-                    key: 'full_name',
-                    title: 'Name',
-                    render: (value, user) => (
-                      <div>
-                        <p className="font-medium">{value || 'Anonymous'}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      </div>
-                    )
-                  },
-                  {
-                    key: 'role',
-                    title: 'Role',
-                    render: (value) => <Badge variant="default">{value}</Badge>
-                  },
-                  {
-                    key: 'created_at',
-                    title: 'Joined',
-                    mobileHidden: true,
-                    render: (value) => new Date(value).toLocaleDateString()
-                  }
-                ]}
-                searchPlaceholder="Search users by name or email..."
-                onRowClick={(user) => handleEditUser(user)}
-                actions={(user) => (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Ban className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the user account.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )}
-                loading={loading}
-                emptyMessage="No users found"
-              />
-            </div>
-          )}
+          {activeTab === "users" && <AdvancedUserManagement />}
 
           {/* Incharges Tab */}
           {activeTab === "incharges" && <InchargesTab />}
