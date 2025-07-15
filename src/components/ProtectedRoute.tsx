@@ -6,8 +6,8 @@ import { MerchantOnboardingGuard } from "@/components/merchant/MerchantOnboardin
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'merchant' | 'student' | 'incharge';
-  allowMultipleRoles?: ('admin' | 'merchant' | 'student' | 'incharge')[];
+  requiredRole?: 'admin' | 'merchant' | 'student' | 'incharge' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator';
+  allowMultipleRoles?: ('admin' | 'merchant' | 'student' | 'incharge' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator')[];
 }
 
 const ProtectedRoute = ({ 

@@ -39,7 +39,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 interface DashboardSidebarProps {
-  userRole: "student" | "merchant" | "admin" | "incharge";
+  userRole: "student" | "merchant" | "admin" | "incharge" | "telemarketing_executive" | "pending_payments_caller" | "customer_care_executive" | "settlement_manager" | "general_administrator";
   userName: string;
   children: React.ReactNode;
   onTabChange?: (tab: string) => void;
@@ -111,7 +111,7 @@ const sidebarItems = {
 };
 
 function AppSidebar({ userRole, userName, onTabChange, activeTab }: { 
-  userRole: "student" | "merchant" | "admin" | "incharge"; 
+  userRole: "student" | "merchant" | "admin" | "incharge" | "telemarketing_executive" | "pending_payments_caller" | "customer_care_executive" | "settlement_manager" | "general_administrator"; 
   userName: string;
   onTabChange?: (tab: string) => void;
   activeTab?: string;
