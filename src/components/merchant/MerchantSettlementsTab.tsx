@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -126,11 +127,19 @@ export function MerchantSettlementsTab() {
       {/* Balance Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
-          <MerchantBalanceCard
-            balance={balance}
-            loading={withdrawalsLoading}
-            onRequestWithdrawal={() => setShowWithdrawalModal(true)}
-          />
+          <ErrorBoundary fallback={
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-muted-foreground">Unable to load balance data</div>
+              </CardContent>
+            </Card>
+          }>
+            <MerchantBalanceCard
+              balance={balance}
+              loading={withdrawalsLoading}
+              onRequestWithdrawal={() => setShowWithdrawalModal(true)}
+            />
+          </ErrorBoundary>
         </div>
         
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -182,33 +191,73 @@ export function MerchantSettlementsTab() {
         </TabsList>
 
         <TabsContent value="settlements">
+          <ErrorBoundary fallback={
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-muted-foreground">Unable to load settlements data</div>
+              </CardContent>
+            </Card>
+          }>
             <ResponsiveTable
               data={filteredSettlements}
               columns={[
                 {
                   key: "settlement_number",
                   title: "Settlement #",
-                  render: (item: any) => `#${item?.settlement_number || 'N/A'}`
+                  render: (item: any) => {
+                    try {
+                      const settlementNum = item?.settlement_number;
+                      if (settlementNum === 0) return "#000000";
+                      if (!settlementNum) return "#N/A";
+                      return `#${String(settlementNum).padStart(6, '0')}`;
+                    } catch (error) {
+                      console.error("Error rendering settlement number:", error);
+                      return "#ERROR";
+                    }
+                  }
                 },
                 {
                   key: "status",
                   title: "Status",
-                  render: (item: any) => getStatusBadge(item?.status || 'unknown')
+                  render: (item: any) => {
+                    try {
+                      return getStatusBadge(item?.status || 'unknown');
+                    } catch (error) {
+                      console.error("Error rendering status:", error);
+                      return <Badge variant="secondary">Unknown</Badge>;
+                    }
+                  }
                 },
                 {
                   key: "created_at",
                   title: "Created Date",
-                  render: (item: any) => safeFormatDate(item?.created_at, "MMM d, yyyy")
+                  render: (item: any) => {
+                    try {
+                      return safeFormatDate(item?.created_at, "MMM d, yyyy");
+                    } catch (error) {
+                      console.error("Error formatting date:", error);
+                      return "Invalid Date";
+                    }
+                  }
                 },
                 {
                   key: "net_settlement_amount",
                   title: "Net Amount",
-                  render: (item: any) => `₹${Number(item?.net_settlement_amount || 0).toFixed(2)}`
+                  render: (item: any) => {
+                    try {
+                      const amount = Number(item?.net_settlement_amount || 0);
+                      return `₹${amount.toFixed(2)}`;
+                    } catch (error) {
+                      console.error("Error formatting amount:", error);
+                      return "₹0.00";
+                    }
+                  }
                 }
               ]}
               loading={loading}
               emptyMessage="No settlements found"
             />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="withdrawals">
@@ -234,48 +283,83 @@ export function MerchantSettlementsTab() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveTable
-                data={withdrawals || []}
-                columns={[
-                  {
-                    key: "amount",
-                    title: "Amount",
-                    render: (item: any) => (
-                      <div className="font-semibold text-lg">
-                        ₹{Number(item?.requested_amount || 0).toLocaleString()}
-                      </div>
-                    )
-                  },
-                  {
-                    key: "method",
-                    title: "Method",
-                    render: (item: any) => (
-                      <span className="capitalize">
-                        {item?.withdrawal_method?.replace("_", " ") || 'N/A'}
-                      </span>
-                    )
-                  },
-                  {
-                    key: "status",
-                    title: "Status",
-                    render: (item: any) => getWithdrawalStatusBadge(item?.status || 'unknown')
-                  },
-                  {
-                    key: "date",
-                    title: "Request Date",
-                    render: (item: any) => (
-                      <div className="space-y-1">
-                        <div>{safeFormatDate(item?.created_at, "MMM dd, yyyy")}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {safeFormatTime(item?.created_at, "hh:mm a")}
-                        </div>
-                      </div>
-                    )
-                  }
-                ]}
-                loading={withdrawalsLoading}
-                emptyMessage="No withdrawal requests found"
-              />
+              <ErrorBoundary fallback={
+                <div className="p-6 text-muted-foreground">Unable to load withdrawal requests</div>
+              }>
+                <ResponsiveTable
+                  data={withdrawals || []}
+                  columns={[
+                    {
+                      key: "amount",
+                      title: "Amount",
+                      render: (item: any) => {
+                        try {
+                          const amount = Number(item?.requested_amount || 0);
+                          return (
+                            <div className="font-semibold text-lg">
+                              ₹{amount.toLocaleString()}
+                            </div>
+                          );
+                        } catch (error) {
+                          console.error("Error formatting withdrawal amount:", error);
+                          return <div className="font-semibold text-lg">₹0</div>;
+                        }
+                      }
+                    },
+                    {
+                      key: "method",
+                      title: "Method",
+                      render: (item: any) => {
+                        try {
+                          const method = item?.withdrawal_method?.replace("_", " ") || 'N/A';
+                          return <span className="capitalize">{method}</span>;
+                        } catch (error) {
+                          console.error("Error formatting withdrawal method:", error);
+                          return <span className="capitalize">N/A</span>;
+                        }
+                      }
+                    },
+                    {
+                      key: "status",
+                      title: "Status",
+                      render: (item: any) => {
+                        try {
+                          return getWithdrawalStatusBadge(item?.status || 'unknown');
+                        } catch (error) {
+                          console.error("Error rendering withdrawal status:", error);
+                          return <Badge variant="secondary">Unknown</Badge>;
+                        }
+                      }
+                    },
+                    {
+                      key: "date",
+                      title: "Request Date",
+                      render: (item: any) => {
+                        try {
+                          return (
+                            <div className="space-y-1">
+                              <div>{safeFormatDate(item?.created_at, "MMM dd, yyyy")}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {safeFormatTime(item?.created_at, "hh:mm a")}
+                              </div>
+                            </div>
+                          );
+                        } catch (error) {
+                          console.error("Error formatting withdrawal date:", error);
+                          return (
+                            <div className="space-y-1">
+                              <div>Invalid Date</div>
+                              <div className="text-sm text-muted-foreground">--</div>
+                            </div>
+                          );
+                        }
+                      }
+                    }
+                  ]}
+                  loading={withdrawalsLoading}
+                  emptyMessage="No withdrawal requests found"
+                />
+              </ErrorBoundary>
             </CardContent>
           </Card>
         </TabsContent>

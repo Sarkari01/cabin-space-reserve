@@ -85,19 +85,34 @@ export const useWithdrawals = () => {
         p_merchant_id: targetMerchantId
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("RPC error in fetchMerchantBalance:", error);
+        throw error;
+      }
       
       const balanceData = data?.[0];
       if (balanceData && typeof balanceData === 'object') {
-        setBalance({
+        // Enhanced validation with type checking
+        const validatedBalance = {
           total_earnings: Number(balanceData.total_earnings || 0),
           platform_fees: Number(balanceData.platform_fees || 0),
           net_earnings: Number(balanceData.net_earnings || 0),
           pending_withdrawals: Number(balanceData.pending_withdrawals || 0),
           available_balance: Number(balanceData.available_balance || 0)
+        };
+        
+        // Ensure all values are valid numbers
+        Object.keys(validatedBalance).forEach(key => {
+          const value = validatedBalance[key as keyof typeof validatedBalance];
+          if (isNaN(value) || !isFinite(value)) {
+            console.warn(`Invalid balance value for ${key}, setting to 0`);
+            validatedBalance[key as keyof typeof validatedBalance] = 0;
+          }
         });
+        
+        setBalance(validatedBalance);
       } else {
-        // Set default balance if no data
+        // Set safe default balance if no data
         setBalance({
           total_earnings: 0,
           platform_fees: 0,
@@ -108,7 +123,16 @@ export const useWithdrawals = () => {
       }
     } catch (error) {
       console.error("Error fetching merchant balance:", error);
-      setBalance(null); // Set null on error
+      
+      // Set safe default balance on error instead of null
+      setBalance({
+        total_earnings: 0,
+        platform_fees: 0,
+        net_earnings: 0,
+        pending_withdrawals: 0,
+        available_balance: 0
+      });
+      
       toast({
         title: "Error",
         description: "Failed to fetch merchant balance",

@@ -95,11 +95,29 @@ export function useSettlements() {
         p_merchant_id: merchantId,
       });
 
-      if (error) throw error;
-      return data?.[0] || null;
+      if (error) {
+        console.error("RPC error in getUnsettledSummary:", error);
+        throw error;
+      }
+      
+      const result = data?.[0] || null;
+      if (result) {
+        // Validate the data structure
+        const validatedResult = {
+          total_transactions: Number(result.total_transactions || 0),
+          total_amount: Number(result.total_amount || 0),
+          oldest_transaction_date: result.oldest_transaction_date || null
+        };
+        return validatedResult;
+      }
+      return null;
     } catch (error) {
       console.error("Error fetching unsettled summary:", error);
-      return null;
+      return {
+        total_transactions: 0,
+        total_amount: 0,
+        oldest_transaction_date: null
+      };
     }
   };
 
@@ -109,8 +127,26 @@ export function useSettlements() {
         p_merchant_id: merchantId,
       });
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.error("RPC error in getEligibleTransactions:", error);
+        throw error;
+      }
+      
+      // Validate and sanitize the data
+      const validatedData = (data || []).map(transaction => ({
+        transaction_id: transaction?.transaction_id || '',
+        booking_id: transaction?.booking_id || '',
+        amount: Number(transaction?.amount || 0),
+        transaction_created_at: transaction?.transaction_created_at || '',
+        booking_start_date: transaction?.booking_start_date || '',
+        booking_end_date: transaction?.booking_end_date || '',
+        user_email: transaction?.user_email || '',
+        study_hall_name: transaction?.study_hall_name || '',
+        transaction_number: Number(transaction?.transaction_number || 0),
+        booking_number: Number(transaction?.booking_number || 0)
+      }));
+      
+      return validatedData;
     } catch (error) {
       console.error("Error fetching eligible transactions:", error);
       return [];

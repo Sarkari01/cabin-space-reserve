@@ -25,6 +25,7 @@ import { MerchantTransactionsTab } from "@/components/merchant/MerchantTransacti
 import { MerchantSubscriptionTab } from "@/components/merchant/MerchantSubscriptionTab";
 import { MerchantSubscriptionTransactionsTab } from "@/components/merchant/MerchantSubscriptionTransactionsTab";
 import { MerchantSettlementsTab } from "@/components/merchant/MerchantSettlementsTab";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
@@ -78,16 +79,33 @@ const MerchantDashboard = () => {
     }
   }, [location.state, refreshBookings]);
 
-  // Debug: Log current user info
+  // Enhanced user validation
   useEffect(() => {
     if (user) {
       console.log("Current user in merchant dashboard:", {
         id: user.id,
         email: user.email,
-        // We'll see the role from useAuth
+        role: userRole
       });
     }
-  }, [user]);
+  }, [user, userRole]);
+
+  // Enhanced loading state with user validation
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Redirecting to authentication...</div>
+      </div>
+    );
+  }
 
   const stats = [
     {
@@ -116,8 +134,12 @@ const MerchantDashboard = () => {
     }
   ];
 
-  if (authLoading || loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse text-muted-foreground">Loading dashboard data...</div>
+      </div>
+    );
   }
 
   const handleAddStudyHall = () => {
@@ -1491,7 +1513,13 @@ const MerchantDashboard = () => {
         )}
 
         {activeTab === "settlements" && (
-          <MerchantSettlementsTab />
+          <ErrorBoundary fallback={
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">Unable to load settlements data. Please try refreshing the page.</p>
+            </div>
+          }>
+            <MerchantSettlementsTab />
+          </ErrorBoundary>
         )}
 
         {activeTab === "analytics" && (
