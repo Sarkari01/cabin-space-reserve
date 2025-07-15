@@ -1655,7 +1655,7 @@ export type Database = {
         }[]
       }
       get_merchant_subscription_limits: {
-        Args: { merchant_id: string }
+        Args: { p_merchant_id: string }
         Returns: {
           max_study_halls: number
           current_study_halls: number
