@@ -128,34 +128,43 @@ export type Database = {
       }
       business_settings: {
         Row: {
+          auto_approval_threshold: number | null
           created_at: string
           ekqr_enabled: boolean
           id: string
           minimum_settlement_amount: number | null
+          minimum_withdrawal_amount: number | null
           offline_enabled: boolean
           platform_fee_percentage: number | null
           razorpay_enabled: boolean
           updated_at: string
+          withdrawal_processing_days: number | null
         }
         Insert: {
+          auto_approval_threshold?: number | null
           created_at?: string
           ekqr_enabled?: boolean
           id?: string
           minimum_settlement_amount?: number | null
+          minimum_withdrawal_amount?: number | null
           offline_enabled?: boolean
           platform_fee_percentage?: number | null
           razorpay_enabled?: boolean
           updated_at?: string
+          withdrawal_processing_days?: number | null
         }
         Update: {
+          auto_approval_threshold?: number | null
           created_at?: string
           ekqr_enabled?: boolean
           id?: string
           minimum_settlement_amount?: number | null
+          minimum_withdrawal_amount?: number | null
           offline_enabled?: boolean
           platform_fee_percentage?: number | null
           razorpay_enabled?: boolean
           updated_at?: string
+          withdrawal_processing_days?: number | null
         }
         Relationships: []
       }
@@ -1458,6 +1467,66 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          merchant_id: string
+          payment_method: string | null
+          payment_reference: string | null
+          processed_at: string | null
+          processed_by: string | null
+          requested_amount: number
+          status: string
+          updated_at: string
+          withdrawal_method: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          merchant_id: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_amount: number
+          status?: string
+          updated_at?: string
+          withdrawal_method?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_amount?: number
+          status?: string
+          updated_at?: string
+          withdrawal_method?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawal_requests_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1560,6 +1629,16 @@ export type Database = {
           booking_number: number
         }[]
       }
+      get_merchant_available_balance: {
+        Args: { p_merchant_id: string }
+        Returns: {
+          total_earnings: number
+          platform_fees: number
+          net_earnings: number
+          pending_withdrawals: number
+          available_balance: number
+        }[]
+      }
       get_unsettled_transactions_summary: {
         Args: { p_merchant_id: string }
         Returns: {
@@ -1594,6 +1673,14 @@ export type Database = {
           p_referral_id?: string
         }
         Returns: undefined
+      }
+      validate_withdrawal_request: {
+        Args: { p_merchant_id: string; p_amount: number }
+        Returns: {
+          is_valid: boolean
+          error_message: string
+          available_balance: number
+        }[]
       }
     }
     Enums: {

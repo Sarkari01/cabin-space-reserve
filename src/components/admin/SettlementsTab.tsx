@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { WithdrawalManagementTab } from "./WithdrawalManagementTab";
 import { useSettlements, Settlement, EligibleTransaction, UnsettledSummary } from "@/hooks/useSettlements";
 import { useAdminData } from "@/hooks/useAdminData";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -189,6 +190,7 @@ export function SettlementsTab() {
         <TabsList>
           <TabsTrigger value="create">Create Settlement</TabsTrigger>
           <TabsTrigger value="history">Settlement History</TabsTrigger>
+          <TabsTrigger value="withdrawals">Withdrawal Requests</TabsTrigger>
         </TabsList>
 
         <TabsContent value="create" className="space-y-4">
@@ -457,6 +459,10 @@ export function SettlementsTab() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="withdrawals">
+          <WithdrawalManagementTab />
         </TabsContent>
       </Tabs>
 
