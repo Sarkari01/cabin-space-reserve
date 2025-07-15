@@ -19,7 +19,7 @@ import { StudyHallMainImage } from "@/components/StudyHallMainImage";
 const Index = () => {
   const { studyHalls, loading, fetchStudyHalls } = useStudyHalls();
   const { user } = useAuth();
-  const { userLocation } = useLocation();
+  const { coordinates } = useLocation();
   const [searchParams] = useSearchParams();
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -309,15 +309,35 @@ const Index = () => {
       </div>
 
       {/* Advanced Search Modal */}
-      <AdvancedSearch
-        open={showAdvancedSearch}
-        onOpenChange={setShowAdvancedSearch}
-        onSearch={(filters) => {
-          // Apply advanced filters
-          console.log("Advanced search filters:", filters);
-          setShowAdvancedSearch(false);
-        }}
-      />
+      {showAdvancedSearch && (
+        <Dialog open={showAdvancedSearch} onOpenChange={setShowAdvancedSearch}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Advanced Search</DialogTitle>
+            </DialogHeader>
+            <AdvancedSearch
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              filters={{
+                priceRange: [0, 1000],
+                capacity: undefined,
+                location: selectedLocation,
+                amenities: [],
+                rating: undefined,
+                sortBy: 'name',
+                sortOrder: 'asc'
+              }}
+              onFiltersChange={(filters) => {
+                // Apply advanced filters
+                setSelectedLocation(filters.location || '');
+                console.log("Advanced search filters:", filters);
+              }}
+              locations={getUniqueLocations()}
+              amenities={[]}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Study Hall Detail Modal */}
       <StudyHallDetailModal
