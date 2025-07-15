@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
-
-// TODO: Replace with your actual Google Maps API key
-const GOOGLE_MAPS_API_KEY = 'YOUR_ACTUAL_GOOGLE_MAPS_API_KEY_HERE';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseGoogleMapsReturn {
   isLoaded: boolean;
@@ -18,8 +16,19 @@ export const useGoogleMaps = (): UseGoogleMapsReturn => {
   useEffect(() => {
     const loadGoogleMaps = async () => {
       try {
+        // Fetch the API key from Supabase edge function
+        const { data, error } = await supabase.functions.invoke('get-google-maps-key');
+
+        if (error) {
+          throw new Error(`Failed to fetch API key: ${error.message}`);
+        }
+
+        if (!data?.apiKey) {
+          throw new Error('Google Maps API key not found in secrets');
+        }
+
         const loader = new Loader({
-          apiKey: GOOGLE_MAPS_API_KEY,
+          apiKey: data.apiKey,
           version: 'weekly',
           libraries: ['places', 'geometry'],
         });
