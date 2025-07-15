@@ -111,7 +111,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin" | "inch
           return;
         }
       }
-      // Admin sees all bookings
+      // Admin and telemarketing_executive see all bookings
       console.log("Executing booking query...");
 
       const { data, error } = await query.order("created_at", { ascending: false });

@@ -105,7 +105,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
           return;
         }
       }
-      // Admin sees all transactions
+      // Admin and telemarketing_executive see all transactions
 
       const { data, error } = await query.order("created_at", { ascending: false });
       
