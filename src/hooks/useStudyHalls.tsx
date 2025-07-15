@@ -51,18 +51,7 @@ export const useStudyHalls = () => {
       setLoading(true);
       let query = supabase
         .from('study_halls')
-        .select(`
-          *,
-          incharges:incharges!merchant_id(
-            id,
-            full_name,
-            email,
-            mobile,
-            status,
-            permissions,
-            assigned_study_halls
-          )
-        `);
+        .select('*');
       
       // If user is a merchant, only fetch their study halls
       if (user) {
@@ -77,19 +66,29 @@ export const useStudyHalls = () => {
         }
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data: studyHallsData, error: studyHallsError } = await query.order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (studyHallsError) throw studyHallsError;
       
-      // Transform the data to ensure amenities is properly typed and filter incharges
-      const transformedData = (data || []).map(hall => {
-        // Filter incharges to only include those assigned to this specific study hall
-        const assignedIncharges = hall.incharges?.filter((incharge: any) => 
+      // Fetch incharges separately
+      const { data: inchargesData, error: inchargesError } = await supabase
+        .from('incharges')
+        .select('id, full_name, email, mobile, status, permissions, assigned_study_halls, merchant_id')
+        .eq('status', 'active');
+      
+      if (inchargesError) {
+        console.error('Error fetching incharges:', inchargesError);
+        // Continue without incharges data instead of failing completely
+      }
+      
+      // Transform the data to include relevant incharges for each study hall
+      const transformedData = (studyHallsData || []).map(hall => {
+        // Find incharges assigned to this specific study hall
+        const assignedIncharges = (inchargesData || []).filter(incharge => 
           incharge.assigned_study_halls && 
           Array.isArray(incharge.assigned_study_halls) &&
-          incharge.assigned_study_halls.includes(hall.id) &&
-          incharge.status === 'active'
-        ) || [];
+          incharge.assigned_study_halls.includes(hall.id)
+        );
 
         return {
           ...hall,
@@ -100,6 +99,7 @@ export const useStudyHalls = () => {
       
       setStudyHalls(transformedData);
     } catch (error: any) {
+      console.error('Error fetching study halls:', error);
       toast({
         title: "Error",
         description: "Failed to fetch study halls",
