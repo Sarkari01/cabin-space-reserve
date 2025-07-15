@@ -81,14 +81,34 @@ export const useStudyHalls = () => {
         // Continue without incharges data instead of failing completely
       }
       
+      // Debug logging
+      console.log('Study halls data:', studyHallsData);
+      console.log('Incharges data:', inchargesData);
+      
       // Transform the data to include relevant incharges for each study hall
       const transformedData = (studyHallsData || []).map(hall => {
+        console.log(`Processing study hall: ${hall.name} (ID: ${hall.id})`);
+        
         // Find incharges assigned to this specific study hall
-        const assignedIncharges = (inchargesData || []).filter(incharge => 
-          incharge.assigned_study_halls && 
-          Array.isArray(incharge.assigned_study_halls) &&
-          incharge.assigned_study_halls.includes(hall.id)
-        );
+        const assignedIncharges = (inchargesData || []).filter(incharge => {
+          console.log(`Checking incharge: ${incharge.full_name}`, {
+            assigned_study_halls: incharge.assigned_study_halls,
+            hall_id: hall.id,
+            type_check: typeof incharge.assigned_study_halls,
+            is_array: Array.isArray(incharge.assigned_study_halls)
+          });
+          
+          // Handle both string array and JSON array cases
+          if (incharge.assigned_study_halls && Array.isArray(incharge.assigned_study_halls)) {
+            const includes = (incharge.assigned_study_halls as string[]).includes(hall.id);
+            console.log(`Array includes check: ${includes}`);
+            return includes;
+          }
+          
+          return false;
+        });
+
+        console.log(`Found ${assignedIncharges.length} incharges for ${hall.name}:`, assignedIncharges);
 
         return {
           ...hall,
@@ -96,6 +116,8 @@ export const useStudyHalls = () => {
           incharges: assignedIncharges
         };
       }) as StudyHall[];
+      
+      console.log('Final transformed data:', transformedData);
       
       setStudyHalls(transformedData);
     } catch (error: any) {
