@@ -21,6 +21,14 @@ export interface StudyHall {
   status: string;
   created_at: string;
   updated_at: string;
+  incharges?: {
+    id: string;
+    full_name: string;
+    email: string;
+    mobile: string;
+    status: string;
+    permissions: any;
+  }[];
 }
 
 export interface Seat {
@@ -41,7 +49,20 @@ export const useStudyHalls = () => {
   const fetchStudyHalls = async () => {
     try {
       setLoading(true);
-      let query = supabase.from('study_halls').select('*');
+      let query = supabase
+        .from('study_halls')
+        .select(`
+          *,
+          incharges:incharges!merchant_id(
+            id,
+            full_name,
+            email,
+            mobile,
+            status,
+            permissions,
+            assigned_study_halls
+          )
+        `);
       
       // If user is a merchant, only fetch their study halls
       if (user) {
@@ -60,11 +81,22 @@ export const useStudyHalls = () => {
       
       if (error) throw error;
       
-      // Transform the data to ensure amenities is properly typed
-      const transformedData = (data || []).map(hall => ({
-        ...hall,
-        amenities: Array.isArray(hall.amenities) ? hall.amenities : []
-      })) as StudyHall[];
+      // Transform the data to ensure amenities is properly typed and filter incharges
+      const transformedData = (data || []).map(hall => {
+        // Filter incharges to only include those assigned to this specific study hall
+        const assignedIncharges = hall.incharges?.filter((incharge: any) => 
+          incharge.assigned_study_halls && 
+          Array.isArray(incharge.assigned_study_halls) &&
+          incharge.assigned_study_halls.includes(hall.id) &&
+          incharge.status === 'active'
+        ) || [];
+
+        return {
+          ...hall,
+          amenities: Array.isArray(hall.amenities) ? hall.amenities : [],
+          incharges: assignedIncharges
+        };
+      }) as StudyHall[];
       
       setStudyHalls(transformedData);
     } catch (error: any) {

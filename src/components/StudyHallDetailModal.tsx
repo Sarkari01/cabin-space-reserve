@@ -24,10 +24,14 @@ interface StudyHallData {
   status: string;
   amenities?: string[];
   created_at: string;
-  owner?: {
-    full_name?: string;
+  incharges?: {
+    id: string;
+    full_name: string;
     email: string;
-  };
+    mobile: string;
+    status: string;
+    permissions: any;
+  }[];
 }
 
 interface Seat {
@@ -257,22 +261,37 @@ export function StudyHallDetailModal({
             <TabsContent value="details" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Owner Information</CardTitle>
+                  <CardTitle className="text-lg">Incharge Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  {studyHall.owner ? (
-                    <>
-                      <div className="flex justify-between">
-                        <span>Name:</span>
-                        <span>{studyHall.owner.full_name || 'Not provided'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Email:</span>
-                        <span>{studyHall.owner.email}</span>
-                      </div>
-                    </>
+                <CardContent className="space-y-4">
+                  {studyHall.incharges && studyHall.incharges.length > 0 ? (
+                    <div className="space-y-4">
+                      {studyHall.incharges.map((incharge) => (
+                        <div key={incharge.id} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              <div className="font-medium">{incharge.full_name}</div>
+                              <div className="text-sm text-muted-foreground">{incharge.email}</div>
+                              <div className="text-sm text-muted-foreground">{incharge.mobile}</div>
+                            </div>
+                            <Badge variant={incharge.status === 'active' ? 'default' : 'secondary'}>
+                              {incharge.status}
+                            </Badge>
+                          </div>
+                          {incharge.permissions && (
+                            <div className="text-xs text-muted-foreground">
+                              <span>Permissions: </span>
+                              {Object.entries(incharge.permissions)
+                                .filter(([_, value]) => value === true)
+                                .map(([key, _]) => key.replace('_', ' '))
+                                .join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <p className="text-muted-foreground">Owner information not available</p>
+                    <p className="text-muted-foreground">No incharges assigned to this study hall</p>
                   )}
                 </CardContent>
               </Card>
