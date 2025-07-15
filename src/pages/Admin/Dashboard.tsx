@@ -32,6 +32,12 @@ import UserProfileSettings from "@/components/UserProfileSettings";
 import { SubscriptionPlansTab } from "@/components/admin/SubscriptionPlansTab";
 import { MerchantSubscriptionManagementTab } from "@/components/admin/MerchantSubscriptionManagementTab";
 import EKQRRecoveryTab from "@/components/admin/EKQRRecoveryTab";
+import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/components/ResponsiveTable";
+import { LoadingSpinner, LoadingOverlay } from "@/components/ui/loading";
+import { RealTimeManager } from "@/components/RealTimeManager";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { EnhancedAnalytics } from "@/components/EnhancedAnalytics";
 
 
 const AdminDashboard = () => {
@@ -259,6 +265,14 @@ const AdminDashboard = () => {
 
   return (
     <>
+      {/* Real-time Manager */}
+      <RealTimeManager
+        onBookingChange={fetchBookings}
+        onSeatChange={fetchBookings}
+        onTransactionChange={refreshAnalytics}
+        onStudyHallChange={refreshAnalytics}
+      />
+
       <UserModal
         open={userModalOpen}
         onOpenChange={(open) => {
@@ -277,58 +291,51 @@ const AdminDashboard = () => {
         onTabChange={setActiveTab}
         activeTab={activeTab}
       >
-        <div className="p-6">
+        <LoadingOverlay loading={loading}>
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-6">
-              {/* Welcome Section */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h2>
-                    <p className="text-muted-foreground">Monitor and manage the entire platform</p>
+              {/* Page Header */}
+              <PageHeader
+                title="Admin Dashboard"
+                description="Monitor and manage the entire platform"
+                breadcrumbs={[
+                  { label: "Dashboard", active: true }
+                ]}
+                actions={<RealTimeIndicator lastUpdate={lastUpdate} />}
+              />
+
+              {/* Notification Center */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {displayStats.map((stat, index) => (
+                      <StatCard 
+                        key={index}
+                        title={stat.title}
+                        value={stat.value.toString()}
+                        icon={stat.icon}
+                        trend={stat.trend}
+                        loading={analyticsLoading}
+                      />
+                    ))}
                   </div>
-                  <RealTimeIndicator lastUpdate={lastUpdate} />
+                </div>
+                
+                <div className="lg:col-span-1">
+                  <NotificationCenter />
                 </div>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {displayStats.map((stat, index) => (
-                  <StatCard 
-                    key={index}
-                    title={stat.title}
-                    value={stat.value.toString()}
-                    icon={stat.icon}
-                    trend={stat.trend}
-                    loading={analyticsLoading}
-                  />
-                ))}
-              </div>
-
-              {/* Analytics Charts */}
-              <div className="grid lg:grid-cols-2 gap-6 mb-8">
-                <AnalyticsChart
-                  title="Revenue Trend"
-                  description="Daily revenue over the last 30 days"
-                  data={analytics.bookingsTrend}
-                  type="line"
-                  dataKey="revenue"
-                  trend={analytics.revenueGrowth}
-                  value={`₹${analytics.totalRevenue.toLocaleString()}`}
-                  onRefresh={refreshAnalytics}
-                  loading={analyticsLoading}
-                />
-                <AnalyticsChart
-                  title="Booking Trends"
-                  description="Daily bookings over the last 30 days"
-                  data={analytics.bookingsTrend}
-                  type="bar"
-                  dataKey="bookings"
-                  onRefresh={refreshAnalytics}
-                  loading={analyticsLoading}
-                />
-              </div>
+              {/* Enhanced Analytics */}
+              <EnhancedAnalytics
+                data={[]}
+                title="Platform Analytics"
+                description="Comprehensive analytics and reporting"
+                loading={analyticsLoading}
+                onRefresh={refreshAnalytics}
+              />
 
               {/* User Growth Chart */}
               {analytics.userGrowth && (
@@ -405,166 +412,174 @@ const AdminDashboard = () => {
           {/* Users Tab */}
           {activeTab === "users" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-semibold">User Management</h3>
-                <Button onClick={() => setUserModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add User
-                </Button>
-              </div>
+              <PageHeader
+                title="User Management"
+                description="Manage all platform users"
+                breadcrumbs={[
+                  { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
+                  { label: "User Management", active: true }
+                ]}
+                actions={
+                  <Button onClick={() => setUserModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add User
+                  </Button>
+                }
+              />
 
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users by name or email..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-
-              {/* Users Table */}
-              <div className="space-y-4">
-                {filteredUsers.map((userData) => (
-                  <Card key={userData.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-semibold">{userData.full_name || 'Anonymous'}</h4>
-                            <Badge variant="default">
-                              {userData.role}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{userData.email}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Joined: {new Date(userData.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleEditUser(userData)}>
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Ban className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this user? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDeleteUser(userData.id)}
-                                  className="bg-destructive text-destructive-foreground"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+              {/* Enhanced Users Table */}
+              <ResponsiveTable
+                data={filteredUsers}
+                columns={[
+                  {
+                    key: 'full_name',
+                    title: 'Name',
+                    render: (value, user) => (
+                      <div>
+                        <p className="font-medium">{value || 'Anonymous'}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    )
+                  },
+                  {
+                    key: 'role',
+                    title: 'Role',
+                    render: (value) => <Badge variant="default">{value}</Badge>
+                  },
+                  {
+                    key: 'created_at',
+                    title: 'Joined',
+                    mobileHidden: true,
+                    render: (value) => new Date(value).toLocaleDateString()
+                  }
+                ]}
+                searchPlaceholder="Search users by name or email..."
+                onRowClick={(user) => handleEditUser(user)}
+                actions={(user) => (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Ban className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the user account.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
+                loading={loading}
+                emptyMessage="No users found"
+              />
             </div>
           )}
 
           {/* Merchants Tab */}
           {activeTab === "merchants" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-semibold">Merchant Management</h3>
-                <Button onClick={() => setUserModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Merchant
-                </Button>
-              </div>
+              <PageHeader
+                title="Merchant Management"
+                description="Manage all merchant accounts"
+                breadcrumbs={[
+                  { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
+                  { label: "Merchant Management", active: true }
+                ]}
+                actions={
+                  <Button onClick={() => setUserModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Merchant
+                  </Button>
+                }
+              />
 
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search merchants by name or email..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-4">
-                {filteredMerchants.map((merchant) => (
-                  <Card key={merchant.id}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-semibold">{merchant.full_name || 'Anonymous'}</h4>
-                            <Badge variant="default">
-                              {merchant.role}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{merchant.email}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Study Halls: {studyHalls.filter(sh => sh.merchant_id === merchant.id).length} • 
-                            Joined: {new Date(merchant.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                         <div className="flex space-x-2">
-                           <Button variant="outline" size="sm" onClick={() => handleViewMerchant(merchant)}>
-                             <Eye className="h-4 w-4 mr-1" />
-                             View
-                           </Button>
-                           <Button variant="outline" size="sm" onClick={() => handleEditMerchant(merchant)}>
-                             <Edit className="h-4 w-4 mr-1" />
-                             Edit
-                           </Button>
-                           <AlertDialog>
-                             <AlertDialogTrigger asChild>
-                               <Button variant="outline" size="sm">
-                                 <Ban className="h-4 w-4 mr-1" />
-                                 Delete
-                               </Button>
-                             </AlertDialogTrigger>
-                             <AlertDialogContent>
-                               <AlertDialogHeader>
-                                 <AlertDialogTitle>Delete Merchant</AlertDialogTitle>
-                                 <AlertDialogDescription>
-                                   Are you sure you want to delete this merchant? This will also delete all their study halls.
-                                 </AlertDialogDescription>
-                               </AlertDialogHeader>
-                               <AlertDialogFooter>
-                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDeleteUser(merchant.id)}
-                                  className="bg-destructive text-destructive-foreground"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+              {/* Enhanced Merchants Table */}
+              <ResponsiveTable
+                data={filteredMerchants}
+                columns={[
+                  {
+                    key: 'full_name',
+                    title: 'Name',
+                    render: (value, merchant) => (
+                      <div>
+                        <p className="font-medium">{value || 'Anonymous'}</p>
+                        <p className="text-sm text-muted-foreground">{merchant.email}</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    )
+                  },
+                  {
+                    key: 'role',
+                    title: 'Role',
+                    render: (value) => <Badge variant="default">{value}</Badge>
+                  },
+                  {
+                    key: 'created_at',
+                    title: 'Joined',
+                    mobileHidden: true,
+                    render: (value) => new Date(value).toLocaleDateString()
+                  },
+                  {
+                    key: 'study_halls_count',
+                    title: 'Study Halls',
+                    mobileHidden: true,
+                    render: (_, merchant) => studyHalls.filter(sh => sh.merchant_id === merchant.id).length
+                  }
+                ]}
+                searchPlaceholder="Search merchants by name or email..."
+                onRowClick={(merchant) => handleViewMerchant(merchant)}
+                actions={(merchant) => (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleViewMerchant(merchant)}>
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleEditMerchant(merchant)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Ban className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the merchant account and all their study halls.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteMerchant(merchant.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
+                loading={loading}
+                emptyMessage="No merchants found"
+              />
             </div>
           )}
 
@@ -838,7 +853,7 @@ const AdminDashboard = () => {
               </div>
             </div>
           )}
-        </div>
+        </LoadingOverlay>
       </DashboardSidebar>
 
       <BookingDetailModal

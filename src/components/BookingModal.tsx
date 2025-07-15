@@ -284,7 +284,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         {showPayment && bookingIntent ? (
           <>
             <DialogHeader>
@@ -355,14 +355,14 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                   ).map(([rowName, rowSeats]) => (
                     <div key={rowName} className="space-y-2">
                       <h4 className="text-sm font-medium text-muted-foreground">Row {rowName}</h4>
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                        {(rowSeats as Seat[]).sort((a, b) => a.seat_number - b.seat_number).map((seat) => (
+                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                         {(rowSeats as Seat[]).sort((a, b) => a.seat_number - b.seat_number).map((seat) => (
                           <button
                             key={seat.id}
                             type="button"
                             onClick={() => setSelectedSeat(seat.id)}
-                            className={`
-                              w-10 h-10 sm:w-8 sm:h-8 rounded text-xs font-medium border-2 transition-all touch-manipulation
+                             className={`
+                               w-12 h-12 sm:w-10 sm:h-10 rounded text-xs font-medium border-2 transition-all touch-manipulation
                               ${selectedSeat === seat.id
                                 ? 'border-primary bg-primary text-primary-foreground'
                                 : (seat.is_available && availabilityMap[seat.id] !== false)
@@ -486,7 +486,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </CardContent>
           </Card>
 
-          <div className="flex flex-col sm:flex-row gap-2">
+           <div className="flex flex-col gap-3 sm:flex-row sm:gap-2">
             <Button 
               type="button" 
               variant="outline" 
