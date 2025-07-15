@@ -19,6 +19,12 @@ interface PaymentProcessorProps {
     start_date: string;
     end_date: string;
     total_amount: number;
+    original_amount?: number;
+    coupon_code?: string;
+    coupon_discount?: number;
+    reward_points_used?: number;
+    reward_discount?: number;
+    total_discount?: number;
   };
   onPaymentSuccess: (booking?: any) => void;
   onCancel: () => void;

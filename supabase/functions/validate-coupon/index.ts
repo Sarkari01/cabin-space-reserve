@@ -10,6 +10,8 @@ interface ValidateCouponRequest {
   coupon_code: string;
   booking_amount: number;
   study_hall_id?: string;
+  apply_usage?: boolean;
+  booking_id?: string;
 }
 
 interface CouponValidationResponse {
@@ -51,8 +53,8 @@ serve(async (req) => {
     if (!user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { coupon_code, booking_amount, study_hall_id }: ValidateCouponRequest = await req.json();
-    logStep("Request data", { coupon_code, booking_amount, study_hall_id });
+    const { coupon_code, booking_amount, study_hall_id, apply_usage, booking_id }: ValidateCouponRequest = await req.json();
+    logStep("Request data", { coupon_code, booking_amount, study_hall_id, apply_usage, booking_id });
 
     // Fetch coupon details
     const { data: coupon, error: couponError } = await supabaseClient
@@ -161,6 +163,42 @@ serve(async (req) => {
     }
 
     logStep("Coupon validation successful", { discount_amount });
+
+    // If apply_usage is true, record the coupon usage
+    if (apply_usage) {
+      logStep("Recording coupon usage");
+      
+      // Insert coupon usage record
+      const { error: usageError } = await supabaseClient
+        .from("coupon_usage")
+        .insert({
+          coupon_id: coupon.id,
+          user_id: user.id,
+          booking_id: booking_id || null,
+          discount_amount
+        });
+
+      if (usageError) {
+        logStep("Error recording coupon usage", { error: usageError });
+        throw new Error(`Failed to record coupon usage: ${usageError.message}`);
+      }
+
+      // Update coupon usage count
+      const { error: updateError } = await supabaseClient
+        .from("coupons")
+        .update({ 
+          usage_count: coupon.usage_count + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", coupon.id);
+
+      if (updateError) {
+        logStep("Error updating coupon usage count", { error: updateError });
+        throw new Error(`Failed to update coupon usage count: ${updateError.message}`);
+      }
+
+      logStep("Coupon usage recorded successfully");
+    }
 
     const response: CouponValidationResponse = {
       valid: true,

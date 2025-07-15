@@ -11,6 +11,8 @@ import { useBookingAvailability } from "@/hooks/useBookingAvailability";
 import { PaymentProcessor } from "./PaymentProcessor";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { CouponInput } from "./CouponInput";
+import { RewardsInput } from "./RewardsInput";
 
 interface StudyHall {
   id: string;
@@ -61,6 +63,18 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
       baseWeekly: number;
       baseMonthly: number;
     };
+  } | null>(null);
+  
+  // Coupon and Rewards state
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount: number;
+    title?: string;
+  } | null>(null);
+  
+  const [appliedRewards, setAppliedRewards] = useState<{
+    pointsUsed: number;
+    discount: number;
   } | null>(null);
 
   const { toast } = useToast();
@@ -159,6 +173,8 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
       setAvailabilityMap({});
       setAvailabilityError("");
       setCalculatedAmount(null);
+      setAppliedCoupon(null);
+      setAppliedRewards(null);
       
       // Set default dates
       const today = new Date();
@@ -186,6 +202,14 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
   const getCurrentAmount = () => {
     return calculatedAmount?.amount || 0;
+  };
+
+  const getTotalDiscount = () => {
+    return (appliedCoupon?.discount || 0) + (appliedRewards?.discount || 0);
+  };
+
+  const getFinalAmount = () => {
+    return Math.max(0, getCurrentAmount() - getTotalDiscount());
   };
 
   const getMerchantPriceForPeriod = () => {
@@ -230,7 +254,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
         return;
       }
 
-      // Create booking intent with calculated amount
+      // Create booking intent with calculated amount and discounts
       const intent = {
         study_hall_id: studyHall.id,
         seat_id: selectedSeat,
@@ -238,7 +262,13 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                        calculatedAmount?.method === 'weekly' ? 'weekly' : 'monthly',
         start_date: startDate,
         end_date: endDate,
-        total_amount: getCurrentAmount(),
+        total_amount: getFinalAmount(),
+        original_amount: getCurrentAmount(),
+        coupon_code: appliedCoupon?.code,
+        coupon_discount: appliedCoupon?.discount || 0,
+        reward_points_used: appliedRewards?.pointsUsed || 0,
+        reward_discount: appliedRewards?.discount || 0,
+        total_discount: getTotalDiscount(),
       };
 
       setBookingIntent(intent);
@@ -453,33 +483,75 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </div>
           </div>
 
+          {/* Coupon Input */}
+          {calculatedAmount && (
+            <CouponInput
+              bookingAmount={getCurrentAmount()}
+              onCouponApplied={(discount, code) => {
+                setAppliedCoupon({ code, discount });
+              }}
+              onCouponRemoved={() => setAppliedCoupon(null)}
+              appliedCoupon={appliedCoupon}
+            />
+          )}
+
+          {/* Rewards Input */}
+          {calculatedAmount && (
+            <RewardsInput
+              bookingAmount={getCurrentAmount()}
+              onRewardsApplied={(discount, pointsUsed) => {
+                setAppliedRewards({ pointsUsed, discount });
+              }}
+              onRewardsRemoved={() => setAppliedRewards(null)}
+              appliedRewards={appliedRewards}
+            />
+          )}
+
+          {/* Price Summary */}
           <Card>
             <CardContent className="p-4">
               <div className="space-y-2">
                 {calculatedAmount && (
                   <>
-                     <div className="flex justify-between items-center text-sm">
-                       <span>Original Price:</span>
-                       <span>₹{getMerchantPriceForPeriod()?.toLocaleString()}</span>
-                     </div>
-                     <div className="flex justify-between items-center text-sm text-green-600">
-                       <span>Discount Applied:</span>
-                       <span>-₹{(getMerchantPriceForPeriod() - (calculatedAmount.finalAmount || getCurrentAmount())).toLocaleString()}</span>
-                     </div>
-                     <div className="border-t pt-2 flex justify-between items-center">
-                       <span className="font-medium">Total Amount:</span>
-                       <span className="text-lg font-bold">₹{(calculatedAmount.finalAmount || getCurrentAmount()).toLocaleString()}</span>
-                     </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Base Price:</span>
+                      <span>₹{getCurrentAmount().toLocaleString()}</span>
+                    </div>
+                    
+                    {appliedCoupon && (
+                      <div className="flex justify-between items-center text-sm text-green-600">
+                        <span>Coupon ({appliedCoupon.code}):</span>
+                        <span>-₹{appliedCoupon.discount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    
+                    {appliedRewards && (
+                      <div className="flex justify-between items-center text-sm text-blue-600">
+                        <span>Rewards ({appliedRewards.pointsUsed} points):</span>
+                        <span>-₹{appliedRewards.discount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    
+                    {getTotalDiscount() > 0 && (
+                      <div className="flex justify-between items-center text-sm text-green-600 font-medium">
+                        <span>Total Savings:</span>
+                        <span>-₹{getTotalDiscount().toLocaleString()}</span>
+                      </div>
+                    )}
+                    
+                    <div className="border-t pt-2 flex justify-between items-center">
+                      <span className="font-medium">Final Amount:</span>
+                      <span className="text-lg font-bold">₹{getFinalAmount().toLocaleString()}</span>
+                    </div>
+                    
                     <div className="text-sm text-muted-foreground">
-                      {calculatedAmount.days} day{calculatedAmount.days !== 1 ? 's' : ''} • 
-                      Calculated using {calculatedAmount.method} pricing
+                      {calculatedAmount.days} day{calculatedAmount.days !== 1 ? 's' : ''} • {calculatedAmount.method} pricing
                     </div>
                   </>
                 )}
                 {!calculatedAmount && (
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">Total Amount:</span>
-                    <span className="text-lg font-bold">₹{getCurrentAmount().toLocaleString()}</span>
+                  <div className="text-center py-4 text-muted-foreground">
+                    Select dates to see pricing
                   </div>
                 )}
               </div>

@@ -9,6 +9,12 @@ interface BookingIntent {
   start_date: string;
   end_date: string;
   total_amount: number;
+  original_amount?: number;
+  coupon_code?: string;
+  coupon_discount?: number;
+  reward_points_used?: number;
+  reward_discount?: number;
+  total_discount?: number;
 }
 
 export const createBookingFromIntent = async (
@@ -107,6 +113,66 @@ export const createBookingFromIntent = async (
 
     console.log('Payment amount validated successfully');
 
+    // Process coupon if provided
+    if (bookingIntent.coupon_code && bookingIntent.coupon_discount) {
+      console.log('Processing coupon:', bookingIntent.coupon_code);
+      try {
+        // Validate coupon one more time and record usage
+        const { data: couponData, error: couponError } = await supabase.functions.invoke('validate-coupon', {
+          body: {
+            coupon_code: bookingIntent.coupon_code,
+            booking_amount: bookingIntent.original_amount || bookingIntent.total_amount,
+            study_hall_id: bookingIntent.study_hall_id,
+            apply_usage: true // This will record the usage
+          }
+        });
+
+        if (couponError) {
+          console.error('Coupon validation failed during booking:', couponError);
+          throw new Error(`Coupon validation failed: ${couponError.message}`);
+        }
+
+        if (!couponData?.valid) {
+          console.error('Coupon is no longer valid during booking');
+          throw new Error('Coupon is no longer valid');
+        }
+
+        console.log('Coupon processed successfully');
+      } catch (error) {
+        console.error('Error processing coupon:', error);
+        throw new Error(`Failed to process coupon: ${error.message}`);
+      }
+    }
+
+    // Process reward redemption if provided
+    if (bookingIntent.reward_points_used && bookingIntent.reward_discount) {
+      console.log('Processing reward redemption:', bookingIntent.reward_points_used, 'points');
+      try {
+        const { data: rewardData, error: rewardError } = await supabase.functions.invoke('redeem-rewards', {
+          body: {
+            points_to_redeem: bookingIntent.reward_points_used,
+            booking_amount: bookingIntent.original_amount || bookingIntent.total_amount,
+            validate_only: false // This will actually redeem the points
+          }
+        });
+
+        if (rewardError) {
+          console.error('Reward redemption failed during booking:', rewardError);
+          throw new Error(`Reward redemption failed: ${rewardError.message}`);
+        }
+
+        if (!rewardData?.success) {
+          console.error('Reward redemption failed:', rewardData?.error);
+          throw new Error(`Reward redemption failed: ${rewardData?.error}`);
+        }
+
+        console.log('Reward redemption processed successfully');
+      } catch (error) {
+        console.error('Error processing reward redemption:', error);
+        throw new Error(`Failed to process reward redemption: ${error.message}`);
+      }
+    }
+
     // Create booking
     console.log('Inserting booking into database with status:', bookingStatus, 'payment:', paymentStatus);
     const { data: booking, error: bookingError } = await supabase
@@ -146,12 +212,30 @@ export const createBookingFromIntent = async (
       console.log('Seat marked as unavailable successfully');
     }
 
-    // Update transaction with booking_id if provided
+    // Update transaction with booking_id and discount details if provided
     if (transactionId) {
       console.log('Linking transaction to booking...');
+      const transactionUpdateData: any = { 
+        booking_id: booking.id,
+        payment_data: {
+          bookingIntent: bookingIntent,
+          coupon_applied: bookingIntent.coupon_code ? {
+            code: bookingIntent.coupon_code,
+            discount: bookingIntent.coupon_discount
+          } : null,
+          rewards_redeemed: bookingIntent.reward_points_used ? {
+            points_used: bookingIntent.reward_points_used,
+            discount: bookingIntent.reward_discount
+          } : null,
+          total_discount: bookingIntent.total_discount || 0,
+          original_amount: bookingIntent.original_amount || bookingIntent.total_amount,
+          final_amount: bookingIntent.total_amount
+        }
+      };
+
       const { error: transactionError } = await supabase
         .from('transactions')
-        .update({ booking_id: booking.id })
+        .update(transactionUpdateData)
         .eq('id', transactionId);
 
       if (transactionError) {

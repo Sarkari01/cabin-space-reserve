@@ -9,6 +9,8 @@ const corsHeaders = {
 interface RedeemRewardsRequest {
   points_to_redeem: number;
   booking_id?: string;
+  booking_amount?: number;
+  validate_only?: boolean;
 }
 
 const logStep = (step: string, details?: any) => {
@@ -43,8 +45,8 @@ serve(async (req) => {
     if (!user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { points_to_redeem, booking_id }: RedeemRewardsRequest = await req.json();
-    logStep("Request data", { points_to_redeem, booking_id });
+    const { points_to_redeem, booking_id, booking_amount, validate_only }: RedeemRewardsRequest = await req.json();
+    logStep("Request data", { points_to_redeem, booking_id, booking_amount, validate_only });
 
     // Validate points amount
     if (!points_to_redeem || points_to_redeem <= 0) {
@@ -92,8 +94,22 @@ serve(async (req) => {
       );
     }
 
-    // Calculate discount amount (50 points = ₹1)
-    const discount_amount = points_to_redeem / 50;
+    // Calculate discount amount (10 points = ₹1)
+    const discount_amount = points_to_redeem * 0.10;
+
+    // If validate_only is true, just return the validation result
+    if (validate_only) {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        points_to_redeem,
+        discount_amount,
+        remaining_points: userRewards.available_points - points_to_redeem,
+        message: `${points_to_redeem} points can be redeemed for ₹${discount_amount} discount`
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     // Process the redemption
     await supabaseClient.rpc('update_user_rewards', {
