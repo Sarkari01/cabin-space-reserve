@@ -128,113 +128,137 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-lg lg:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{user ? 'Edit User' : 'Add New User'}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              required
-            />
-          </div>
-
-          {!isEdit && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => handleChange('password', e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="full_name">Full Name</Label>
-            <Input
-              id="full_name"
-              value={formData.full_name}
-              onChange={(e) => handleChange('full_name', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select value={formData.role} onValueChange={(value) => handleChange('role', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="student">Student</SelectItem>
-                <SelectItem value="merchant">Merchant</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="telemarketing_executive">Telemarketing Executive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone (Optional)</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => handleChange('phone', e.target.value)}
-            />
-          </div>
-
-          {/* Show additional fields for telemarketing executives */}
-          {formData.role === 'telemarketing_executive' && (
-            <>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Basic Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="department">Department (Optional)</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) => handleChange('department', e.target.value)}
-                  placeholder="e.g., Sales, Operations, Finance"
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {!isEdit && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => handleChange('password', e.target.value)}
+                    required
+                    minLength={6}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  value={formData.full_name}
+                  onChange={(e) => handleChange('full_name', e.target.value)}
+                  required
+                  className="w-full"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="employee_id">Employee ID (Optional)</Label>
+                <Label htmlFor="phone">Phone (Optional)</Label>
                 <Input
-                  id="employee_id"
-                  value={formData.employee_id}
-                  onChange={(e) => handleChange('employee_id', e.target.value)}
-                  placeholder="e.g., EMP001"
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  className="w-full"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={formData.role} onValueChange={(value) => handleChange('role', value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="merchant">Merchant</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="telemarketing_executive">Telemarketing Executive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Telemarketing Executive Specific Fields */}
+          {formData.role === 'telemarketing_executive' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Employee Details</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department (Optional)</Label>
+                  <Input
+                    id="department"
+                    value={formData.department}
+                    onChange={(e) => handleChange('department', e.target.value)}
+                    placeholder="e.g., Sales, Operations, Finance"
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="employee_id">Employee ID (Optional)</Label>
+                  <Input
+                    id="employee_id"
+                    value={formData.employee_id}
+                    onChange={(e) => handleChange('employee_id', e.target.value)}
+                    placeholder="e.g., EMP001"
+                    className="w-full"
+                  />
+                </div>
               </div>
 
               {/* Functional Areas Permissions */}
-              <div className="space-y-3">
-                <Label>Functional Areas (Select capabilities for this telemarketing executive)</Label>
-                <div className="space-y-3">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Functional Areas</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Select capabilities for this telemarketing executive</p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {functionalAreas.map((area) => (
-                    <div key={area.key} className="flex items-start space-x-3">
+                    <div key={area.key} className="flex items-start space-x-3 p-3 border rounded-lg">
                       <Checkbox
                         id={area.key}
                         checked={formData.permissions[area.key as keyof typeof formData.permissions]}
                         onCheckedChange={(checked) => handlePermissionChange(area.key, !!checked)}
+                        className="mt-0.5"
                       />
-                      <div className="grid gap-1.5 leading-none">
+                      <div className="flex-1 space-y-1">
                         <Label
                           htmlFor={area.key}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          className="text-sm font-medium leading-none cursor-pointer"
                         >
                           {area.label}
                         </Label>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           {area.description}
                         </p>
                       </div>
@@ -242,14 +266,14 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           )}
 
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
               {loading ? 'Saving...' : user ? 'Update' : 'Create'}
             </Button>
           </div>

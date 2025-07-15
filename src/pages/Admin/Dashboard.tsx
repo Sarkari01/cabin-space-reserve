@@ -366,11 +366,11 @@ const AdminDashboard = () => {
                 actions={<RealTimeIndicator lastUpdate={lastUpdate} />}
               />
 
-              {/* Notification Center */}
-              <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
+              {/* Dashboard Layout */}
+              <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                <div className="xl:col-span-3 space-y-6">
                   {/* Stats Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                     {displayStats.map((stat, index) => (
                       <StatCard 
                         key={index}
@@ -384,7 +384,7 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 
-                <div className="lg:col-span-1">
+                <div className="xl:col-span-1">
                   <NotificationCenter />
                 </div>
               </div>
@@ -414,7 +414,7 @@ const AdminDashboard = () => {
               )}
 
               {/* Recent Activity */}
-              <div className="grid lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>Recent Users</CardTitle>

@@ -48,7 +48,7 @@ export function WithdrawalRequestModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <IndianRupee className="h-5 w-5" />

@@ -90,9 +90,9 @@ export function ResponsiveTable<T extends Record<string, any>>({
           placeholder={searchPlaceholder}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full sm:max-w-sm px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground text-center sm:text-right">
           Showing {paginatedData.length} of {filteredData.length} items
         </div>
       </div>
@@ -193,11 +193,11 @@ export function ResponsiveTable<T extends Record<string, any>>({
                   {columns
                     .filter(column => !column.mobileHidden)
                     .map((column) => (
-                      <div key={String(column.key)} className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-muted-foreground">
+                      <div key={String(column.key)} className="flex justify-between items-start gap-3">
+                        <span className="text-sm font-medium text-muted-foreground min-w-0 flex-shrink-0">
                           {column.title}:
                         </span>
-                        <span className="text-sm ml-2 text-right flex-1">
+                        <span className="text-sm text-right flex-1 min-w-0">
                           {column.render 
                             ? column.render(item[column.key as keyof T], item)
                             : String(item[column.key as keyof T] || "")
@@ -219,18 +219,20 @@ export function ResponsiveTable<T extends Record<string, any>>({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
+            className="w-full sm:w-auto"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
+            <span className="hidden sm:inline">Previous</span>
+            <span className="sm:hidden">Prev</span>
           </Button>
           
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground order-first sm:order-none">
             Page {currentPage} of {totalPages}
           </span>
           
@@ -239,8 +241,10 @@ export function ResponsiveTable<T extends Record<string, any>>({
             size="sm"
             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
+            className="w-full sm:w-auto"
           >
-            Next
+            <span className="hidden sm:inline">Next</span>
+            <span className="sm:hidden">Next</span>
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>

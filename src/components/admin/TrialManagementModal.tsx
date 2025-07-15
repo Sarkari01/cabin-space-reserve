@@ -129,7 +129,7 @@ export const TrialManagementModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Assign Trial Period</DialogTitle>
           <DialogDescription>

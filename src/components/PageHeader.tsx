@@ -65,19 +65,19 @@ export function PageHeader({
   className 
 }: PageHeaderProps) {
   return (
-    <div className={`space-y-4 pb-4 border-b ${className}`}>
+    <div className={`space-y-3 sm:space-y-4 pb-3 sm:pb-4 border-b ${className}`}>
       {breadcrumbs && <BreadcrumbNavigation items={breadcrumbs} />}
       
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+        <div className="space-y-1 min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">{title}</h1>
           {description && (
-            <p className="text-muted-foreground">{description}</p>
+            <p className="text-sm sm:text-base text-muted-foreground">{description}</p>
           )}
         </div>
         
         {actions && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
             {actions}
           </div>
         )}

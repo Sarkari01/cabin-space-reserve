@@ -141,7 +141,7 @@ export function NewsModal({ news, isEdit = false, trigger, onClose }: NewsModalP
       <DialogTrigger asChild>
         {trigger || <Button>{isEdit ? "Edit News" : "Create News"}</Button>}
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit News Post" : "Create News Post"}</DialogTitle>
         </DialogHeader>

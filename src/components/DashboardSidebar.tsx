@@ -259,15 +259,15 @@ export function DashboardSidebar({ userRole, userName, children, onTabChange, ac
         <AppSidebar userRole={userRole} userName={userName} onTabChange={onTabChange} activeTab={activeTab} />
         <main className="flex-1 flex flex-col min-w-0">
           {/* Header with trigger */}
-          <header className="h-14 border-b bg-background flex items-center px-2 sm:px-4 sticky top-0 z-40">
-            <SidebarTrigger className="md:hidden" />
-            <div className="ml-2 sm:ml-4 flex-1 min-w-0">
-              <h1 className="text-lg font-semibold capitalize truncate">{userRole} Dashboard</h1>
+          <header className="h-12 sm:h-14 border-b bg-background flex items-center px-3 sm:px-4 lg:px-6 sticky top-0 z-40">
+            <SidebarTrigger className="lg:hidden mr-2" />
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold capitalize truncate">{userRole} Dashboard</h1>
             </div>
           </header>
           
           {/* Main content */}
-          <div className="flex-1 overflow-auto p-2 sm:p-4 lg:p-6">
+          <div className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
             {children}
           </div>
         </main>

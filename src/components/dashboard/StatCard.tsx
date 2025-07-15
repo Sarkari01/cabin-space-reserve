@@ -60,20 +60,22 @@ export const StatCard = ({
 
   return (
     <Card className={`hover:shadow-md transition-shadow ${className}`}>
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground font-medium">{title}</p>
-            <p className="text-2xl font-bold tracking-tight">{value}</p>
+          <div className="space-y-2 min-w-0 flex-1">
+            <p className="text-sm text-muted-foreground font-medium truncate">{title}</p>
+            <p className="text-xl sm:text-2xl font-bold tracking-tight">{value}</p>
             {trend && (
               <Badge variant={getTrendColor()} className="text-xs font-medium">
                 {TrendIcon && <TrendIcon className="h-3 w-3 mr-1" />}
-                {Math.abs(trend.value)}% {trend.label}
+                <span className="hidden sm:inline">{Math.abs(trend.value)}%</span>
+                <span className="sm:hidden">{Math.abs(trend.value)}%</span>
+                <span className="hidden sm:inline ml-1">{trend.label}</span>
               </Badge>
             )}
           </div>
-          <div className="p-3 bg-primary/10 rounded-xl">
-            <Icon className="h-6 w-6 text-primary" />
+          <div className="p-2 sm:p-3 bg-primary/10 rounded-xl ml-3 flex-shrink-0">
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
         </div>
       </CardContent>
