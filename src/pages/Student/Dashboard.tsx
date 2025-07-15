@@ -22,9 +22,10 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 import { BookingLifecycleManager } from "@/components/BookingLifecycleManager";
 import UserProfileSettings from "@/components/UserProfileSettings";
+import { SeatSynchronizer } from "@/components/SeatSynchronizer";
 const StudentDashboard = () => {
   const { user } = useAuth();
-  const { studyHalls, loading: studyHallsLoading } = useStudyHalls();
+  const { studyHalls, loading: studyHallsLoading, fetchStudyHalls } = useStudyHalls();
   const { bookings, loading: bookingsLoading, cancelBooking } = useBookings();
   const { favorites, addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
@@ -126,6 +127,13 @@ const StudentDashboard = () => {
   return (
     <>
       <BookingLifecycleManager />
+      <SeatSynchronizer onSeatUpdate={() => {
+        // Refresh study halls and seats when seat updates occur
+        fetchStudyHalls();
+        if (selectedStudyHall) {
+          fetchSeats(selectedStudyHall.id);
+        }
+      }} />
       <DashboardSidebar 
         userRole="student" 
         userName={user.email || "Student"}

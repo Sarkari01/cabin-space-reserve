@@ -29,12 +29,13 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 import { BookingLifecycleManager } from "@/components/BookingLifecycleManager";
 import UserProfileSettings from "@/components/UserProfileSettings";
+import { SeatSynchronizer } from "@/components/SeatSynchronizer";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall, toggleStudyHallStatus } = useStudyHalls();
+  const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall, toggleStudyHallStatus, fetchStudyHalls } = useStudyHalls();
   const { bookings, loading: bookingsLoading, updateBookingStatus, updateBooking, refreshBookings } = useBookings(userRole === "admin" ? "admin" : "merchant");
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   
@@ -258,6 +259,10 @@ const MerchantDashboard = () => {
   return (
     <>
       <BookingLifecycleManager />
+      <SeatSynchronizer onSeatUpdate={() => {
+        // Refresh study halls when seat updates occur
+        fetchStudyHalls();
+      }} />
       <DashboardSidebar 
         userRole="merchant" 
         userName={user?.email || 'Merchant'}
