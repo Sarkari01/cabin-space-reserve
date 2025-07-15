@@ -27,6 +27,13 @@ import {
   Headphones,
   Banknote,
   UserCog,
+  FileText,
+  TrendingUp,
+  Zap,
+  Target,
+  Briefcase,
+  PieChart,
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -116,21 +123,33 @@ const sidebarItems = {
     { title: "Activity Logs", url: "/incharge/dashboard", icon: BookOpen, tab: "activity" },
     { title: "Profile Settings", url: "/incharge/dashboard", icon: Settings, tab: "profile" },
   ],
-  telemarketing_executive: [
-    { title: "Dashboard", url: "/telemarketing/dashboard", icon: Home, tab: "overview" },
-    { title: "Users Management", url: "/telemarketing/dashboard", icon: Users, tab: "users" },
-    { title: "Study Halls", url: "/telemarketing/dashboard", icon: Building, tab: "studyhalls" },
-    { title: "Bookings", url: "/telemarketing/dashboard", icon: Calendar, tab: "bookings" },
-    { title: "Transactions", url: "/telemarketing/dashboard", icon: CreditCard, tab: "transactions" },
-    { title: "Settlements", url: "/telemarketing/dashboard", icon: Receipt, tab: "settlements" },
-    { title: "Merchant Verification", url: "/telemarketing/dashboard", icon: Shield, tab: "merchant-verification" },
-    { title: "Community", url: "/telemarketing/dashboard", icon: MessageSquare, tab: "community" },
-    { title: "Chat", url: "/telemarketing/dashboard", icon: MessageCircle, tab: "chat" },
-    { title: "News", url: "/telemarketing/dashboard", icon: Newspaper, tab: "news" },
-    { title: "Call Logs", url: "/telemarketing/dashboard", icon: Phone, tab: "call-logs" },
-    { title: "Analytics", url: "/telemarketing/dashboard", icon: BarChart3, tab: "analytics" },
-    { title: "Profile", url: "/telemarketing/dashboard", icon: Settings, tab: "profile" },
-  ],
+  telemarketing_executive: {
+    primary: [
+      { title: "Dashboard", url: "/telemarketing/dashboard", icon: Home, tab: "overview" },
+      { title: "Call Logs", url: "/telemarketing/dashboard", icon: Phone, tab: "call-logs" },
+      { title: "Users Management", url: "/telemarketing/dashboard", icon: Target, tab: "users" },
+    ],
+    customerOps: [
+      { title: "Merchant Verification", url: "/telemarketing/dashboard", icon: ShieldCheck, tab: "merchant-verification" },
+      { title: "Community", url: "/telemarketing/dashboard", icon: Heart, tab: "community" },
+      { title: "Chat Support", url: "/telemarketing/dashboard", icon: MessageCircle, tab: "chat" },
+    ],
+    businessData: [
+      { title: "Study Halls", url: "/telemarketing/dashboard", icon: Building, tab: "studyhalls" },
+      { title: "Bookings", url: "/telemarketing/dashboard", icon: Calendar, tab: "bookings" },
+      { title: "Transactions", url: "/telemarketing/dashboard", icon: CreditCard, tab: "transactions" },
+      { title: "Settlements", url: "/telemarketing/dashboard", icon: Receipt, tab: "settlements" },
+    ],
+    communication: [
+      { title: "News Management", url: "/telemarketing/dashboard", icon: Newspaper, tab: "news" },
+    ],
+    analytics: [
+      { title: "Analytics", url: "/telemarketing/dashboard", icon: TrendingUp, tab: "analytics" },
+    ],
+    settings: [
+      { title: "Profile", url: "/telemarketing/dashboard", icon: Settings, tab: "profile" },
+    ]
+  },
   pending_payments_caller: [
     { title: "Dashboard", url: "/payments-caller/dashboard", icon: Home, tab: "overview" },
     { title: "Payment Recovery", url: "/payments-caller/dashboard", icon: AlertCircle, tab: "payment-recovery" },
@@ -184,6 +203,34 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
 
   const items = sidebarItems[userRole];
 
+  // Function to render menu items
+  const renderMenuItem = (item: any) => {
+    const isActive = activeTab === item.tab || (location.pathname === item.url && item.tab === "overview");
+    return (
+      <SidebarMenuItem key={item.title}>
+        <SidebarMenuButton asChild>
+          <button
+            onClick={() => {
+              if (item.tab && onTabChange) {
+                onTabChange(item.tab);
+              } else if (item.url !== location.pathname) {
+                window.location.href = item.url;
+              }
+            }}
+            className={`flex items-center space-x-2 p-2 rounded-md transition-colors w-full text-left ${
+              isActive
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            {!isCollapsed && <span className="text-sm">{item.title}</span>}
+          </button>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
+
   return (
     <Sidebar 
       className={`${isCollapsed ? "w-14" : "w-60"} ${isMobile ? "fixed inset-y-0 left-0 z-50" : ""}`} 
@@ -203,40 +250,110 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
           </div>
         </div>
 
-        {/* Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel>{!isCollapsed ? "Navigation" : ""}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => {
-                const isActive = activeTab === item.tab || (location.pathname === item.url && item.tab === "overview");
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <button
-                        onClick={() => {
-                          if (item.tab && onTabChange) {
-                            onTabChange(item.tab);
-                          } else if (item.url !== location.pathname) {
-                            window.location.href = item.url;
-                          }
-                        }}
-                        className={`flex items-center space-x-2 p-2 rounded-md transition-colors w-full text-left ${
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-accent hover:text-accent-foreground"
-                        }`}
-                      >
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {!isCollapsed && <span>{item.title}</span>}
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Navigation - Check if telemarketing_executive for grouped structure */}
+        {userRole === "telemarketing_executive" && typeof items === "object" && !Array.isArray(items) ? (
+          <>
+            {/* Primary Actions */}
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                <div className="flex items-center space-x-2">
+                  <Zap className="h-3 w-3" />
+                  {!isCollapsed && <span className="text-xs font-semibold">Primary Actions</span>}
+                </div>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.primary?.map(renderMenuItem)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Customer Operations */}
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                <div className="flex items-center space-x-2">
+                  <Users className="h-3 w-3" />
+                  {!isCollapsed && <span className="text-xs font-semibold">Customer Operations</span>}
+                </div>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.customerOps?.map(renderMenuItem)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Business Data & Analytics */}
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                <div className="flex items-center space-x-2">
+                  <Briefcase className="h-3 w-3" />
+                  {!isCollapsed && <span className="text-xs font-semibold">Business Data</span>}
+                </div>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.businessData?.map(renderMenuItem)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Communication & Content */}
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                <div className="flex items-center space-x-2">
+                  <MessageSquare className="h-3 w-3" />
+                  {!isCollapsed && <span className="text-xs font-semibold">Communication</span>}
+                </div>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.communication?.map(renderMenuItem)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Analytics & Reports */}
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className="h-3 w-3" />
+                  {!isCollapsed && <span className="text-xs font-semibold">Analytics</span>}
+                </div>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.analytics?.map(renderMenuItem)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Settings */}
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                <div className="flex items-center space-x-2">
+                  <Settings className="h-3 w-3" />
+                  {!isCollapsed && <span className="text-xs font-semibold">Settings</span>}
+                </div>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.settings?.map(renderMenuItem)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        ) : (
+          /* Standard flat navigation for other roles */
+          <SidebarGroup>
+            <SidebarGroupLabel>{!isCollapsed ? "Navigation" : ""}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {Array.isArray(items) && items.map(renderMenuItem)}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* User Info & Logout */}
         <div className="mt-auto p-3 sm:p-4 border-t">
