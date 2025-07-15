@@ -81,7 +81,7 @@ export function MerchantSettlementsTab() {
     return (
       <Badge variant={variants[status as keyof typeof variants]} className={colors[status as keyof typeof colors]}>
         <Icon className="h-3 w-3 mr-1" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
       </Badge>
     );
   };
@@ -105,7 +105,7 @@ export function MerchantSettlementsTab() {
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
         <Icon className="h-3 w-3" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
       </Badge>
     );
   };
