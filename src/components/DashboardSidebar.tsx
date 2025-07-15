@@ -17,6 +17,9 @@ import {
   CreditCard,
   Receipt,
   AlertCircle,
+  Gift,
+  Ticket,
+  ArrowUpDown,
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,7 +49,9 @@ const sidebarItems = {
     { title: "Dashboard", url: "/student/dashboard", icon: Home, tab: "overview" },
     { title: "Browse Study Halls", url: "/student/dashboard", icon: Building, tab: "browse" },
     { title: "My Bookings", url: "/student/dashboard", icon: Calendar, tab: "bookings" },
+    { title: "Rewards & Coupons", url: "/student/dashboard", icon: Gift, tab: "rewards" },
     { title: "Favorites", url: "/student/dashboard", icon: BookOpen, tab: "favorites" },
+    { title: "Transactions", url: "/student/dashboard", icon: CreditCard, tab: "transactions" },
     { title: "News", url: "/student/dashboard", icon: Newspaper, tab: "news" },
     { title: "Community", url: "/student/dashboard", icon: Heart, tab: "community" },
     { title: "Chat", url: "/student/dashboard", icon: MessageSquare, tab: "chat" },
@@ -56,6 +61,7 @@ const sidebarItems = {
     { title: "Dashboard", url: "/merchant/dashboard", icon: Home, tab: "overview" },
     { title: "My Study Halls", url: "/merchant/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/merchant/dashboard", icon: Calendar, tab: "bookings" },
+    { title: "Coupons & Promotions", url: "/merchant/dashboard", icon: Ticket, tab: "coupons" },
     { title: "Subscriptions", url: "/merchant/dashboard", icon: CreditCard, tab: "subscriptions" },
     { title: "Subscription Transactions", url: "/merchant/dashboard", icon: Receipt, tab: "subscription-transactions" },
     { title: "Transactions", url: "/merchant/dashboard", icon: CreditCard, tab: "transactions" },
@@ -72,7 +78,8 @@ const sidebarItems = {
     { title: "Merchants", url: "/admin/dashboard", icon: Users, tab: "merchants" },
     { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
-    
+    { title: "Coupons", url: "/admin/dashboard", icon: Ticket, tab: "coupons" },
+    { title: "Rewards & Referrals", url: "/admin/dashboard", icon: Gift, tab: "rewards" },
     { title: "Transactions", url: "/admin/dashboard", icon: CreditCard, tab: "transactions" },
     { title: "Subscription Transactions", url: "/admin/dashboard", icon: Receipt, tab: "subscription-transactions" },
     { title: "Subscription Plans", url: "/admin/dashboard", icon: Shield, tab: "subscription-plans" },

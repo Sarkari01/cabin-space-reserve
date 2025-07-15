@@ -372,9 +372,25 @@ export const useCoupons = (forceRole?: "student" | "merchant" | "admin") => {
     }
   }, [user, effectiveRole]);
 
+  // Computed properties for different user roles
+  const userCoupons = coupons.filter(coupon => coupon.status === 'active');
+  const merchantCoupons = coupons.filter(coupon => 
+    coupon.merchant_id === user?.id || coupon.created_by === user?.id
+  );
+  
+  const couponStats = {
+    total_coupons: merchantCoupons.length,
+    active_coupons: merchantCoupons.filter(c => c.status === 'active').length,
+    total_usage: couponUsage.reduce((sum, usage) => sum + 1, 0),
+    total_discount: couponUsage.reduce((sum, usage) => sum + usage.discount_amount, 0)
+  };
+
   return {
     coupons,
     couponUsage,
+    userCoupons,
+    merchantCoupons,
+    couponStats,
     loading,
     fetchCoupons,
     fetchCouponUsage,

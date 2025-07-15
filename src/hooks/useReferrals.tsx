@@ -291,10 +291,21 @@ export const useReferrals = (forceRole?: "student" | "merchant" | "admin") => {
     }
   }, [user, effectiveRole]);
 
+  const referralStats = referralCode ? {
+    total_referrals: referralCode.total_referrals,
+    successful_referrals: referralCode.successful_referrals,
+    total_earnings: referralCode.total_earnings
+  } : {
+    total_referrals: 0,
+    successful_referrals: 0,
+    total_earnings: 0
+  };
+
   return {
     referralCode,
     referralRewards,
     allReferralCodes,
+    referralStats,
     loading,
     fetchReferralCode,
     fetchReferralRewards,

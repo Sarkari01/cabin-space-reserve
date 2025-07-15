@@ -169,9 +169,18 @@ export const useRewards = () => {
     }
   }, [user]);
 
+  // Admin-specific data
+  const allRewards = userRole === 'admin' ? [rewards].filter(Boolean) : [];
+  const adminStats = {
+    total_distributed: transactions.filter(t => t.type === 'earned').reduce((sum, t) => sum + t.points, 0),
+    total_redeemed: transactions.filter(t => t.type === 'redeemed').reduce((sum, t) => sum + t.points, 0)
+  };
+
   return {
     rewards,
     transactions,
+    allRewards,
+    adminStats,
     loading,
     fetchRewards,
     redeemRewards

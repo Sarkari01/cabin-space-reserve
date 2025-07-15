@@ -17,6 +17,7 @@ import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
 import { StudentTransactionsTab } from "@/components/student/StudentTransactionsTab";
+import { RewardsTab } from "@/components/student/RewardsTab";
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
@@ -452,6 +453,16 @@ const StudentDashboard = () => {
               <h3 className="text-2xl font-semibold">Profile Settings</h3>
               <UserProfileSettings />
             </div>
+          )}
+
+          {/* Rewards Tab */}
+          {activeTab === "rewards" && (
+            <RewardsTab />
+          )}
+
+          {/* Transactions Tab */}
+          {activeTab === "transactions" && (
+            <StudentTransactionsTab />
           )}
 
           {/* Favorites Tab */}

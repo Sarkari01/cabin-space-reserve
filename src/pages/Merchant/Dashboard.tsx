@@ -30,6 +30,7 @@ import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 import { BookingLifecycleManager } from "@/components/BookingLifecycleManager";
 import UserProfileSettings from "@/components/UserProfileSettings";
 import { SeatSynchronizer } from "@/components/SeatSynchronizer";
+import { CouponsTab as MerchantCouponsTab } from "@/components/merchant/CouponsTab";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
@@ -340,6 +341,11 @@ const MerchantDashboard = () => {
               )}
             </div>
           </>
+        )}
+
+        {/* Coupons Tab */}
+        {activeTab === "coupons" && (
+          <MerchantCouponsTab />
         )}
 
         {/* Main Content based on active tab */}
