@@ -1,8 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MerchantProfile } from "@/hooks/useMerchantProfile";
 import { Shield } from "lucide-react";
+
+// Debounce utility function outside component
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  }) as T;
+}
 
 interface BankDetailsStepProps {
   profile: MerchantProfile | null;
@@ -18,17 +27,20 @@ export const BankDetailsStep = ({ profile, updateProfile, onDataChange }: BankDe
     ifsc_code: profile?.ifsc_code || '',
   });
 
-  // Debounced auto-save
-  const debouncedSave = useCallback(
+  // Use ref to store the latest updateProfile function
+  const updateProfileRef = useRef(updateProfile);
+  updateProfileRef.current = updateProfile;
+
+  // Create debounced save function once and reuse
+  const debouncedSave = useRef(
     debounce(async (data: typeof formData) => {
       try {
-        await updateProfile(data, false); // Silent auto-save
+        await updateProfileRef.current(data, false); // Silent auto-save
       } catch (error) {
         console.error('Error auto-saving bank details:', error);
       }
-    }, 1000),
-    [updateProfile]
-  );
+    }, 1000)
+  ).current;
 
   const handleInputChange = (field: string, value: string) => {
     const newData = { ...formData, [field]: value };
@@ -76,14 +88,6 @@ export const BankDetailsStep = ({ profile, updateProfile, onDataChange }: BankDe
     return /^\d{9,18}$/.test(cleanAccount);
   };
 
-  // Debounce utility function
-  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
-    let timeout: NodeJS.Timeout;
-    return ((...args: any[]) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    }) as T;
-  }
 
   return (
     <div className="space-y-6">

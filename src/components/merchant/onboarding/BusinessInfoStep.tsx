@@ -1,10 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MerchantProfile, useMerchantProfile } from "@/hooks/useMerchantProfile";
 import { DocumentUpload } from "./DocumentUpload";
 import { toast } from "@/hooks/use-toast";
+
+// Debounce utility function outside component
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  }) as T;
+}
 
 interface BusinessInfoStepProps {
   profile: MerchantProfile | null;
@@ -20,17 +29,20 @@ export const BusinessInfoStep = ({ profile, updateProfile, onDataChange }: Busin
     trade_license_number: profile?.trade_license_number || '',
   });
 
-  // Debounced auto-save
-  const debouncedSave = useCallback(
+  // Use ref to store the latest updateProfile function
+  const updateProfileRef = useRef(updateProfile);
+  updateProfileRef.current = updateProfile;
+
+  // Create debounced save function once and reuse
+  const debouncedSave = useRef(
     debounce(async (data: typeof formData) => {
       try {
-        await updateProfile(data, false); // Silent auto-save
+        await updateProfileRef.current(data, false); // Silent auto-save
       } catch (error) {
         console.error('Error auto-saving business info:', error);
       }
-    }, 1000),
-    [updateProfile]
-  );
+    }, 1000)
+  ).current;
 
   const handleInputChange = (field: string, value: string) => {
     const newData = { ...formData, [field]: value };
@@ -85,14 +97,6 @@ export const BusinessInfoStep = ({ profile, updateProfile, onDataChange }: Busin
     return phoneRegex.test(cleanPhone);
   };
 
-  // Debounce utility function
-  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
-    let timeout: NodeJS.Timeout;
-    return ((...args: any[]) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    }) as T;
-  }
 
   return (
     <div className="space-y-6">
