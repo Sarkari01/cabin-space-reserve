@@ -401,13 +401,13 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="daily">
-                  Daily - ₹{Math.round(studyHall.daily_price * 0.98)} + 2% Remaining Discount
+                  Daily - ₹{studyHall.daily_price - 100} + 2% Remaining Discount
                 </SelectItem>
                 <SelectItem value="weekly">
-                  Weekly - ₹{Math.round(studyHall.weekly_price * 0.98)} + 2% Remaining Discount
+                  Weekly - ₹{studyHall.weekly_price - 100} + 2% Remaining Discount
                 </SelectItem>
                 <SelectItem value="monthly">
-                  Monthly - ₹{Math.round(studyHall.monthly_price * 0.98)} + 2% Remaining Discount
+                  Monthly - ₹{studyHall.monthly_price - 100} + 2% Remaining Discount
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -445,11 +445,11 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                   <>
                     <div className="flex justify-between items-center text-sm">
                       <span>Base Price:</span>
-                      <span>₹{(calculatedAmount.baseAmount || Math.round(getCurrentAmount() * 0.98)).toLocaleString()}</span>
+                      <span>₹{(calculatedAmount.baseAmount || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm text-green-600">
                       <span>2% Remaining Discount:</span>
-                      <span>+ ₹{(calculatedAmount.discountAmount || Math.round(getCurrentAmount() * 0.02)).toLocaleString()}</span>
+                      <span>+ ₹{(calculatedAmount.discountAmount || 0).toLocaleString()}</span>
                     </div>
                     <div className="border-t pt-2 flex justify-between items-center">
                       <span className="font-medium">Total Amount:</span>

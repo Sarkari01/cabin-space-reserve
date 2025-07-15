@@ -7,11 +7,11 @@
 export const RAZORPAY_FEE_RATE = 0.02; // 2%
 
 /**
- * Calculate the base price from display price (removing the hidden fee)
- * Display price (₹1800) -> Base price (₹1700)
+ * Calculate the base price from merchant price (removing the hidden ₹100 margin)
+ * Merchant price (₹1800) -> Customer base price (₹1700)
  */
-export const calculateBasePrice = (displayPrice: number): number => {
-  return Math.round(displayPrice * (1 - RAZORPAY_FEE_RATE));
+export const calculateBasePrice = (merchantPrice: number): number => {
+  return merchantPrice - 100; // Fixed ₹100 deduction
 };
 
 /**
@@ -57,9 +57,9 @@ export const formatPriceWithDiscount = (displayPrice: number): {
 export const calculateBookingAmountWithFees = (
   startDate: string,
   endDate: string,
-  dailyDisplayPrice: number,
-  weeklyDisplayPrice: number,
-  monthlyDisplayPrice: number
+  dailyMerchantPrice: number,
+  weeklyMerchantPrice: number,
+  monthlyMerchantPrice: number
 ): {
   baseAmount: number;
   discountAmount: number;
@@ -77,10 +77,10 @@ export const calculateBookingAmountWithFees = (
   const timeDiff = end.getTime() - start.getTime();
   const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
-  // Calculate base prices (without hidden fees)
-  const baseDailyPrice = calculateBasePrice(dailyDisplayPrice);
-  const baseWeeklyPrice = calculateBasePrice(weeklyDisplayPrice);
-  const baseMonthlyPrice = calculateBasePrice(monthlyDisplayPrice);
+  // Calculate customer base prices (merchant price - ₹100)
+  const baseDailyPrice = calculateBasePrice(dailyMerchantPrice);
+  const baseWeeklyPrice = calculateBasePrice(weeklyMerchantPrice);
+  const baseMonthlyPrice = calculateBasePrice(monthlyMerchantPrice);
 
   // Calculate totals for each method
   const dailyTotal = days * baseDailyPrice;

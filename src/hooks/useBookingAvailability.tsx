@@ -168,10 +168,10 @@ export const useBookingAvailability = () => {
 
     console.log(`Calculating amount for ${days} days from ${startDate} to ${endDate}`);
 
-    // Calculate base prices (98% of display price to account for 2% Razorpay fee)
-    const baseDailyPrice = Math.round(dailyPrice * 0.98);
-    const baseWeeklyPrice = Math.round(weeklyPrice * 0.98);
-    const baseMonthlyPrice = Math.round(monthlyPrice * 0.98);
+    // Calculate customer base prices (merchant price - ₹100)
+    const baseDailyPrice = dailyPrice - 100;
+    const baseWeeklyPrice = weeklyPrice - 100;
+    const baseMonthlyPrice = monthlyPrice - 100;
 
     // Calculate totals for each method using base prices
     const dailyTotal = days * baseDailyPrice;
