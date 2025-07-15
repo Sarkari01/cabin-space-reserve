@@ -293,33 +293,118 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
     }
   };
 
-  // Update the polling function to better handle success states and booking data
+  // Enhanced polling with real-time listeners for instant payment detection
   const startPaymentPolling = async (orderId: string, transactionId: string) => {
-    console.log('Starting enhanced payment polling for order:', orderId);
+    console.log('🚀 Starting automatic EKQR payment detection for order:', orderId);
     setShowQR(true);
     
-    const maxAttempts = 120; // Poll for 10 minutes (every 5 seconds)
-    let attempts = 0;
-    let backoffDelay = 5000; // Start with 5 second delay
+    let pollInterval: NodeJS.Timeout;
+    let realtimeChannel: any;
+    let cleanup: (() => void) | null = null;
     
-    const pollPaymentStatus = async (): Promise<boolean> => {
-      if (attempts >= maxAttempts) {
-        console.log('Payment polling timeout reached');
-        setProcessing(false);
-        setShowQR(false);
-        toast({
-          title: "Payment Verification Timeout",
-          description: "Payment verification taking longer than expected. Please check your bookings or contact support.",
-          variant: "destructive",
+    // Real-time subscription for instant detection
+    const setupRealtimeListener = () => {
+      console.log('📡 Setting up real-time listener for instant payment detection');
+      
+      realtimeChannel = supabase
+        .channel(`transaction-${transactionId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'transactions',
+            filter: `id=eq.${transactionId}`
+          },
+          async (payload) => {
+            console.log('⚡ Real-time transaction update:', payload);
+            
+            if (payload.new.status === 'completed') {
+              console.log('🎉 Payment successful via real-time notification!');
+              handlePaymentSuccess(payload.new.booking_id);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'bookings',
+            filter: `user_id=eq.${user?.id}`
+          },
+          async (payload) => {
+            console.log('⚡ Real-time booking creation:', payload);
+            
+            // Check if this booking is related to our transaction
+            const { data: relatedTransaction } = await supabase
+              .from('transactions')
+              .select('*')
+              .eq('id', transactionId)
+              .eq('booking_id', payload.new.id)
+              .single();
+            
+            if (relatedTransaction) {
+              console.log('🎉 Booking created via real-time notification!');
+              handlePaymentSuccess(payload.new.id);
+            }
+          }
+        )
+        .subscribe();
+    };
+    
+    // Handle successful payment
+    const handlePaymentSuccess = async (bookingId?: string) => {
+      if (cleanup) cleanup();
+      
+      setProcessing(false);
+      setShowQR(false);
+      
+      toast({
+        title: "Payment Successful!",
+        description: "Your booking has been confirmed instantly!",
+      });
+      
+      // Get full booking data for success page
+      if (bookingId) {
+        console.log('📍 Redirecting to success page with booking ID:', bookingId);
+        
+        const successParams = new URLSearchParams({
+          booking_id: bookingId,
+          amount: bookingIntent.total_amount.toString(),
+          study_hall_id: bookingIntent.study_hall_id,
+          transaction_id: transactionId
         });
-        return false;
+        
+        window.location.href = `/payment-success?${successParams.toString()}`;
+      } else {
+        onPaymentSuccess(null);
+      }
+    };
+    
+    // Smart polling with exponential backoff
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes total (initially every 3 seconds)
+    let currentDelay = 3000; // Start with 3 seconds
+    
+    const smartPoll = async () => {
+      if (attempts >= maxAttempts) {
+        console.log('⏰ Payment polling timeout - switching to patient mode');
+        if (cleanup) cleanup();
+        
+        toast({
+          title: "Taking longer than expected",
+          description: "Your payment is being processed. You'll be notified when it's complete.",
+          variant: "default",
+        });
+        return;
       }
       
       attempts++;
-      console.log(`Enhanced payment polling attempt ${attempts}/${maxAttempts}`);
+      console.log(`🔍 Smart polling attempt ${attempts}/${maxAttempts} (${currentDelay}ms intervals)`);
       
       try {
-        // First check local transaction status (faster via real-time)
+        // Quick local check first
         const { data: transactionCheck } = await supabase
           .from('transactions')
           .select(`
@@ -335,72 +420,28 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
           .single();
         
         if (transactionCheck?.status === 'completed') {
-          console.log('Payment confirmed via real-time update!');
-          setProcessing(false);
-          setShowQR(false);
-          toast({
-            title: "Payment Successful!",
-            description: "Your booking has been confirmed!",
-          });
-          
-          // Navigate to success page with booking ID if available
-          const bookingData = transactionCheck.booking;
-          if (bookingData?.id) {
-            console.log('Redirecting to success page with booking ID:', bookingData.id);
-            
-            const successParams = new URLSearchParams({
-              booking_id: bookingData.id,
-              amount: bookingIntent.total_amount.toString(),
-              study_hall_id: bookingIntent.study_hall_id
-            });
-            
-            window.location.href = `/payment-success?${successParams.toString()}`;
-          } else {
-            console.log('No booking data found, triggering success without data');
-            onPaymentSuccess(null);
-          }
-          return true;
+          console.log('✅ Payment confirmed via polling!');
+          handlePaymentSuccess(transactionCheck.booking_id);
+          return;
         }
         
-        // If still pending locally, check with EKQR API (with exponential backoff for API calls)
-        if (attempts % 2 === 0) { // Call EKQR API every 2nd attempt (every 10 seconds)
-          console.log('🔍 Checking EKQR payment status via API...');
+        // EKQR API check every few attempts (to reduce API calls)
+        if (attempts % 3 === 0) {
+          console.log('🌐 Checking EKQR API status...');
           
-          // Get the most recent transaction data to check for qr_id
           const { data: latestTransaction } = await supabase
             .from('transactions')
             .select('qr_id, payment_id, payment_data')
             .eq('id', transactionId)
             .single();
           
-          // Use multiple fallback options for order ID with enhanced logic
           const paymentData = latestTransaction?.payment_data as any;
-          const orderIdToUse = latestTransaction?.qr_id || // Prefer qr_id from edge function
-                              orderId || // Original order ID from frontend
-                              paymentData?.ekqr_order_id || // Backup from payment data
-                              latestTransaction?.payment_id; // Last resort
+          const orderIdToUse = latestTransaction?.qr_id || 
+                              orderId || 
+                              paymentData?.ekqr_order_id || 
+                              latestTransaction?.payment_id;
           
-          console.log('🔍 EKQR: Order ID resolution:', {
-            qr_id: latestTransaction?.qr_id,
-            original_orderId: orderId,
-            ekqr_order_id: paymentData?.ekqr_order_id,
-            payment_id: latestTransaction?.payment_id,
-            final_orderIdToUse: orderIdToUse
-          });
-          
-          if (!orderIdToUse) {
-            console.log('⚠️ No order ID available for EKQR status check, attempting auto-recovery');
-            
-            // Trigger auto-recovery as fallback
-            try {
-              const { data: recoveryResult } = await supabase.functions.invoke('auto-ekqr-recovery');
-              console.log('🔄 Auto-recovery triggered:', recoveryResult);
-            } catch (recoveryError) {
-              console.error('❌ Auto-recovery failed:', recoveryError);
-            }
-          } else {
-            console.log(`🔍 Using order ID for status check: ${orderIdToUse}`);
-            
+          if (orderIdToUse) {
             const { data, error } = await supabase.functions.invoke('ekqr-payment', {
               body: { 
                 action: 'checkOrderStatus',
@@ -409,141 +450,53 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
                 txnDate: new Date().toISOString().split('T')[0]
               }
             });
-          
-            console.log('📡 EKQR API response:', { data, error });
             
             if (!error && data) {
-              console.log('✅ EKQR payment status response received:', data);
-              
-              // Check for success with multiple indicators
               const isPaymentSuccessful = data.status === 'success' || 
                                         data.paid === true || 
                                         data.booking?.id;
               
               if (isPaymentSuccessful) {
                 console.log('🎉 Payment successful via EKQR API!');
-                setProcessing(false);
-                setShowQR(false);
-                toast({
-                  title: "Payment Successful!",
-                  description: "Your booking has been confirmed!",
-                });
-                
-                // Navigate to success page with booking ID if available
-                if (data.booking?.id || data.bookingId) {
-                  const bookingId = data.booking?.id || data.bookingId;
-                  console.log('🏃 Redirecting to success page with booking ID:', bookingId);
-                  
-                  // Construct redirect URL with proper booking data
-                  const successParams = new URLSearchParams({
-                    booking_id: bookingId,
-                    amount: bookingIntent.total_amount.toString(),
-                    study_hall_id: bookingIntent.study_hall_id,
-                    transaction_id: transactionId
-                  });
-                  
-                  window.location.href = `/payment-success?${successParams.toString()}`;
-                  return true;
-                }
-                
-                // Fallback: Pass booking data directly
-                if (data.booking) {
-                  console.log('✅ Passing booking data from EKQR response:', data.booking);
-                  onPaymentSuccess(data.booking);
-                } else {
-                  // Try to fetch the booking using the transaction data
-                  console.log('🔍 Fetching booking data after EKQR success');
-                  const { data: updatedTransaction } = await supabase
-                    .from('transactions')
-                    .select(`
-                      booking:bookings(
-                        *,
-                        study_hall:study_halls(name, location),
-                        seat:seats(seat_id, row_name, seat_number)
-                      )
-                    `)
-                    .eq('id', transactionId)
-                    .single();
-                  
-                  if (updatedTransaction?.booking?.id) {
-                    // Redirect to success page with proper booking ID
-                    const successParams = new URLSearchParams({
-                      booking_id: updatedTransaction.booking.id,
-                      amount: bookingIntent.total_amount.toString(),
-                      study_hall_id: bookingIntent.study_hall_id,
-                      transaction_id: transactionId
-                    });
-                    
-                    window.location.href = `/payment-success?${successParams.toString()}`;
-                  } else {
-                    console.log('⚠️ No booking found, triggering manual recovery...');
-                    
-                    // Try manual recovery
-                    try {
-                      const { data: recoveryData } = await supabase.functions.invoke('manual-ekqr-recovery', {
-                        body: {
-                          action: 'createBookingForTransaction',
-                          transactionId: transactionId
-                        }
-                      });
-                      
-                      if (recoveryData?.success && recoveryData?.bookingId) {
-                        console.log('✅ Manual recovery successful:', recoveryData.bookingId);
-                        
-                        const successParams = new URLSearchParams({
-                          booking_id: recoveryData.bookingId,
-                          amount: bookingIntent.total_amount.toString(),
-                          study_hall_id: bookingIntent.study_hall_id,
-                          transaction_id: transactionId
-                        });
-                        
-                        window.location.href = `/payment-success?${successParams.toString()}`;
-                        return true;
-                      }
-                    } catch (recoveryError) {
-                      console.error('❌ Manual recovery failed:', recoveryError);
-                    }
-                    
-                    // Final fallback
-                    onPaymentSuccess(null);
-                  }
-                }
-                return true;
-              } else if (data.status === 'failed') {
-                console.log('❌ Payment failed via EKQR API:', data.remark);
-                setProcessing(false);
-                setShowQR(false);
-                toast({
-                  title: "Payment Failed",
-                  description: "Payment was not completed. Please try again.",
-                  variant: "destructive",
-                });
-                return false;
+                const bookingId = data.booking?.id || data.bookingId;
+                handlePaymentSuccess(bookingId);
+                return;
               }
             }
           }
         }
         
-        // Exponential backoff for delays (but cap at 10 seconds)
-        if (attempts > 10) {
-          backoffDelay = Math.min(backoffDelay * 1.1, 10000);
+        // Exponential backoff: increase delay gradually
+        if (attempts % 10 === 0 && currentDelay < 10000) {
+          currentDelay = Math.min(currentDelay * 1.5, 10000);
+          console.log(`⏲️ Increasing polling interval to ${currentDelay}ms`);
         }
         
-        // Continue polling if still pending
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
-        return pollPaymentStatus();
+        // Schedule next poll
+        pollInterval = setTimeout(smartPoll, currentDelay);
         
       } catch (error) {
-        console.error('Payment polling error:', error);
-        
-        // If we get errors, slow down the polling
-        backoffDelay = Math.min(backoffDelay * 1.5, 15000);
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
-        return pollPaymentStatus();
+        console.error('❌ Polling error:', error);
+        // Continue polling despite errors
+        pollInterval = setTimeout(smartPoll, currentDelay);
       }
     };
     
-    pollPaymentStatus();
+    // Cleanup function
+    cleanup = () => {
+      console.log('🧹 Cleaning up payment detection');
+      if (pollInterval) clearTimeout(pollInterval);
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    };
+    
+    // Start both real-time and polling
+    setupRealtimeListener();
+    smartPoll();
+    
+    // Auto-cleanup after 10 minutes
+    setTimeout(() => {
+      if (cleanup) cleanup();
+    }, 10 * 60 * 1000);
   };
 
   const handleRazorpayPayment = async () => {
