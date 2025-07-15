@@ -15,6 +15,11 @@ import { TelemarketingUsersTab } from '@/components/telemarketing/TelemarketingU
 import { TelemarketingStudyHallsTab } from '@/components/telemarketing/TelemarketingStudyHallsTab';
 import { TelemarketingBookingsTab } from '@/components/telemarketing/TelemarketingBookingsTab';
 import { TelemarketingTransactionsTab } from '@/components/telemarketing/TelemarketingTransactionsTab';
+import { TelemarketingSettlementsTab } from '@/components/telemarketing/TelemarketingSettlementsTab';
+import { TelemarketingMerchantVerificationTab } from '@/components/telemarketing/TelemarketingMerchantVerificationTab';
+import { TelemarketingCommunityTab } from '@/components/telemarketing/TelemarketingCommunityTab';
+import { TelemarketingChatTab } from '@/components/telemarketing/TelemarketingChatTab';
+import { TelemarketingNewsTab } from '@/components/telemarketing/TelemarketingNewsTab';
 import { TransactionsTab } from '@/components/admin/TransactionsTab';
 import { EnhancedAnalytics } from '@/components/EnhancedAnalytics';
 import { PageHeader } from '@/components/PageHeader';
@@ -326,6 +331,21 @@ const TelemarketingDashboard = () => {
 
         {/* Transactions Management Tab */}
         {activeTab === "transactions" && <TelemarketingTransactionsTab />}
+
+        {/* Settlements Tab */}
+        {activeTab === "settlements" && <TelemarketingSettlementsTab />}
+
+        {/* Merchant Verification Tab */}
+        {activeTab === "merchant-verification" && <TelemarketingMerchantVerificationTab />}
+
+        {/* Community Tab */}
+        {activeTab === "community" && <TelemarketingCommunityTab />}
+
+        {/* Chat Tab */}
+        {activeTab === "chat" && <TelemarketingChatTab />}
+
+        {/* News Tab */}
+        {activeTab === "news" && <TelemarketingNewsTab />}
 
         {/* Call Logs Tab */}
         {activeTab === "call-logs" && (
