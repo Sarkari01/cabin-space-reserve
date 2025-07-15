@@ -17,6 +17,8 @@ import { useWithdrawals } from "@/hooks/useWithdrawals";
 import { useAuth } from "@/hooks/useAuth";
 import { DollarSignIcon, CalendarIcon, TrendingUp, Clock, CheckIcon, XIcon, Download, IndianRupee } from "lucide-react";
 import { safeFormatDate, safeFormatTime } from "@/lib/dateUtils";
+import { ExportButton } from "@/components/ui/export-button";
+import { ExportColumn, formatCurrency, formatDate } from "@/utils/exportUtils";
 
 export function MerchantSettlementsTab() {
   const { settlements, loading, getSettlementTransactions } = useSettlements();
@@ -191,14 +193,47 @@ export function MerchantSettlementsTab() {
         </TabsList>
 
         <TabsContent value="settlements">
-          <ErrorBoundary fallback={
-            <Card>
-              <CardHeader>
-                <CardTitle>Settlement History</CardTitle>
-                <CardDescription>Your settlement records and payments</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Settlement History</CardTitle>
+                  <CardDescription>Your settlement records and payments</CardDescription>
+                </div>
+                <ExportButton
+                  data={filteredSettlements.map(settlement => ({
+                    settlement_number: settlement.settlement_number || 'PENDING',
+                    status: settlement.status,
+                    created_date: settlement.created_at,
+                    total_booking_amount: settlement.total_booking_amount,
+                    platform_fee_percentage: settlement.platform_fee_percentage,
+                    platform_fee_amount: settlement.platform_fee_amount,
+                    net_settlement_amount: settlement.net_settlement_amount,
+                    payment_reference: settlement.payment_reference || 'N/A',
+                    payment_method: settlement.payment_method || 'N/A',
+                    payment_date: settlement.payment_date || 'N/A'
+                  }))}
+                  columns={[
+                    { key: "settlement_number", title: "Settlement #" },
+                    { key: "status", title: "Status" },
+                    { key: "created_date", title: "Created Date", format: formatDate },
+                    { key: "total_booking_amount", title: "Total Booking Amount", format: formatCurrency },
+                    { key: "platform_fee_percentage", title: "Platform Fee %" },
+                    { key: "platform_fee_amount", title: "Platform Fee Amount", format: formatCurrency },
+                    { key: "net_settlement_amount", title: "Net Settlement Amount", format: formatCurrency },
+                    { key: "payment_reference", title: "Payment Reference" },
+                    { key: "payment_method", title: "Payment Method" },
+                    { key: "payment_date", title: "Payment Date", format: (value) => value !== 'N/A' ? formatDate(value) : 'N/A' }
+                  ] as ExportColumn[]}
+                  filename="merchant_settlements_history"
+                  title="Merchant Settlements History"
+                  disabled={loading || filteredSettlements.length === 0}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ErrorBoundary fallback={
+                <div className="text-center space-y-4 p-6">
                   <div className="text-muted-foreground">
                     Unable to load settlements data. Please refresh the page or contact support if the issue persists.
                   </div>
@@ -206,74 +241,74 @@ export function MerchantSettlementsTab() {
                     Refresh Page
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          }>
-            <ResponsiveTable
-              data={filteredSettlements}
-              columns={[
-                  {
-                    key: "settlement_number",
-                    title: "Settlement #",
-                    render: (value: any, item: any) => {
-                      try {
-                        const settlementNum = item?.settlement_number;
-                        if (!settlementNum || settlementNum === 0) {
-                          return (
-                            <span className="text-muted-foreground">
-                              #PENDING
-                            </span>
-                          );
+              }>
+                <ResponsiveTable
+                  data={filteredSettlements}
+                  columns={[
+                    {
+                      key: "settlement_number",
+                      title: "Settlement #",
+                      render: (value: any, item: any) => {
+                        try {
+                          const settlementNum = item?.settlement_number;
+                          if (!settlementNum || settlementNum === 0) {
+                            return (
+                              <span className="text-muted-foreground">
+                                #PENDING
+                              </span>
+                            );
+                          }
+                          return `#${String(settlementNum).padStart(6, '0')}`;
+                        } catch (error) {
+                          console.error("Error rendering settlement number:", error);
+                          return <span className="text-red-500">#ERROR</span>;
                         }
-                        return `#${String(settlementNum).padStart(6, '0')}`;
-                      } catch (error) {
-                        console.error("Error rendering settlement number:", error);
-                        return <span className="text-red-500">#ERROR</span>;
+                      }
+                    },
+                    {
+                      key: "status",
+                      title: "Status",
+                      render: (value: any, item: any) => {
+                        try {
+                          return getStatusBadge(item?.status || 'unknown');
+                        } catch (error) {
+                          console.error("Error rendering status:", error);
+                          return <Badge variant="secondary">Unknown</Badge>;
+                        }
+                      }
+                    },
+                    {
+                      key: "created_at",
+                      title: "Created Date",
+                      render: (value: any, item: any) => {
+                        try {
+                          return safeFormatDate(item?.created_at, "MMM d, yyyy");
+                        } catch (error) {
+                          console.error("Error formatting date:", error);
+                          return "Invalid Date";
+                        }
+                      }
+                    },
+                    {
+                      key: "net_settlement_amount",
+                      title: "Net Amount",
+                      render: (value: any, item: any) => {
+                        try {
+                          const amount = Number(item?.net_settlement_amount || 0);
+                          return `₹${amount.toFixed(2)}`;
+                        } catch (error) {
+                          console.error("Error formatting amount:", error);
+                          return "₹0.00";
+                        }
                       }
                     }
-                  },
-                {
-                  key: "status",
-                  title: "Status",
-                  render: (value: any, item: any) => {
-                    try {
-                      return getStatusBadge(item?.status || 'unknown');
-                    } catch (error) {
-                      console.error("Error rendering status:", error);
-                      return <Badge variant="secondary">Unknown</Badge>;
-                    }
-                  }
-                },
-                {
-                  key: "created_at",
-                  title: "Created Date",
-                  render: (value: any, item: any) => {
-                    try {
-                      return safeFormatDate(item?.created_at, "MMM d, yyyy");
-                    } catch (error) {
-                      console.error("Error formatting date:", error);
-                      return "Invalid Date";
-                    }
-                  }
-                },
-                {
-                  key: "net_settlement_amount",
-                  title: "Net Amount",
-                  render: (value: any, item: any) => {
-                    try {
-                      const amount = Number(item?.net_settlement_amount || 0);
-                      return `₹${amount.toFixed(2)}`;
-                    } catch (error) {
-                      console.error("Error formatting amount:", error);
-                      return "₹0.00";
-                    }
-                  }
-                }
-              ]}
-              loading={loading}
-              emptyMessage="No settlements found"
-            />
-          </ErrorBoundary>
+                  ]}
+                  loading={loading}
+                  emptyMessage="No settlements found"
+                />
+              </ErrorBoundary>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="withdrawals">
@@ -289,13 +324,38 @@ export function MerchantSettlementsTab() {
                     Track your withdrawal requests and their status
                   </CardDescription>
                 </div>
-                <Button 
-                  onClick={() => setShowWithdrawalModal(true)}
-                  disabled={!balance || balance.available_balance <= 0}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Request Withdrawal
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ExportButton
+                    data={(withdrawals || []).map(withdrawal => ({
+                      requested_amount: withdrawal.requested_amount,
+                      withdrawal_method: withdrawal.withdrawal_method,
+                      status: withdrawal.status,
+                      created_date: withdrawal.created_at,
+                      processed_date: withdrawal.processed_at || 'N/A',
+                      payment_reference: withdrawal.payment_reference || 'N/A',
+                      admin_notes: withdrawal.admin_notes || 'N/A'
+                    }))}
+                    columns={[
+                      { key: "requested_amount", title: "Amount", format: formatCurrency },
+                      { key: "withdrawal_method", title: "Method" },
+                      { key: "status", title: "Status" },
+                      { key: "created_date", title: "Request Date", format: formatDate },
+                      { key: "processed_date", title: "Processed Date", format: (value) => value !== 'N/A' ? formatDate(value) : 'N/A' },
+                      { key: "payment_reference", title: "Payment Reference" },
+                      { key: "admin_notes", title: "Admin Notes" }
+                    ] as ExportColumn[]}
+                    filename="merchant_withdrawal_requests"
+                    title="Merchant Withdrawal Requests"
+                    disabled={withdrawalsLoading || !withdrawals || withdrawals.length === 0}
+                  />
+                  <Button 
+                    onClick={() => setShowWithdrawalModal(true)}
+                    disabled={!balance || balance.available_balance <= 0}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Request Withdrawal
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

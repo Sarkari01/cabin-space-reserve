@@ -15,6 +15,8 @@ import { useAdminData } from "@/hooks/useAdminData";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { CheckIcon, XIcon, DollarSignIcon, Users, CalendarIcon, TrendingUp } from "lucide-react";
 import { safeFormatDate } from "@/lib/dateUtils";
+import { ExportButton } from "@/components/ui/export-button";
+import { ExportColumn, formatCurrency, formatDate } from "@/utils/exportUtils";
 
 export function SettlementsTab() {
   const { settlements, loading, createSettlement, updateSettlementStatus, getEligibleTransactions, getUnsettledSummary } = useSettlements();
@@ -399,10 +401,49 @@ export function SettlementsTab() {
         <TabsContent value="history">
           <Card>
             <CardHeader>
-              <CardTitle>Settlement History</CardTitle>
-              <CardDescription>
-                View and manage all settlement batches.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Settlement History</CardTitle>
+                  <CardDescription>
+                    View and manage all settlement batches.
+                  </CardDescription>
+                </div>
+                <ExportButton
+                  data={settlements.map(settlement => ({
+                    settlement_number: settlement.settlement_number,
+                    merchant_name: settlement.merchant?.full_name || 'Unknown',
+                    merchant_email: settlement.merchant?.email || 'N/A',
+                    status: settlement.status,
+                    created_date: settlement.created_at,
+                    total_booking_amount: settlement.total_booking_amount,
+                    platform_fee_percentage: settlement.platform_fee_percentage,
+                    platform_fee_amount: settlement.platform_fee_amount,
+                    net_settlement_amount: settlement.net_settlement_amount,
+                    payment_reference: settlement.payment_reference || 'N/A',
+                    payment_method: settlement.payment_method || 'N/A',
+                    payment_date: settlement.payment_date || 'N/A',
+                    notes: settlement.notes || 'N/A'
+                  }))}
+                  columns={[
+                    { key: "settlement_number", title: "Settlement #" },
+                    { key: "merchant_name", title: "Merchant Name" },
+                    { key: "merchant_email", title: "Merchant Email" },
+                    { key: "status", title: "Status" },
+                    { key: "created_date", title: "Created Date", format: formatDate },
+                    { key: "total_booking_amount", title: "Total Booking Amount", format: formatCurrency },
+                    { key: "platform_fee_percentage", title: "Platform Fee %" },
+                    { key: "platform_fee_amount", title: "Platform Fee Amount", format: formatCurrency },
+                    { key: "net_settlement_amount", title: "Net Settlement Amount", format: formatCurrency },
+                    { key: "payment_reference", title: "Payment Reference" },
+                    { key: "payment_method", title: "Payment Method" },
+                    { key: "payment_date", title: "Payment Date", format: (value) => value !== 'N/A' ? formatDate(value) : 'N/A' },
+                    { key: "notes", title: "Notes" }
+                  ] as ExportColumn[]}
+                  filename="admin_settlements_history"
+                  title="Admin Settlements History"
+                  disabled={loading || settlements.length === 0}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
