@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { getRoleBasedDashboard } from "@/utils/roleRedirects";
+import { MerchantOnboardingGuard } from "@/components/merchant/MerchantOnboardingGuard";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -68,7 +69,11 @@ const ProtectedRoute = ({
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <MerchantOnboardingGuard>
+      {children}
+    </MerchantOnboardingGuard>
+  );
 };
 
 export default ProtectedRoute;

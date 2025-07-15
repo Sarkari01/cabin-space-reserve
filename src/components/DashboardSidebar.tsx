@@ -9,6 +9,7 @@ import {
   Building,
   BookOpen,
   Shield,
+  ShieldCheck,
   LogOut,
   PanelLeft,
   Newspaper,
@@ -75,7 +76,7 @@ const sidebarItems = {
   admin: [
     { title: "Dashboard", url: "/admin/dashboard", icon: Home, tab: "overview" },
     { title: "Users", url: "/admin/dashboard", icon: Users, tab: "users" },
-    { title: "Merchants", url: "/admin/dashboard", icon: Users, tab: "merchants" },
+    { title: "Merchant Verification", url: "/admin/dashboard", icon: ShieldCheck, tab: "merchantverification" },
     { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Coupons", url: "/admin/dashboard", icon: Ticket, tab: "coupons" },

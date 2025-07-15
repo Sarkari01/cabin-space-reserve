@@ -515,6 +515,121 @@ export type Database = {
           },
         ]
       }
+      merchant_documents: {
+        Row: {
+          document_type: string
+          file_name: string
+          file_size: number
+          file_url: string
+          id: string
+          merchant_profile_id: string
+          mime_type: string
+          uploaded_at: string
+          verification_notes: string | null
+          verification_status: string
+        }
+        Insert: {
+          document_type: string
+          file_name: string
+          file_size: number
+          file_url: string
+          id?: string
+          merchant_profile_id: string
+          mime_type: string
+          uploaded_at?: string
+          verification_notes?: string | null
+          verification_status?: string
+        }
+        Update: {
+          document_type?: string
+          file_name?: string
+          file_size?: number
+          file_url?: string
+          id?: string
+          merchant_profile_id?: string
+          mime_type?: string
+          uploaded_at?: string
+          verification_notes?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_documents_merchant_profile_id_fkey"
+            columns: ["merchant_profile_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_profiles: {
+        Row: {
+          account_holder_name: string | null
+          account_number: string | null
+          bank_name: string | null
+          business_address: string | null
+          business_email: string | null
+          created_at: string
+          gstin_pan: string | null
+          id: string
+          ifsc_code: string | null
+          is_onboarding_complete: boolean
+          merchant_id: string
+          onboarding_step: number
+          phone: string | null
+          trade_license_document_url: string | null
+          trade_license_number: string | null
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          business_address?: string | null
+          business_email?: string | null
+          created_at?: string
+          gstin_pan?: string | null
+          id?: string
+          ifsc_code?: string | null
+          is_onboarding_complete?: boolean
+          merchant_id: string
+          onboarding_step?: number
+          phone?: string | null
+          trade_license_document_url?: string | null
+          trade_license_number?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          business_address?: string | null
+          business_email?: string | null
+          created_at?: string
+          gstin_pan?: string | null
+          id?: string
+          ifsc_code?: string | null
+          is_onboarding_complete?: boolean
+          merchant_id?: string
+          onboarding_step?: number
+          phone?: string | null
+          trade_license_document_url?: string | null
+          trade_license_number?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_profiles_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_subscriptions: {
         Row: {
           auto_renew: boolean | null
