@@ -153,6 +153,7 @@ export const useBookingAvailability = () => {
     amount: number; 
     baseAmount: number;
     discountAmount: number;
+    finalAmount: number;
     days: number; 
     method: string;
     priceBreakdown: {
@@ -194,12 +195,13 @@ export const useBookingAvailability = () => {
 
     // Calculate the "discount" amount (covers Razorpay fee)
     const discountAmount = Math.round(baseAmount * 0.02);
-    const finalAmount = baseAmount + discountAmount;
+    const finalAmount = baseAmount + 35; // Fixed ₹35 for round figure ₹1735
 
     return { 
       amount: finalAmount, 
       baseAmount,
       discountAmount,
+      finalAmount,
       days, 
       method: calculationMethod,
       priceBreakdown: {

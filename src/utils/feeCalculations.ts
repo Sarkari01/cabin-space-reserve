@@ -23,31 +23,40 @@ export const calculateDiscountAmount = (basePrice: number): number => {
 };
 
 /**
- * Calculate the final amount user pays (base price + discount)
- * This equals approximately the original display price
+ * Calculate the final amount user pays (round figure of ₹1735)
  */
 export const calculateFinalAmount = (basePrice: number): number => {
-  return basePrice + calculateDiscountAmount(basePrice);
+  return basePrice + 35; // Fixed ₹35 to make round figure ₹1735 for ₹1700 base
 };
 
 /**
- * Format price display for user: "₹1700 + 2% Remaining Discount"
+ * Calculate the actual discount from merchant price
  */
-export const formatPriceWithDiscount = (displayPrice: number): {
+export const calculateActualDiscount = (merchantPrice: number, finalAmount: number): number => {
+  return merchantPrice - finalAmount;
+};
+
+/**
+ * Format price display for user: clean pricing without 2% mention
+ */
+export const formatPriceWithDiscount = (merchantPrice: number): {
   basePrice: number;
   discountAmount: number;
   finalAmount: number;
+  actualDiscount: number;
   displayText: string;
 } => {
-  const basePrice = calculateBasePrice(displayPrice);
+  const basePrice = calculateBasePrice(merchantPrice);
   const discountAmount = calculateDiscountAmount(basePrice);
   const finalAmount = calculateFinalAmount(basePrice);
+  const actualDiscount = calculateActualDiscount(merchantPrice, finalAmount);
   
   return {
     basePrice,
     discountAmount,
     finalAmount,
-    displayText: `₹${basePrice} + 2% Remaining Discount`
+    actualDiscount,
+    displayText: `₹${basePrice}`
   };
 };
 

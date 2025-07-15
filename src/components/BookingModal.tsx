@@ -53,6 +53,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     amount: number; 
     baseAmount?: number;
     discountAmount?: number;
+    finalAmount?: number;
     days: number; 
     method: string;
     priceBreakdown?: {
@@ -401,13 +402,13 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="daily">
-                  Daily - ₹{studyHall.daily_price - 100} + 2% Remaining Discount
+                  Daily - ₹{studyHall.daily_price - 100}
                 </SelectItem>
                 <SelectItem value="weekly">
-                  Weekly - ₹{studyHall.weekly_price - 100} + 2% Remaining Discount
+                  Weekly - ₹{studyHall.weekly_price - 100}
                 </SelectItem>
                 <SelectItem value="monthly">
-                  Monthly - ₹{studyHall.monthly_price - 100} + 2% Remaining Discount
+                  Monthly - ₹{studyHall.monthly_price - 100}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -443,18 +444,18 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
               <div className="space-y-2">
                 {calculatedAmount && (
                   <>
-                    <div className="flex justify-between items-center text-sm">
-                      <span>Base Price:</span>
-                      <span>₹{(calculatedAmount.baseAmount || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm text-green-600">
-                      <span>2% Remaining Discount:</span>
-                      <span>+ ₹{(calculatedAmount.discountAmount || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="border-t pt-2 flex justify-between items-center">
-                      <span className="font-medium">Total Amount:</span>
-                      <span className="text-lg font-bold">₹{getCurrentAmount().toLocaleString()}</span>
-                    </div>
+                     <div className="flex justify-between items-center text-sm">
+                       <span>Original Price:</span>
+                       <span>₹{getCurrentAmount().toLocaleString()}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-sm text-green-600">
+                       <span>Discount Applied:</span>
+                       <span>-₹{(getCurrentAmount() - (calculatedAmount.finalAmount || getCurrentAmount())).toLocaleString()}</span>
+                     </div>
+                     <div className="border-t pt-2 flex justify-between items-center">
+                       <span className="font-medium">Total Amount:</span>
+                       <span className="text-lg font-bold">₹{(calculatedAmount.finalAmount || getCurrentAmount()).toLocaleString()}</span>
+                     </div>
                     <div className="text-sm text-muted-foreground">
                       {calculatedAmount.days} day{calculatedAmount.days !== 1 ? 's' : ''} • 
                       Calculated using {calculatedAmount.method} pricing
