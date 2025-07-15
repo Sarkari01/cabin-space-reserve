@@ -32,8 +32,23 @@ export function MerchantBalanceCard({ balance, loading, onRequestWithdrawal }: M
   if (!balance) {
     return (
       <Card>
-        <CardContent className="p-6 text-center text-muted-foreground">
-          No balance information available
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <IndianRupee className="h-5 w-5" />
+            Balance Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="text-center space-y-4">
+            <div className="text-3xl font-bold text-muted-foreground">₹0.00</div>
+            <p className="text-sm text-muted-foreground">
+              No transactions found yet. Start accepting bookings to see your balance.
+            </p>
+            <Button variant="outline" size="sm" disabled>
+              <Download className="h-4 w-4 mr-2" />
+              No Balance Available
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );

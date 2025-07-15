@@ -193,29 +193,45 @@ export function MerchantSettlementsTab() {
         <TabsContent value="settlements">
           <ErrorBoundary fallback={
             <Card>
+              <CardHeader>
+                <CardTitle>Settlement History</CardTitle>
+                <CardDescription>Your settlement records and payments</CardDescription>
+              </CardHeader>
               <CardContent className="p-6">
-                <div className="text-muted-foreground">Unable to load settlements data</div>
+                <div className="text-center space-y-4">
+                  <div className="text-muted-foreground">
+                    Unable to load settlements data. Please refresh the page or contact support if the issue persists.
+                  </div>
+                  <Button variant="outline" onClick={() => window.location.reload()}>
+                    Refresh Page
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           }>
             <ResponsiveTable
               data={filteredSettlements}
               columns={[
-                {
-                  key: "settlement_number",
-                  title: "Settlement #",
-                  render: (item: any) => {
-                    try {
-                      const settlementNum = item?.settlement_number;
-                      if (settlementNum === 0) return "#000000";
-                      if (!settlementNum) return "#N/A";
-                      return `#${String(settlementNum).padStart(6, '0')}`;
-                    } catch (error) {
-                      console.error("Error rendering settlement number:", error);
-                      return "#ERROR";
+                  {
+                    key: "settlement_number",
+                    title: "Settlement #",
+                    render: (item: any) => {
+                      try {
+                        const settlementNum = item?.settlement_number;
+                        if (!settlementNum || settlementNum === 0) {
+                          return (
+                            <span className="text-muted-foreground">
+                              #PENDING
+                            </span>
+                          );
+                        }
+                        return `#${String(settlementNum).padStart(6, '0')}`;
+                      } catch (error) {
+                        console.error("Error rendering settlement number:", error);
+                        return <span className="text-red-500">#ERROR</span>;
+                      }
                     }
-                  }
-                },
+                  },
                 {
                   key: "status",
                   title: "Status",
