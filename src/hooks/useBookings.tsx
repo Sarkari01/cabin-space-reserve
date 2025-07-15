@@ -363,12 +363,24 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
 
   const updateBooking = async (bookingId: string, updates: Partial<Booking>) => {
     try {
-      const { error } = await supabase
+      console.log("Updating booking:", bookingId, "with updates:", updates);
+      
+      const { data, error } = await supabase
         .from("bookings")
-        .update(updates)
-        .eq("id", bookingId);
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", bookingId)
+        .select("*")
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
+
+      console.log("Booking updated successfully:", data);
 
       toast({
         title: "Success",
@@ -382,7 +394,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
       console.error("Error updating booking:", error);
       toast({
         title: "Error",
-        description: "Failed to update booking",
+        description: `Failed to update booking: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
       return false;

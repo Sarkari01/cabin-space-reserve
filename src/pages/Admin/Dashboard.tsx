@@ -8,6 +8,7 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
 import { useBookings } from "@/hooks/useBookings";
+import { supabase } from "@/integrations/supabase/client";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { UserModal } from "@/components/admin/UserModal";
 import { BannersTab } from "@/components/admin/BannersTab";
@@ -20,6 +21,7 @@ import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
 import { useToast } from "@/hooks/use-toast";
 import { BookingDetailModal } from "@/components/BookingDetailModal";
+import { BookingEditModal } from "@/components/BookingEditModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { MerchantDetailModal } from "@/components/admin/MerchantDetailModal";
 import { MerchantEditModal } from "@/components/admin/MerchantEditModal";
@@ -46,7 +48,7 @@ const AdminDashboard = () => {
     deleteUser, 
     updateStudyHallStatus 
   } = useAdminData();
-  const { bookings, loading: bookingsLoading } = useBookings();
+  const { bookings, loading: bookingsLoading, fetchBookings } = useBookings();
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   const { toast } = useToast();
 
@@ -57,6 +59,7 @@ const AdminDashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
+  const [bookingEditOpen, setBookingEditOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
   const [merchantDetailOpen, setMerchantDetailOpen] = useState(false);
@@ -153,6 +156,45 @@ const AdminDashboard = () => {
   const handleViewBookingDetails = (booking: any) => {
     setSelectedBooking(booking);
     setBookingDetailOpen(true);
+  };
+
+  const handleEditBooking = (booking: any) => {
+    setSelectedBooking(booking);
+    setBookingEditOpen(true);
+  };
+
+  const handleSaveBooking = async (bookingId: string, updates: any) => {
+    setActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", bookingId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Booking updated successfully",
+      });
+
+      // Refresh bookings to show the updated information
+      fetchBookings();
+      setActionLoading(false);
+      return true;
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      toast({
+        title: "Error", 
+        description: `Failed to update booking: ${error.message}`,
+        variant: "destructive",
+      });
+      setActionLoading(false);
+      return false;
+    }
   };
 
   const filteredUsers = users.filter(user => 
@@ -680,6 +722,7 @@ const AdminDashboard = () => {
                                 variant="outline" 
                                 size="sm"
                                 disabled={actionLoading}
+                                onClick={() => handleEditBooking(booking)}
                               >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Manage
@@ -803,6 +846,15 @@ const AdminDashboard = () => {
         onOpenChange={setBookingDetailOpen}
         booking={selectedBooking}
         userRole="admin"
+        loading={actionLoading}
+      />
+
+      {/* Booking Edit Modal */}
+      <BookingEditModal 
+        booking={selectedBooking}
+        open={bookingEditOpen}
+        onOpenChange={setBookingEditOpen}
+        onSave={handleSaveBooking}
         loading={actionLoading}
       />
 
