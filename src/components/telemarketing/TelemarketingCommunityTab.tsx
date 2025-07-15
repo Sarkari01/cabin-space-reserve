@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -184,11 +185,11 @@ export function TelemarketingCommunityTab() {
                     <div className="flex gap-4 text-sm">
                       <span className="flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
-                        {post.comments?.length || 0}
+                        {post.community_comments?.length || 0}
                       </span>
                       <span className="flex items-center gap-1">
                         <Heart className="h-3 w-3" />
-                        {post.reactions?.length || 0}
+                        {post.community_reactions?.length || 0}
                       </span>
                     </div>
                   </TableCell>
@@ -241,9 +242,9 @@ export function TelemarketingCommunityTab() {
 
                               {/* Comments */}
                               <div>
-                                <h3 className="font-semibold mb-4">Comments ({selectedPost.comments?.length || 0})</h3>
+                                <h3 className="font-semibold mb-4">Comments ({selectedPost.community_comments?.length || 0})</h3>
                                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                                  {selectedPost.comments?.map((comment: any) => (
+                                  {selectedPost.community_comments?.map((comment: any) => (
                                     <Card key={comment.id}>
                                       <CardContent className="p-4">
                                         <div className="flex justify-between items-start">
@@ -284,9 +285,9 @@ export function TelemarketingCommunityTab() {
 
                               {/* Reactions */}
                               <div>
-                                <h3 className="font-semibold mb-4">Reactions ({selectedPost.reactions?.length || 0})</h3>
+                                <h3 className="font-semibold mb-4">Reactions ({selectedPost.community_reactions?.length || 0})</h3>
                                 <div className="flex flex-wrap gap-2">
-                                  {selectedPost.reactions?.map((reaction: any) => (
+                                  {selectedPost.community_reactions?.map((reaction: any) => (
                                     <Badge key={reaction.id} variant="outline">
                                       {reaction.emoji} {reaction.profiles?.full_name || "Anonymous"}
                                     </Badge>

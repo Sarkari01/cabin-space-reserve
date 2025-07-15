@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -127,17 +128,17 @@ export function TelemarketingChatTab() {
                     <TableCell>
                       <div className="space-y-1">
                         <div className="font-medium">
-                          {conversation.participant1?.full_name || "User 1"}
+                          {conversation.participant_1_profile?.full_name || "User 1"}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          ↔ {conversation.participant2?.full_name || "User 2"}
+                          ↔ {conversation.participant_2_profile?.full_name || "User 2"}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <MessageCircle className="h-4 w-4" />
-                        {conversation.messages?.length || 0}
+                        {conversation.chat_messages?.length || 0}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -178,16 +179,16 @@ export function TelemarketingChatTab() {
                               <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
                                 <div>
                                   <h4 className="font-medium">Participant 1</h4>
-                                  <p>{selectedConversation.participant1?.full_name || "Unknown"}</p>
+                                  <p>{selectedConversation.participant_1_profile?.full_name || "Unknown"}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    {selectedConversation.participant1?.email}
+                                    {selectedConversation.participant_1_profile?.email}
                                   </p>
                                 </div>
                                 <div>
                                   <h4 className="font-medium">Participant 2</h4>
-                                  <p>{selectedConversation.participant2?.full_name || "Unknown"}</p>
+                                  <p>{selectedConversation.participant_2_profile?.full_name || "Unknown"}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    {selectedConversation.participant2?.email}
+                                    {selectedConversation.participant_2_profile?.email}
                                   </p>
                                 </div>
                               </div>
@@ -196,7 +197,7 @@ export function TelemarketingChatTab() {
                               <div>
                                 <h3 className="font-semibold mb-4">Messages</h3>
                                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                                  {selectedConversation.messages?.map((message: any) => (
+                                  {selectedConversation.chat_messages?.map((message: any) => (
                                     <div 
                                       key={message.id} 
                                       className={`p-3 rounded-lg ${
@@ -208,8 +209,8 @@ export function TelemarketingChatTab() {
                                       <div className="flex justify-between items-start mb-2">
                                         <span className="font-medium">
                                           {message.sender_id === selectedConversation.participant_1 
-                                            ? selectedConversation.participant1?.full_name 
-                                            : selectedConversation.participant2?.full_name}
+                                            ? selectedConversation.participant_1_profile?.full_name 
+                                            : selectedConversation.participant_2_profile?.full_name}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
                                           {format(new Date(message.created_at), "MMM dd, HH:mm")}
@@ -235,7 +236,7 @@ export function TelemarketingChatTab() {
                               <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                                 <div className="text-center">
                                   <div className="text-2xl font-bold">
-                                    {selectedConversation.messages?.length || 0}
+                                    {selectedConversation.chat_messages?.length || 0}
                                   </div>
                                   <div className="text-sm text-muted-foreground">Total Messages</div>
                                 </div>
