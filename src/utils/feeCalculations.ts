@@ -7,8 +7,8 @@
 export const RAZORPAY_FEE_RATE = 0.02; // 2%
 
 /**
- * Calculate the base price from merchant price (removing the hidden ₹100 margin)
- * Merchant price (₹1800) -> Customer base price (₹1700)
+ * Calculate the original price from merchant's base price (removing the hidden ₹100 margin)
+ * Merchant's base price (₹1800) -> Original price (₹1700)
  */
 export const calculateBasePrice = (merchantPrice: number): number => {
   return merchantPrice - 100; // Fixed ₹100 deduction
@@ -16,18 +16,18 @@ export const calculateBasePrice = (merchantPrice: number): number => {
 
 /**
  * Calculate the "discount" amount that covers the Razorpay fee
- * Base price (₹1700) -> Discount amount (₹34)
+ * Original price (₹1700) -> Discount amount (₹34)
  */
-export const calculateDiscountAmount = (basePrice: number): number => {
-  return Math.round(basePrice * RAZORPAY_FEE_RATE);
+export const calculateDiscountAmount = (originalPrice: number): number => {
+  return Math.round(originalPrice * RAZORPAY_FEE_RATE);
 };
 
 /**
- * Calculate the final amount user pays (base + 2% + ₹1 for round figure)
+ * Calculate the final amount user pays (original price + 2%)
  */
-export const calculateFinalAmount = (basePrice: number): number => {
-  const feeAmount = Math.round(basePrice * RAZORPAY_FEE_RATE); // 2% fee
-  return basePrice + feeAmount + 1; // Add ₹1 for round figure
+export const calculateFinalAmount = (originalPrice: number): number => {
+  const feeAmount = Math.round(originalPrice * RAZORPAY_FEE_RATE); // 2% fee
+  return originalPrice + feeAmount; // No rounding, just original + 2%
 };
 
 /**
@@ -47,17 +47,17 @@ export const formatPriceWithDiscount = (merchantPrice: number): {
   actualDiscount: number;
   displayText: string;
 } => {
-  const basePrice = calculateBasePrice(merchantPrice);
-  const discountAmount = calculateDiscountAmount(basePrice);
-  const finalAmount = calculateFinalAmount(basePrice);
+  const originalPrice = calculateBasePrice(merchantPrice);
+  const discountAmount = calculateDiscountAmount(originalPrice);
+  const finalAmount = calculateFinalAmount(originalPrice);
   const actualDiscount = calculateActualDiscount(merchantPrice, finalAmount);
   
   return {
-    basePrice,
+    basePrice: originalPrice,
     discountAmount,
     finalAmount,
     actualDiscount,
-    displayText: `₹${basePrice}`
+    displayText: `₹${originalPrice}`
   };
 };
 
@@ -87,7 +87,7 @@ export const calculateBookingAmountWithFees = (
   const timeDiff = end.getTime() - start.getTime();
   const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
-  // Calculate customer base prices (merchant price - ₹100)
+  // Calculate customer original prices (merchant price - ₹100)
   const baseDailyPrice = calculateBasePrice(dailyMerchantPrice);
   const baseWeeklyPrice = calculateBasePrice(weeklyMerchantPrice);
   const baseMonthlyPrice = calculateBasePrice(monthlyMerchantPrice);
