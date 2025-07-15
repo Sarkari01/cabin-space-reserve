@@ -84,7 +84,7 @@ export const BusinessInfoStep = ({ profile, updateProfile }: BusinessInfoStepPro
 
         <div className="space-y-2">
           <Label htmlFor="trade_license_number" className="text-sm font-medium">
-            Trade License Number <span className="text-destructive">*</span>
+            Trade License Number <span className="text-muted-foreground">(Optional)</span>
           </Label>
           <Input
             id="trade_license_number"
@@ -110,7 +110,7 @@ export const BusinessInfoStep = ({ profile, updateProfile }: BusinessInfoStepPro
 
       <div className="space-y-2">
         <Label className="text-sm font-medium">
-          Trade License Document <span className="text-destructive">*</span>
+          Trade License Document <span className="text-muted-foreground">(Optional)</span>
         </Label>
         <DocumentUpload
           onUpload={handleDocumentUpload}
@@ -119,7 +119,7 @@ export const BusinessInfoStep = ({ profile, updateProfile }: BusinessInfoStepPro
           maxSize={2 * 1024 * 1024} // 2MB
         />
         <p className="text-xs text-muted-foreground">
-          Upload your trade license document (PDF, JPG, PNG - max 2MB)
+          Upload your trade license document if available (PDF, JPG, PNG - max 2MB)
         </p>
       </div>
 

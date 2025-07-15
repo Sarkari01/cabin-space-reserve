@@ -20,7 +20,7 @@ export const MerchantOnboardingForm = () => {
     {
       id: 1,
       title: "Business Information",
-      description: "Basic business details and trade license",
+      description: "Basic business details and contact information",
       icon: Building,
       component: BusinessInfoStep,
     },
@@ -77,7 +77,7 @@ export const MerchantOnboardingForm = () => {
     
     switch (currentStep) {
       case 1:
-        return !!(profile.phone && profile.business_address && profile.trade_license_number);
+        return !!(profile.phone && profile.business_address);
       case 2:
         return !!(profile.account_holder_name && profile.bank_name && profile.account_number && profile.ifsc_code);
       case 3:
