@@ -874,6 +874,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_cancel_unpaid_bookings: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      auto_complete_expired_bookings: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       auto_recover_pending_ekqr_payments: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -889,6 +897,18 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      progress_booking_statuses: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      run_booking_lifecycle_checks: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      send_booking_reminders: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
