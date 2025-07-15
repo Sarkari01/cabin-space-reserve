@@ -17,7 +17,7 @@ export interface UserProfile {
   email: string;
   full_name: string | null;
   phone: string | null;
-  role: 'admin' | 'merchant' | 'student';
+  role: 'admin' | 'merchant' | 'student' | 'incharge';
   created_at: string;
   updated_at: string;
 }

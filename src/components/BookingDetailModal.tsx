@@ -10,7 +10,7 @@ interface BookingDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   booking: Booking | null;
-  userRole: "student" | "merchant" | "admin";
+  userRole: "student" | "merchant" | "admin" | "incharge";
   onConfirm?: (bookingId: string) => void;
   onCancel?: (bookingId: string) => void;
   onEdit?: (booking: Booking) => void;

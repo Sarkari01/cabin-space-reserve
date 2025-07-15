@@ -8,7 +8,7 @@ import { safeFormatDate } from "@/lib/dateUtils";
 
 interface BookingQRCodeProps {
   booking: Booking;
-  userRole: "student" | "merchant" | "admin";
+  userRole: "student" | "merchant" | "admin" | "incharge";
 }
 
 export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
@@ -155,8 +155,8 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
             </div>
           </div>
 
-          {/* Customer Info (only for merchants/admins) */}
-          {(userRole === 'merchant' || userRole === 'admin') && (
+          {/* Customer Info (only for merchants/admins/incharges) */}
+          {(userRole === 'merchant' || userRole === 'admin' || userRole === 'incharge') && (
             <div className="border-t pt-4">
               <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">Customer</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
