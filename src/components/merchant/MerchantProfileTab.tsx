@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useMerchantProfile } from "@/hooks/useMerchantProfile";
 import { MerchantOnboardingForm } from "./MerchantOnboardingForm";
+import ProfileSection from "@/components/ProfileSection";
 import { 
   Edit, 
   Building, 
@@ -21,6 +22,7 @@ import {
 export const MerchantProfileTab = () => {
   const { profile, documents, loading } = useMerchantProfile();
   const [isEditing, setIsEditing] = useState(false);
+  const [showDetailedProfile, setShowDetailedProfile] = useState(false);
 
   if (loading) {
     return (
@@ -30,6 +32,29 @@ export const MerchantProfileTab = () => {
             <div key={i} className="h-32 bg-muted rounded-lg"></div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // Show enhanced profile section if user wants detailed view
+  if (showDetailedProfile) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold">Profile Settings</h2>
+            <p className="text-muted-foreground">
+              Manage your profile information and settings
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowDetailedProfile(false)}
+          >
+            Back to Business Profile
+          </Button>
+        </div>
+        <ProfileSection />
       </div>
     );
   }
@@ -102,9 +127,12 @@ export const MerchantProfileTab = () => {
         </div>
         <div className="flex gap-2">
           {getVerificationStatusBadge(profile.verification_status)}
+          <Button variant="outline" onClick={() => setShowDetailedProfile(true)}>
+            Profile Settings
+          </Button>
           <Button onClick={() => setIsEditing(true)}>
             <Edit className="h-4 w-4 mr-2" />
-            Edit Profile
+            Edit Business Info
           </Button>
         </div>
       </div>
