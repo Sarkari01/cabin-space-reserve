@@ -30,12 +30,14 @@ export const useBookingAvailability = () => {
     try {
       console.log(`Checking availability for seat ${seatId} from ${startDate} to ${endDate}`);
       
+      // Use proper date range overlap logic: (start1 <= end2) AND (end1 >= start2)
       const { data: conflicts, error } = await supabase
         .from('bookings')
         .select('id, start_date, end_date, user_id')
         .eq('seat_id', seatId)
         .in('status', ['confirmed', 'active', 'pending'])
-        .or(`and(start_date.lte.${endDate},end_date.gte.${startDate})`);
+        .lte('start_date', endDate)
+        .gte('end_date', startDate);
 
       if (error) {
         console.error('Error checking seat availability:', error);
@@ -43,6 +45,7 @@ export const useBookingAvailability = () => {
       }
 
       const hasConflicts = conflicts && conflicts.length > 0;
+      console.log(`Availability check result: ${hasConflicts ? 'UNAVAILABLE' : 'AVAILABLE'} (${conflicts?.length || 0} conflicts)`);
       
       return {
         available: !hasConflicts,
@@ -72,44 +75,64 @@ export const useBookingAvailability = () => {
     startDate: string,
     endDate: string
   ): Promise<Record<string, boolean>> => {
+    const timeoutDuration = 10000; // 10 second timeout
+    
     try {
       console.log(`Getting availability map for study hall ${studyHallId} from ${startDate} to ${endDate}`);
       
-      // Get all seats for the study hall
-      const { data: seats, error: seatsError } = await supabase
-        .from('seats')
-        .select('id')
-        .eq('study_hall_id', studyHallId);
-
-      if (seatsError) throw seatsError;
-
-      if (!seats || seats.length === 0) {
-        return {};
-      }
-
-      // Get all conflicting bookings for the date range
-      const { data: conflicts, error: conflictsError } = await supabase
-        .from('bookings')
-        .select('seat_id')
-        .eq('study_hall_id', studyHallId)
-        .in('status', ['confirmed', 'active', 'pending'])
-        .or(`and(start_date.lte.${endDate},end_date.gte.${startDate})`);
-
-      if (conflictsError) throw conflictsError;
-
-      const occupiedSeatIds = new Set(conflicts?.map(c => c.seat_id) || []);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
       
-      const availabilityMap: Record<string, boolean> = {};
-      seats.forEach(seat => {
-        availabilityMap[seat.id] = !occupiedSeatIds.has(seat.id);
-      });
+      try {
+        // Get all seats for the study hall
+        const { data: seats, error: seatsError } = await supabase
+          .from('seats')
+          .select('id')
+          .eq('study_hall_id', studyHallId)
+          .abortSignal(controller.signal);
 
-      return availabilityMap;
+        if (seatsError) throw seatsError;
+
+        if (!seats || seats.length === 0) {
+          clearTimeout(timeoutId);
+          return {};
+        }
+
+        // Use proper date range overlap logic: (start1 <= end2) AND (end1 >= start2)
+        const { data: conflicts, error: conflictsError } = await supabase
+          .from('bookings')
+          .select('seat_id')
+          .eq('study_hall_id', studyHallId)
+          .in('status', ['confirmed', 'active', 'pending'])
+          .lte('start_date', endDate)
+          .gte('end_date', startDate)
+          .abortSignal(controller.signal);
+
+        if (conflictsError) throw conflictsError;
+
+        clearTimeout(timeoutId);
+        
+        const occupiedSeatIds = new Set(conflicts?.map(c => c.seat_id) || []);
+        console.log(`Found ${conflicts?.length || 0} conflicting bookings affecting ${occupiedSeatIds.size} seats`);
+        
+        const availabilityMap: Record<string, boolean> = {};
+        seats.forEach(seat => {
+          availabilityMap[seat.id] = !occupiedSeatIds.has(seat.id);
+        });
+
+        return availabilityMap;
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Request timeout - please try again');
+        }
+        throw error;
+      }
     } catch (error: any) {
       console.error('Error in getSeatAvailabilityMap:', error);
       toast({
         title: "Error",
-        description: "Failed to get seat availability",
+        description: error.message || "Failed to get seat availability",
         variant: "destructive",
       });
       return {};

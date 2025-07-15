@@ -66,10 +66,19 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
   // Check availability when dates change
   useEffect(() => {
+    let isCancelled = false;
+    const timeoutId = setTimeout(() => {
+      if (!isCancelled) {
+        setCheckingAvailability(false);
+        setAvailabilityError("Request timeout - please try again");
+      }
+    }, 15000); // 15 second timeout
+
     const checkAvailability = async () => {
       if (!studyHall || !startDate || !endDate) {
         setAvailabilityMap({});
         setCalculatedAmount(null);
+        clearTimeout(timeoutId);
         return;
       }
 
@@ -77,6 +86,8 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
       setAvailabilityError("");
       
       try {
+        console.log('Starting availability check for dates:', startDate, 'to', endDate);
+        
         // Calculate amount based on actual date range
         const amountCalc = calculateBookingAmount(
           startDate, 
@@ -85,31 +96,49 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
           studyHall.weekly_price, 
           studyHall.monthly_price
         );
-        setCalculatedAmount(amountCalc);
+        
+        if (!isCancelled) {
+          setCalculatedAmount(amountCalc);
+        }
 
         // Get availability for the date range
         const availability = await getSeatAvailabilityMap(studyHall.id, startDate, endDate);
-        setAvailabilityMap(availability);
         
-        // Clear selected seat if it's no longer available
-        if (selectedSeat && !availability[selectedSeat]) {
-          setSelectedSeat("");
-          toast({
-            title: "Seat No Longer Available",
-            description: "Your selected seat is not available for the chosen dates. Please select another seat.",
-            variant: "destructive",
-          });
+        if (!isCancelled) {
+          setAvailabilityMap(availability);
+          
+          // Clear selected seat if it's no longer available
+          if (selectedSeat && !availability[selectedSeat]) {
+            setSelectedSeat("");
+            toast({
+              title: "Seat No Longer Available",
+              description: "Your selected seat is not available for the chosen dates. Please select another seat.",
+              variant: "destructive",
+            });
+          }
+          
+          console.log('Availability check completed successfully');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error checking availability:', error);
-        setAvailabilityError("Failed to check availability for selected dates");
+        if (!isCancelled) {
+          setAvailabilityError(error.message || "Failed to check availability for selected dates");
+        }
       } finally {
-        setCheckingAvailability(false);
+        clearTimeout(timeoutId);
+        if (!isCancelled) {
+          setCheckingAvailability(false);
+        }
       }
     };
 
     checkAvailability();
-  }, [studyHall, startDate, endDate, getSeatAvailabilityMap, calculateBookingAmount, selectedSeat, toast]);
+    
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [studyHall, startDate, endDate, selectedSeat]);
 
   useEffect(() => {
     if (open && studyHall) {

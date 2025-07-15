@@ -46,21 +46,21 @@ export const createBookingFromIntent = async (
       throw new Error('End date must be after start date');
     }
 
-    // Final availability check before creating booking
+    // Final availability check before creating booking using database function
     console.log('Performing final availability check...');
-    const { data: conflictCheck, error: conflictError } = await supabase
-      .from('bookings')
-      .select('id')
-      .eq('seat_id', bookingIntent.seat_id)
-      .in('status', ['confirmed', 'active', 'pending'])
-      .or(`and(start_date.lte.${bookingIntent.end_date},end_date.gte.${bookingIntent.start_date})`);
+    const { data: availabilityResult, error: availabilityError } = await supabase
+      .rpc('check_seat_availability', {
+        p_seat_id: bookingIntent.seat_id,
+        p_start_date: bookingIntent.start_date,
+        p_end_date: bookingIntent.end_date
+      });
 
-    if (conflictError) {
-      console.error('Error checking for conflicts:', conflictError);
+    if (availabilityError) {
+      console.error('Error checking seat availability:', availabilityError);
       throw new Error('Failed to verify seat availability');
     }
 
-    if (conflictCheck && conflictCheck.length > 0) {
+    if (!availabilityResult) {
       throw new Error('Seat is no longer available for the selected dates. Another booking may have been created.');
     }
 
