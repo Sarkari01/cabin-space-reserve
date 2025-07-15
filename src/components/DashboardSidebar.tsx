@@ -117,9 +117,12 @@ const sidebarItems = {
   ],
   telemarketing_executive: [
     { title: "Dashboard", url: "/telemarketing/dashboard", icon: Home, tab: "overview" },
+    { title: "Users Management", url: "/telemarketing/dashboard", icon: Users, tab: "users" },
+    { title: "Study Halls", url: "/telemarketing/dashboard", icon: Building, tab: "studyhalls" },
+    { title: "Bookings", url: "/telemarketing/dashboard", icon: Calendar, tab: "bookings" },
+    { title: "Transactions", url: "/telemarketing/dashboard", icon: CreditCard, tab: "transactions" },
     { title: "Call Logs", url: "/telemarketing/dashboard", icon: Phone, tab: "call-logs" },
-    { title: "Contacts", url: "/telemarketing/dashboard", icon: Users, tab: "contacts" },
-    { title: "Performance", url: "/telemarketing/dashboard", icon: BarChart3, tab: "performance" },
+    { title: "Analytics", url: "/telemarketing/dashboard", icon: BarChart3, tab: "analytics" },
     { title: "Profile", url: "/telemarketing/dashboard", icon: Settings, tab: "profile" },
   ],
   pending_payments_caller: [

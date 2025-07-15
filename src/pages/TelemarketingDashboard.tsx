@@ -6,16 +6,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Phone, Users, Clock, CheckCircle, AlertCircle, Search } from 'lucide-react';
+import { Phone, Users, Clock, CheckCircle, AlertCircle, Search, Building, Calendar, CreditCard, BarChart3 } from 'lucide-react';
 import { useAdminData } from '@/hooks/useAdminData';
 import { useCallLogs } from '@/hooks/useCallLogs';
 import { CallLogModal } from '@/components/CallLogModal';
 import { ResponsiveTable } from '@/components/ResponsiveTable';
+import { TelemarketingUsersTab } from '@/components/telemarketing/TelemarketingUsersTab';
+import { TelemarketingStudyHallsTab } from '@/components/telemarketing/TelemarketingStudyHallsTab';
+import { TelemarketingBookingsTab } from '@/components/telemarketing/TelemarketingBookingsTab';
+import { TelemarketingTransactionsTab } from '@/components/telemarketing/TelemarketingTransactionsTab';
+import { TransactionsTab } from '@/components/admin/TransactionsTab';
+import { EnhancedAnalytics } from '@/components/EnhancedAnalytics';
+import { PageHeader } from '@/components/PageHeader';
+import UserProfileSettings from '@/components/UserProfileSettings';
 
 const TelemarketingDashboard = () => {
   const { user, userRole, loading } = useAuth();
-  const { merchants, loading: merchantsLoading } = useAdminData();
+  const { merchants, stats, loading: merchantsLoading } = useAdminData();
   const { callLogs, loading: callLogsLoading, createCallLog } = useCallLogs();
+  const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [callModalOpen, setCallModalOpen] = useState(false);
@@ -141,91 +150,265 @@ const TelemarketingDashboard = () => {
   ] as any;
 
   return (
-    <DashboardSidebar userRole={userRole} userName={user.email || 'Telemarketing Executive'}>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Telemarketing Dashboard</h1>
-        </div>
+    <DashboardSidebar 
+      userRole={userRole} 
+      userName={user.email || 'Telemarketing Executive'}
+      onTabChange={setActiveTab}
+      activeTab={activeTab}
+    >
+      <div className="space-y-6">
+        {/* Overview Tab */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            <PageHeader
+              title="Telemarketing Dashboard"
+              description="Comprehensive sub-admin platform management"
+              breadcrumbs={[
+                { label: "Dashboard", active: true }
+              ]}
+            />
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Merchants</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{merchants.length}</div>
-            </CardContent>
-          </Card>
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalUsers || 0}</div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today's Calls</CardTitle>
-              <Phone className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{todayCalls.length}</div>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Study Halls</CardTitle>
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.activeStudyHalls || 0}</div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Successful Calls</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {todayCalls.filter(call => call.call_status === 'completed').length}
-              </div>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalBookings || 0}</div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Follow-ups</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {callLogs.filter(call => call.follow_up_date && new Date(call.follow_up_date) >= new Date()).length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Merchant List */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Merchants to Contact</CardTitle>
-              <div className="flex gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search merchants..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 w-64"
-                  />
-                </div>
-              </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Today's Calls</CardTitle>
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{todayCalls.length}</div>
+                </CardContent>
+              </Card>
             </div>
-          </CardHeader>
-          <CardContent>
-            {merchantsLoading ? (
-              <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : (
-              <ResponsiveTable
-                data={telemarketingMerchants}
-                columns={merchantColumns}
-                emptyMessage="No merchants found"
-              />
-            )}
-          </CardContent>
-        </Card>
+
+            {/* Quick Actions */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Button 
+                className="h-20 flex flex-col items-center justify-center space-y-2"
+                onClick={() => setActiveTab('users')}
+              >
+                <Users className="h-6 w-6" />
+                <span>Manage Users</span>
+              </Button>
+              <Button 
+                className="h-20 flex flex-col items-center justify-center space-y-2"
+                onClick={() => setActiveTab('studyhalls')}
+              >
+                <Building className="h-6 w-6" />
+                <span>Study Halls</span>
+              </Button>
+              <Button 
+                className="h-20 flex flex-col items-center justify-center space-y-2"
+                onClick={() => setActiveTab('bookings')}
+              >
+                <Calendar className="h-6 w-6" />
+                <span>Bookings</span>
+              </Button>
+              <Button 
+                className="h-20 flex flex-col items-center justify-center space-y-2"
+                onClick={() => setActiveTab('transactions')}
+              >
+                <CreditCard className="h-6 w-6" />
+                <span>Transactions</span>
+              </Button>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Recent Call Activity</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setActiveTab('call-logs')}
+                    >
+                      View All
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {callLogs.slice(0, 3).map((call) => (
+                      <div key={call.id} className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{call.call_purpose}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(call.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant={call.call_status === 'completed' ? 'default' : 'secondary'}>
+                          {call.call_status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Merchants to Contact</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleMerchantCall(merchants[0])}
+                      disabled={merchants.length === 0}
+                    >
+                      Start Call
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {telemarketingMerchants.slice(0, 3).map((merchant) => (
+                      <div key={merchant.id} className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{merchant?.full_name || 'N/A'}</p>
+                          <p className="text-sm text-muted-foreground">{merchant?.email}</p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleMerchantCall(merchant)}
+                        >
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Users Management Tab */}
+        {activeTab === "users" && <TelemarketingUsersTab />}
+
+        {/* Study Halls Management Tab */}
+        {activeTab === "studyhalls" && <TelemarketingStudyHallsTab />}
+
+        {/* Bookings Management Tab */}
+        {activeTab === "bookings" && <TelemarketingBookingsTab />}
+
+        {/* Transactions Management Tab */}
+        {activeTab === "transactions" && <TelemarketingTransactionsTab />}
+
+        {/* Call Logs Tab */}
+        {activeTab === "call-logs" && (
+          <div className="space-y-6">
+            <PageHeader
+              title="Call Logs Management"
+              description="View and manage all call activities"
+              breadcrumbs={[
+                { label: "Dashboard", href: "#", onClick: () => setActiveTab('overview') },
+                { label: "Call Logs", active: true }
+              ]}
+            />
+            
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Merchants to Contact</CardTitle>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search merchants..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-8 w-64"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {merchantsLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <ResponsiveTable
+                    data={telemarketingMerchants}
+                    columns={merchantColumns}
+                    emptyMessage="No merchants found"
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+            <PageHeader
+              title="Analytics & Performance"
+              description="Platform performance metrics and insights"
+              breadcrumbs={[
+                { label: "Dashboard", href: "#", onClick: () => setActiveTab('overview') },
+                { label: "Analytics", active: true }
+              ]}
+            />
+            
+            <EnhancedAnalytics
+              data={[]}
+              title="Telemarketing Performance"
+              description="Call performance and platform metrics"
+              loading={false}
+            />
+          </div>
+        )}
+
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
+          <div className="space-y-6">
+            <PageHeader
+              title="Profile Settings"
+              description="Manage your account and preferences"
+              breadcrumbs={[
+                { label: "Dashboard", href: "#", onClick: () => setActiveTab('overview') },
+                { label: "Profile", active: true }
+              ]}
+            />
+            
+            <UserProfileSettings />
+          </div>
+        )}
 
         {/* Call Log Modal */}
         <CallLogModal
