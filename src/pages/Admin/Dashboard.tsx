@@ -36,6 +36,7 @@ import { RewardsTab } from "@/components/admin/RewardsTab";
 import { RewardsSettingsTab } from "@/components/admin/RewardsSettingsTab";
 import { CouponsTab } from "@/components/admin/CouponsTab";
 import { MerchantVerificationTab } from "@/components/admin/MerchantVerificationTab";
+import { InchargesTab } from "@/components/admin/InchargesTab";
 import { SettlementsTab } from "@/components/admin/SettlementsTab";
 import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
@@ -495,6 +496,9 @@ const AdminDashboard = () => {
               />
             </div>
           )}
+
+          {/* Incharges Tab */}
+          {activeTab === "incharges" && <InchargesTab />}
 
           {/* Merchants Tab */}
           {activeTab === "merchants" && (

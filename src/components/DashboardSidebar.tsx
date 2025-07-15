@@ -21,6 +21,7 @@ import {
   Gift,
   Ticket,
   ArrowUpDown,
+  UserPlus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -62,6 +63,7 @@ const sidebarItems = {
     { title: "Dashboard", url: "/merchant/dashboard", icon: Home, tab: "overview" },
     { title: "My Study Halls", url: "/merchant/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/merchant/dashboard", icon: Calendar, tab: "bookings" },
+    { title: "Incharges", url: "/merchant/dashboard", icon: UserPlus, tab: "incharges" },
     { title: "Coupons & Promotions", url: "/merchant/dashboard", icon: Ticket, tab: "coupons" },
     { title: "Settlements", url: "/merchant/dashboard", icon: ArrowUpDown, tab: "settlements" },
     { title: "Subscriptions", url: "/merchant/dashboard", icon: CreditCard, tab: "subscriptions" },
@@ -77,6 +79,7 @@ const sidebarItems = {
   admin: [
     { title: "Dashboard", url: "/admin/dashboard", icon: Home, tab: "overview" },
     { title: "Users", url: "/admin/dashboard", icon: Users, tab: "users" },
+    { title: "Incharges", url: "/admin/dashboard", icon: UserPlus, tab: "incharges" },
     { title: "Merchant Verification", url: "/admin/dashboard", icon: ShieldCheck, tab: "merchantverification" },
     { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
