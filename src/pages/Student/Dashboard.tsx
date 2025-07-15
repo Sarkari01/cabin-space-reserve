@@ -24,6 +24,7 @@ import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
 import { BookingLifecycleManager } from "@/components/BookingLifecycleManager";
 import UserProfileSettings from "@/components/UserProfileSettings";
 import { SeatSynchronizer } from "@/components/SeatSynchronizer";
+import { StudyHallSearchMap } from "@/components/maps/StudyHallSearchMap";
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading, fetchStudyHalls } = useStudyHalls();
@@ -463,6 +464,14 @@ const StudentDashboard = () => {
           {/* Transactions Tab */}
           {activeTab === "transactions" && (
             <StudentTransactionsTab />
+          )}
+
+          {/* Map Search Tab */}
+          {activeTab === "map" && (
+            <div className="space-y-6">
+              <h3 className="text-2xl font-semibold">Find Study Halls Near You</h3>
+              <StudyHallSearchMap onStudyHallSelect={handleViewStudyHall} />
+            </div>
           )}
 
           {/* Favorites Tab */}

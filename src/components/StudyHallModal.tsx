@@ -11,6 +11,7 @@ import { Plus, Minus, Grid3X3, DollarSign, Upload, X, Wifi, Snowflake, Car, Coff
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSeats } from "@/hooks/useStudyHalls";
+import { LocationPicker } from "@/components/maps/LocationPicker";
 
 interface Seat {
   id: string;
@@ -35,6 +36,9 @@ interface StudyHall {
   monthly_price: number;
   image_url?: string;
   status: "active" | "inactive";
+  latitude?: number;
+  longitude?: number;
+  formatted_address?: string;
 }
 
 interface StudyHallModalProps {
@@ -54,6 +58,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     name: "",
     description: "",
     location: "",
+    latitude: undefined,
+    longitude: undefined,
+    formatted_address: "",
     total_seats: 20,
     rows: 4,
     seats_per_row: 5,
@@ -78,6 +85,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
         name: "",
         description: "",
         location: "",
+        latitude: undefined,
+        longitude: undefined,
+        formatted_address: "",
         total_seats: 20,
         rows: 4,
         seats_per_row: 5,
@@ -195,6 +205,17 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     }));
   };
 
+  const handleLocationSelect = (location: { latitude: number; longitude: number; formattedAddress: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      formatted_address: location.formattedAddress,
+      // Also update the location field with formatted address for backwards compatibility
+      location: location.formattedAddress || prev.location,
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
@@ -215,8 +236,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="details">Basic Details</TabsTrigger>
+              <TabsTrigger value="location">Location</TabsTrigger>
               <TabsTrigger value="amenities">Amenities</TabsTrigger>
               <TabsTrigger value="layout">Seat Layout</TabsTrigger>
             </TabsList>
@@ -460,6 +482,63 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                       />
                     </div>
                   ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="location" className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Study Hall Location</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Set the precise location of your study hall for better discoverability
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="location">Address/Location Name</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="Enter study hall address or location name"
+                      disabled={mode === "view"}
+                    />
+                  </div>
+
+                  {mode !== "view" && (
+                    <div>
+                      <Label className="text-sm font-medium">Select Location on Map</Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Click on the map or search for your location to set precise coordinates
+                      </p>
+                      <LocationPicker
+                        onLocationSelect={handleLocationSelect}
+                        initialLocation={
+                          formData.latitude && formData.longitude
+                            ? {
+                                latitude: formData.latitude,
+                                longitude: formData.longitude,
+                                formattedAddress: formData.formatted_address || formData.location,
+                              }
+                            : undefined
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {formData.latitude && formData.longitude && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm font-medium">Coordinates:</p>
+                      <p className="text-xs text-muted-foreground">
+                        Latitude: {formData.latitude.toFixed(6)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Longitude: {formData.longitude.toFixed(6)}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>

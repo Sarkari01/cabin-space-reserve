@@ -1208,10 +1208,13 @@ export type Database = {
           custom_row_names: string[]
           daily_price: number
           description: string | null
+          formatted_address: string | null
           hall_number: number | null
           id: string
           image_url: string | null
+          latitude: number | null
           location: string
+          longitude: number | null
           merchant_id: string
           monthly_price: number
           name: string
@@ -1228,10 +1231,13 @@ export type Database = {
           custom_row_names?: string[]
           daily_price?: number
           description?: string | null
+          formatted_address?: string | null
           hall_number?: number | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
           location: string
+          longitude?: number | null
           merchant_id: string
           monthly_price?: number
           name: string
@@ -1248,10 +1254,13 @@ export type Database = {
           custom_row_names?: string[]
           daily_price?: number
           description?: string | null
+          formatted_address?: string | null
           hall_number?: number | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           merchant_id?: string
           monthly_price?: number
           name?: string
@@ -1589,6 +1598,10 @@ export type Database = {
           method: string
         }[]
       }
+      calculate_distance: {
+        Args: { lat1: number; lon1: number; lat2: number; lon2: number }
+        Returns: number
+      }
       check_seat_availability: {
         Args: { p_seat_id: string; p_start_date: string; p_end_date: string }
         Returns: boolean
@@ -1664,6 +1677,24 @@ export type Database = {
           plan_name: string
           status: string
           can_create_study_hall: boolean
+        }[]
+      }
+      get_nearby_study_halls: {
+        Args: { user_lat: number; user_lon: number; radius_km?: number }
+        Returns: {
+          id: string
+          name: string
+          location: string
+          formatted_address: string
+          latitude: number
+          longitude: number
+          distance_km: number
+          daily_price: number
+          weekly_price: number
+          monthly_price: number
+          amenities: Json
+          image_url: string
+          merchant_id: string
         }[]
       }
       get_unsettled_transactions_summary: {
