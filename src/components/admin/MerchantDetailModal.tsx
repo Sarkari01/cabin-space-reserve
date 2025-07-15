@@ -558,10 +558,7 @@ export function MerchantDetailModal({
                     <div className="flex justify-between">
                       <span className="font-medium">Account Number:</span>
                       <span className="font-mono">
-                        {merchantProfile.account_number ? 
-                          `****${merchantProfile.account_number.slice(-4)}` : 
-                          'Not provided'
-                        }
+                        {merchantProfile.account_number || 'Not provided'}
                       </span>
                     </div>
                     <div className="flex justify-between">

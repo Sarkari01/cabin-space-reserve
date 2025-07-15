@@ -407,7 +407,7 @@ const MerchantDetailView = ({
           </div>
           <div>
             <label className="text-sm font-medium text-muted-foreground">Account Number</label>
-            <p>{merchant.account_number ? `****${merchant.account_number.slice(-4)}` : 'Not provided'}</p>
+            <p>{merchant.account_number || 'Not provided'}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-muted-foreground">IFSC Code</label>

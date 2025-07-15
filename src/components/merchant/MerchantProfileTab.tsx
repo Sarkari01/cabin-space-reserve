@@ -229,10 +229,7 @@ export const MerchantProfileTab = () => {
             <div className="space-y-1">
               <label className="text-sm font-medium text-muted-foreground">Account Number</label>
               <span>
-                {profile.account_number ? 
-                  `****${profile.account_number.slice(-4)}` : 
-                  'Not provided'
-                }
+                {profile.account_number || 'Not provided'}
               </span>
             </div>
             
