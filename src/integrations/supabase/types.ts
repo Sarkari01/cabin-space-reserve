@@ -874,6 +874,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      audit_and_fix_study_hall_seats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          study_hall_id: string
+          expected_seats: number
+          actual_seats: number
+          fixed: boolean
+        }[]
+      }
       auto_cancel_unpaid_bookings: {
         Args: Record<PropertyKey, never>
         Returns: undefined

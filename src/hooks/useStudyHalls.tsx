@@ -124,7 +124,7 @@ export const useStudyHalls = () => {
       await fetchStudyHalls();
       toast({
         title: "Success",
-        description: "Study hall updated successfully",
+        description: "Study hall updated successfully. Seats are being synchronized...",
       });
       
       return { data, error: null };
