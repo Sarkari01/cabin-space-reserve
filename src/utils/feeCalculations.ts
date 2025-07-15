@@ -23,10 +23,11 @@ export const calculateDiscountAmount = (basePrice: number): number => {
 };
 
 /**
- * Calculate the final amount user pays (round figure of ₹1735)
+ * Calculate the final amount user pays (base + 2% + ₹1 for round figure)
  */
 export const calculateFinalAmount = (basePrice: number): number => {
-  return basePrice + 35; // Fixed ₹35 to make round figure ₹1735 for ₹1700 base
+  const feeAmount = Math.round(basePrice * RAZORPAY_FEE_RATE); // 2% fee
+  return basePrice + feeAmount + 1; // Add ₹1 for round figure
 };
 
 /**
