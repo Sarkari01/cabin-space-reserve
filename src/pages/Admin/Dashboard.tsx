@@ -103,9 +103,57 @@ const AdminDashboard = () => {
 
   const handleCreateUser = async (userData: any) => {
     setIsSubmitting(true);
-    await createUser(userData);
-    setIsSubmitting(false);
-    setUserModalOpen(false);
+    try {
+      // Check if this is an operational role
+      const operationalRoles = ['telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator'];
+      
+      if (operationalRoles.includes(userData.role)) {
+        // Use the edge function for operational users
+        const { data, error } = await supabase.functions.invoke('admin-create-user', {
+          body: {
+            email: userData.email,
+            password: userData.password,
+            user_metadata: {
+              full_name: userData.full_name,
+              phone: userData.phone,
+              role: userData.role
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        // Create admin profile if additional data provided
+        if (userData.department || userData.employee_id) {
+          await supabase
+            .from('admin_user_profiles')
+            .insert({
+              user_id: data.user.id,
+              department: userData.department,
+              employee_id: userData.employee_id,
+              permissions: {},
+              status: 'active'
+            });
+        }
+      } else {
+        // Use regular user creation for basic roles
+        await createUser(userData);
+      }
+      
+      toast({
+        title: "Success",
+        description: "User created successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+      setUserModalOpen(false);
+    }
   };
 
   const handleEditUser = (user: any) => {
@@ -893,6 +941,12 @@ const AdminDashboard = () => {
                   { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
                   { label: "Operational Users", active: true }
                 ]}
+                actions={
+                  <Button onClick={() => setUserModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Operational User
+                  </Button>
+                }
               />
 
               <div className="grid lg:grid-cols-4 gap-6 mb-6">

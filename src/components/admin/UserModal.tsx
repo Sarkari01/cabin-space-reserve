@@ -13,8 +13,10 @@ interface UserModalProps {
     email: string;
     password: string;
     full_name: string;
-    role: 'admin' | 'merchant' | 'student';
+    role: 'admin' | 'merchant' | 'student' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator';
     phone?: string;
+    department?: string;
+    employee_id?: string;
   }) => void;
   user?: UserProfile | null;
   isEdit?: boolean;
@@ -26,8 +28,10 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
     email: user?.email || '',
     password: '',
     full_name: user?.full_name || '',
-    role: (user?.role as 'admin' | 'merchant' | 'student') || 'student',
+    role: (user?.role as any) || 'student',
     phone: user?.phone || '',
+    department: '',
+    employee_id: '',
   });
 
   // Reset form when user changes
@@ -37,8 +41,10 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
         email: user.email || '',
         password: '',
         full_name: user.full_name || '',
-        role: (user.role as 'admin' | 'merchant' | 'student') || 'student',
+        role: user.role as any || 'student',
         phone: user.phone || '',
+        department: '',
+        employee_id: '',
       });
     } else {
       setFormData({
@@ -47,6 +53,8 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
         full_name: '',
         role: 'student',
         phone: '',
+        department: '',
+        employee_id: '',
       });
     }
   }, [user]);
@@ -60,6 +68,8 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
       full_name: '',
       role: 'student',
       phone: '',
+      department: '',
+      employee_id: '',
     });
     onOpenChange(false);
   };
@@ -121,6 +131,11 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
                 <SelectItem value="student">Student</SelectItem>
                 <SelectItem value="merchant">Merchant</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="telemarketing_executive">Telemarketing Executive</SelectItem>
+                <SelectItem value="pending_payments_caller">Payments Caller</SelectItem>
+                <SelectItem value="customer_care_executive">Customer Care Executive</SelectItem>
+                <SelectItem value="settlement_manager">Settlement Manager</SelectItem>
+                <SelectItem value="general_administrator">General Administrator</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -133,6 +148,31 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
               onChange={(e) => handleChange('phone', e.target.value)}
             />
           </div>
+
+          {/* Show additional fields for operational roles */}
+          {['telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator'].includes(formData.role) && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="department">Department (Optional)</Label>
+                <Input
+                  id="department"
+                  value={formData.department}
+                  onChange={(e) => handleChange('department', e.target.value)}
+                  placeholder="e.g., Sales, Operations, Finance"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="employee_id">Employee ID (Optional)</Label>
+                <Input
+                  id="employee_id"
+                  value={formData.employee_id}
+                  onChange={(e) => handleChange('employee_id', e.target.value)}
+                  placeholder="e.g., EMP001"
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
