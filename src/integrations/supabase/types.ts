@@ -1503,9 +1503,81 @@ export type Database = {
           },
         ]
       }
+      study_hall_reviews: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          merchant_id: string
+          merchant_response: string | null
+          rating: number
+          review_text: string | null
+          status: Database["public"]["Enums"]["review_status"]
+          study_hall_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          merchant_id: string
+          merchant_response?: string | null
+          rating: number
+          review_text?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          study_hall_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          merchant_response?: string | null
+          rating?: number
+          review_text?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          study_hall_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_hall_reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_hall_reviews_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_hall_reviews_study_hall_id_fkey"
+            columns: ["study_hall_id"]
+            isOneToOne: false
+            referencedRelation: "study_halls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_hall_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_halls: {
         Row: {
           amenities: Json | null
+          average_rating: number | null
           created_at: string
           custom_row_names: string[]
           daily_price: number
@@ -1523,12 +1595,14 @@ export type Database = {
           rows: number
           seats_per_row: number
           status: string
+          total_reviews: number | null
           total_seats: number
           updated_at: string
           weekly_price: number
         }
         Insert: {
           amenities?: Json | null
+          average_rating?: number | null
           created_at?: string
           custom_row_names?: string[]
           daily_price?: number
@@ -1546,12 +1620,14 @@ export type Database = {
           rows: number
           seats_per_row: number
           status?: string
+          total_reviews?: number | null
           total_seats: number
           updated_at?: string
           weekly_price?: number
         }
         Update: {
           amenities?: Json | null
+          average_rating?: number | null
           created_at?: string
           custom_row_names?: string[]
           daily_price?: number
@@ -1569,6 +1645,7 @@ export type Database = {
           rows?: number
           seats_per_row?: number
           status?: string
+          total_reviews?: number | null
           total_seats?: number
           updated_at?: string
           weekly_price?: number
@@ -2021,6 +2098,16 @@ export type Database = {
           completed_today: number
         }[]
       }
+      get_eligible_bookings_for_review: {
+        Args: { p_user_id: string }
+        Returns: {
+          booking_id: string
+          study_hall_id: string
+          study_hall_name: string
+          end_date: string
+          already_reviewed: boolean
+        }[]
+      }
       get_eligible_transactions_for_settlement: {
         Args: { p_merchant_id: string }
         Returns: {
@@ -2133,6 +2220,7 @@ export type Database = {
       banner_target_audience: "user" | "merchant" | "both"
       booking_period: "daily" | "weekly" | "monthly"
       news_visibility: "user" | "merchant" | "both"
+      review_status: "approved" | "pending" | "hidden"
       user_role:
         | "admin"
         | "merchant"
@@ -2274,6 +2362,7 @@ export const Constants = {
       banner_target_audience: ["user", "merchant", "both"],
       booking_period: ["daily", "weekly", "monthly"],
       news_visibility: ["user", "merchant", "both"],
+      review_status: ["approved", "pending", "hidden"],
       user_role: [
         "admin",
         "merchant",
