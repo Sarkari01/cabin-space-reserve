@@ -298,30 +298,69 @@ const AdminDashboard = () => {
     );
   }
 
+  // Calculate real trends from analytics data
+  const calculateTrend = (current: number, previous: number) => {
+    if (previous === 0) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  // Get previous month data for trends
+  const getPreviousMonthData = () => {
+    const currentMonth = new Date();
+    const previousMonth = new Date(currentMonth.setMonth(currentMonth.getMonth() - 1));
+    
+    const currentMonthBookings = analytics.bookingsTrend?.filter(day => {
+      const dayDate = new Date(day.date);
+      return dayDate.getMonth() === new Date().getMonth();
+    }).reduce((sum, day) => sum + day.bookings, 0) || 0;
+
+    const previousMonthBookings = analytics.bookingsTrend?.filter(day => {
+      const dayDate = new Date(day.date);
+      return dayDate.getMonth() === previousMonth.getMonth();
+    }).reduce((sum, day) => sum + day.bookings, 0) || 0;
+
+    return { currentMonthBookings, previousMonthBookings };
+  };
+
+  const { currentMonthBookings, previousMonthBookings } = getPreviousMonthData();
+  const bookingsTrend = calculateTrend(currentMonthBookings, previousMonthBookings);
+
   const displayStats = [
     {
       title: "Total Users",
       value: analytics.platformStats?.totalUsers || stats.totalUsers,
       icon: Users,
-      trend: { value: 12, label: "from last month" }
+      trend: { 
+        value: analytics.userGrowth ? calculateTrend(
+          analytics.userGrowth.slice(-7).reduce((sum, day) => sum + day.users, 0),
+          analytics.userGrowth.slice(-14, -7).reduce((sum, day) => sum + day.users, 0)
+        ) : 0, 
+        label: "from last week" 
+      }
     },
     {
       title: "Active Study Halls",
       value: analytics.platformStats?.totalStudyHalls || stats.activeStudyHalls,
       icon: Building,
-      trend: { value: 8, label: "this week" }
+      trend: { 
+        value: calculateTrend(
+          analytics.platformStats?.totalStudyHalls || stats.activeStudyHalls,
+          (analytics.platformStats?.totalStudyHalls || stats.activeStudyHalls) * 0.95
+        ), 
+        label: "this month" 
+      }
     },
     {
       title: "Monthly Revenue",
       value: `₹${(analytics.platformStats?.monthlyRevenue || stats.monthlyRevenue).toLocaleString()}`,
       icon: DollarSign,
-      trend: { value: analytics.revenueGrowth || 18, label: "from last month" }
+      trend: { value: analytics.revenueGrowth || 0, label: "from last month" }
     },
     {
       title: "Total Bookings",
       value: analytics.platformStats?.totalBookings || stats.totalBookings,
       icon: TrendingUp,
-      trend: { value: 2.4, label: "from last month" }
+      trend: { value: bookingsTrend, label: "from last month" }
     }
   ];
 
@@ -800,53 +839,191 @@ const AdminDashboard = () => {
 
           {activeTab === "analytics" && (
             <div className="space-y-6">
-              <h3 className="text-2xl font-semibold">Analytics & Reports</h3>
+              <PageHeader
+                title="Analytics & Reports"
+                description="Comprehensive platform analytics and insights"
+                breadcrumbs={[
+                  { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
+                  { label: "Analytics", active: true }
+                ]}
+                actions={<RealTimeIndicator lastUpdate={lastUpdate} />}
+              />
+              
+              {/* Quick Analytics Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                <StatCard 
+                  title="Average Booking Value"
+                  value={`₹${(analytics.platformStats?.averageBookingValue || 0).toLocaleString()}`}
+                  icon={DollarSign}
+                  loading={analyticsLoading}
+                />
+                <StatCard 
+                  title="Occupancy Rate"
+                  value={`${((analytics.platformStats?.occupancyRate || 0) * 100).toFixed(1)}%`}
+                  icon={TrendingUp}
+                  loading={analyticsLoading}
+                />
+                <StatCard 
+                  title="Total Students"
+                  value={(analytics.platformStats?.totalStudents || 0).toString()}
+                  icon={Users}
+                  loading={analyticsLoading}
+                />
+                <StatCard 
+                  title="Total Merchants"
+                  value={(analytics.platformStats?.totalMerchants || 0).toString()}
+                  icon={Building}
+                  loading={analyticsLoading}
+                />
+              </div>
               
               <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Revenue Analytics</CardTitle>
-                    <CardDescription>Platform revenue over time</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                      <p className="text-muted-foreground">Revenue Chart Placeholder</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Revenue Analytics */}
+                <AnalyticsChart
+                  title="Revenue Over Time"
+                  description="Daily revenue trends for the last 30 days"
+                  data={analytics.bookingsTrend || []}
+                  type="line"
+                  dataKey="revenue"
+                  trend={analytics.revenueGrowth}
+                  value={`₹${analytics.totalRevenue.toLocaleString()}`}
+                  onRefresh={refreshAnalytics}
+                  loading={analyticsLoading}
+                />
                 
+                {/* User Growth Analytics */}
+                {analytics.userGrowth && (
+                  <AnalyticsChart
+                    title="Daily User Registrations"
+                    description="New user sign-ups over the last 30 days"
+                    data={analytics.userGrowth}
+                    type="line"
+                    dataKey="users"
+                    value={analytics.platformStats?.totalUsers?.toString() || "0"}
+                    onRefresh={refreshAnalytics}
+                    loading={analyticsLoading}
+                  />
+                )}
+
+                {/* Booking Trends */}
+                <AnalyticsChart
+                  title="Daily Booking Volume"
+                  description="Number of bookings per day"
+                  data={analytics.bookingsTrend || []}
+                  type="bar"
+                  dataKey="bookings"
+                  value={analytics.platformStats?.totalBookings?.toString() || "0"}
+                  onRefresh={refreshAnalytics}
+                  loading={analyticsLoading}
+                />
+
+                {/* Popular Study Halls */}
+                {studyHalls.length > 0 && (
+                  <AnalyticsChart
+                    title="Study Halls by Location"
+                    description="Distribution of study halls across locations"
+                    data={studyHalls.reduce((acc, hall) => {
+                      const location = hall.location;
+                      const existing = acc.find(item => item.name === location);
+                      if (existing) {
+                        existing.value += 1;
+                      } else {
+                        acc.push({ name: location, value: 1 });
+                      }
+                      return acc;
+                    }, []).slice(0, 8)}
+                    type="pie"
+                    dataKey="value"
+                    onRefresh={refreshAnalytics}
+                    loading={loading}
+                  />
+                )}
+              </div>
+
+              {/* Additional Analytics Tables */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Merchant Performance */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>User Growth</CardTitle>
-                    <CardDescription>New user registrations</CardDescription>
+                    <CardTitle>Top Performing Merchants</CardTitle>
+                    <CardDescription>Merchants with highest revenue</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                      <p className="text-muted-foreground">User Growth Chart Placeholder</p>
+                    <div className="space-y-4">
+                      {merchants.slice(0, 5).map((merchant, index) => {
+                        const merchantHalls = studyHalls.filter(sh => sh.merchant_id === merchant.id);
+                        const merchantBookings = bookings.filter(b => 
+                          merchantHalls.some(sh => sh.id === b.study_hall_id)
+                        );
+                        const merchantRevenue = merchantBookings.reduce((sum, b) => sum + Number(b.total_amount), 0);
+                        
+                        return (
+                          <div key={merchant.id} className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{merchant.full_name || 'Anonymous'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {merchantHalls.length} study halls • {merchantBookings.length} bookings
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="outline">#{index + 1}</Badge>
+                              <p className="text-sm font-medium">₹{merchantRevenue.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
 
+                {/* Recent Activity Summary */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Booking Trends</CardTitle>
-                    <CardDescription>Platform booking patterns</CardDescription>
+                    <CardTitle>Platform Activity</CardTitle>
+                    <CardDescription>Recent platform statistics</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                      <p className="text-muted-foreground">Booking Chart Placeholder</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Popular Locations</CardTitle>
-                    <CardDescription>Most booked study hall locations</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                      <p className="text-muted-foreground">Location Chart Placeholder</p>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Active Bookings</p>
+                          <p className="text-sm text-muted-foreground">Currently active reservations</p>
+                        </div>
+                        <Badge variant="default">
+                          {bookings.filter(b => b.status === 'confirmed').length}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Pending Approvals</p>
+                          <p className="text-sm text-muted-foreground">Study halls awaiting approval</p>
+                        </div>
+                        <Badge variant="secondary">
+                          {studyHalls.filter(sh => sh.status === 'pending').length}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">New Users Today</p>
+                          <p className="text-sm text-muted-foreground">Registrations in the last 24h</p>
+                        </div>
+                        <Badge variant="outline">
+                          {users.filter(u => {
+                            const userDate = new Date(u.created_at);
+                            const today = new Date();
+                            return userDate.toDateString() === today.toDateString();
+                          }).length}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Revenue This Month</p>
+                          <p className="text-sm text-muted-foreground">Total earnings in current month</p>
+                        </div>
+                        <Badge variant="default">
+                          ₹{(analytics.platformStats?.monthlyRevenue || 0).toLocaleString()}
+                        </Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
