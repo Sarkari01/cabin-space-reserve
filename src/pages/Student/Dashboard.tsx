@@ -67,20 +67,18 @@ const StudentDashboard = () => {
     .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
 
   const handleViewStudyHall = async (studyHall) => {
-    // Refresh study halls to ensure we have latest incharge data
-    await fetchStudyHalls();
+    // Use the current data from studyHalls state which already has incharges
+    const currentStudyHall = studyHalls.find(hall => hall.id === studyHall.id) || studyHall;
     
-    // Find the updated study hall with incharges from the latest data
-    const updatedStudyHall = studyHalls.find(hall => hall.id === studyHall.id) || studyHall;
-    
-    console.log('Setting selected study hall:', {
-      originalHall: studyHall,
-      updatedHall: updatedStudyHall,
-      hasIncharges: updatedStudyHall.incharges?.length > 0,
-      inchargesList: updatedStudyHall.incharges?.map(i => i.full_name)
+    console.log('🎯 Opening study hall detail:', {
+      id: currentStudyHall.id,
+      name: currentStudyHall.name,
+      hasIncharges: currentStudyHall.incharges?.length > 0,
+      inchargeCount: currentStudyHall.incharges?.length || 0,
+      inchargesList: currentStudyHall.incharges?.map(i => i.full_name) || []
     });
     
-    setSelectedStudyHall(updatedStudyHall);
+    setSelectedStudyHall(currentStudyHall);
     await fetchSeats(studyHall.id);
     setDetailModalOpen(true);
   };

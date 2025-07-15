@@ -8,39 +8,7 @@ import { MapPin, Users, Calendar, DollarSign, Grid, Eye, Heart } from "lucide-re
 import { BookingModal } from "./BookingModal";
 import { useFavorites } from "@/hooks/useFavorites";
 import { StudyHallImageGallery } from "./StudyHallImageGallery";
-
-interface StudyHallData {
-  id: string;
-  name: string;
-  location: string;
-  description?: string;
-  image_url?: string;
-  daily_price: number;
-  weekly_price: number;
-  monthly_price: number;
-  total_seats: number;
-  rows: number;
-  seats_per_row: number;
-  status: string;
-  amenities?: string[];
-  created_at: string;
-  incharges?: {
-    id: string;
-    full_name: string;
-    email: string;
-    mobile: string;
-    status: string;
-    permissions: any;
-  }[];
-}
-
-interface Seat {
-  id: string;
-  seat_id: string;
-  row_name: string;
-  seat_number: number;
-  is_available: boolean;
-}
+import { StudyHallData, Seat } from "@/types/StudyHall";
 
 interface StudyHallDetailModalProps {
   open: boolean;

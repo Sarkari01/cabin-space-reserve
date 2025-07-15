@@ -2,43 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
-
-export interface StudyHall {
-  id: string;
-  merchant_id: string;
-  name: string;
-  description: string;
-  location: string;
-  total_seats: number;
-  rows: number;
-  seats_per_row: number;
-  custom_row_names: string[];
-  amenities: string[];
-  daily_price: number;
-  weekly_price: number;
-  monthly_price: number;
-  image_url?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  incharges?: {
-    id: string;
-    full_name: string;
-    email: string;
-    mobile: string;
-    status: string;
-    permissions: any;
-  }[];
-}
-
-export interface Seat {
-  id: string;
-  study_hall_id: string;
-  seat_id: string;
-  row_name: string;
-  seat_number: number;
-  is_available: boolean;
-}
+import { StudyHallData as StudyHall, Seat } from '@/types/StudyHall';
 
 export const useStudyHalls = () => {
   const [studyHalls, setStudyHalls] = useState<StudyHall[]>([]);
@@ -97,32 +61,30 @@ export const useStudyHalls = () => {
           console.log('  - Is Array:', Array.isArray(incharge.assigned_study_halls));
           console.log('  - Target hall ID:', hall.id);
           
-          // Handle different data formats that might come from Supabase
+          // Supabase returns JSONB columns as JavaScript arrays, not JSON strings
           let studyHallIds: string[] = [];
           
-          if (incharge.assigned_study_halls) {
-            if (Array.isArray(incharge.assigned_study_halls)) {
-              // Already an array of strings
-              studyHallIds = incharge.assigned_study_halls as string[];
-            } else if (typeof incharge.assigned_study_halls === 'string') {
-              // JSON string that needs parsing
-              try {
-                const parsed = JSON.parse(incharge.assigned_study_halls);
-                studyHallIds = Array.isArray(parsed) ? parsed : [];
-              } catch (e) {
-                console.log('  - Failed to parse as JSON:', e);
+          try {
+            if (incharge.assigned_study_halls) {
+              if (Array.isArray(incharge.assigned_study_halls)) {
+                // Supabase JSONB returns as JS array - this is the expected case
+                studyHallIds = incharge.assigned_study_halls.map(id => String(id));
+                console.log('  - Processed as array:', studyHallIds);
+              } else {
+                console.warn('  - Unexpected data type for assigned_study_halls:', typeof incharge.assigned_study_halls);
                 studyHallIds = [];
               }
-            } else if (typeof incharge.assigned_study_halls === 'object') {
-              // Could be an object or nested structure
-              console.log('  - Object type assigned_study_halls:', incharge.assigned_study_halls);
+            } else {
+              console.log('  - No assigned study halls');
               studyHallIds = [];
             }
+          } catch (error) {
+            console.error('  - Error processing assigned_study_halls:', error);
+            studyHallIds = [];
           }
           
-          console.log('  - Processed studyHallIds:', studyHallIds);
-          
           const isAssigned = studyHallIds.includes(hall.id);
+          console.log('  - Final studyHallIds:', studyHallIds);
           console.log('  - Is assigned to this hall:', isAssigned);
           
           return isAssigned;
