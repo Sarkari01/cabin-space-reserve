@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSeats } from "@/hooks/useStudyHalls";
 import { LocationPicker } from "@/components/maps/LocationPicker";
+import { MultiImageUpload } from "@/components/MultiImageUpload";
 
 interface Seat {
   id: string;
@@ -51,8 +52,6 @@ interface StudyHallModalProps {
 
 export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: StudyHallModalProps) {
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   
   const [formData, setFormData] = useState<StudyHall>({
     name: "",
@@ -101,67 +100,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     }
   }, [studyHall, isOpen]);
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Error",
-        description: "Please select an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "Image size should be less than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
-    
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `study-hall-images/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('study-hall-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('study-hall-images')
-        .getPublicUrl(filePath);
-
-      setFormData(prev => ({ ...prev, image_url: publicUrl }));
-      
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to upload image",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removeImage = () => {
-    setFormData(prev => ({ ...prev, image_url: undefined }));
-  };
+  // Remove old image upload functions as they're now handled by MultiImageUpload
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -357,56 +296,21 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 </div>
               </div>
 
-              {/* Image Upload Section */}
+              {/* Multi-Image Upload Section */}
               <div className="border rounded-lg p-4 bg-muted/30">
                 <h4 className="font-semibold mb-3 flex items-center">
                   <Upload className="h-4 w-4 mr-2" />
-                  Study Hall Image
+                  Study Hall Images
                 </h4>
-                <div className="space-y-4">
-                  {formData.image_url ? (
-                    <div className="relative">
-                      <img 
-                        src={formData.image_url} 
-                        alt="Study hall" 
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      {!isReadOnly && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={removeImage}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground mb-2">Upload study hall image</p>
-                      {!isReadOnly && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploading}
-                        >
-                          {uploading ? "Uploading..." : "Choose Image"}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </div>
+                <MultiImageUpload
+                  studyHallId={formData.id}
+                  disabled={isReadOnly}
+                  maxImages={10}
+                  onImagesChange={(images) => {
+                    // Handle image changes if needed
+                    console.log('Images changed:', images);
+                  }}
+                />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
