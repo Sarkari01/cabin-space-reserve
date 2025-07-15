@@ -20,6 +20,9 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { BookingDetailModal } from '@/components/BookingDetailModal';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { InchargeActivityLogs } from '@/components/InchargeActivityLogs';
+import { InchargeProfile } from '@/components/InchargeProfile';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 
@@ -32,6 +35,7 @@ const InchargeDashboard = () => {
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Use existing hooks but with incharge role
   const { bookings, updateBookingStatus } = useBookings('incharge');
@@ -182,207 +186,226 @@ const InchargeDashboard = () => {
     .filter(t => t.status === 'completed')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">Incharge Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {inchargeData.full_name}! Manage your assigned study halls.
-          </p>
-        </div>
-
-        {/* Assigned Study Halls */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <MapPin className="h-5 w-5 mr-2" />
-              Assigned Study Halls
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {assignedStudyHalls.map((hall) => (
-                <div key={hall.id} className="border rounded-lg p-3">
-                  <h3 className="font-medium">{hall.name}</h3>
-                  <p className="text-sm text-muted-foreground">{hall.location}</p>
-                  <div className="flex justify-between items-center mt-2 text-xs">
-                    <span>Daily: ₹{hall.daily_price}</span>
-                    <Badge variant="outline">{hall.status}</Badge>
-                  </div>
-                </div>
-              ))}
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-6">
+            {/* Welcome Section */}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Welcome back, {inchargeData.full_name}!</h2>
+              <p className="text-muted-foreground">
+                Manage your assigned study halls and bookings from this dashboard.
+              </p>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Today's Bookings</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{todayBookings.length}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Pending Bookings</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{pendingBookings.length}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{bookings.length}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">₹{totalRevenue.toFixed(2)}</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+
+      case 'studyhalls':
+        return (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Today's Bookings</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MapPin className="h-5 w-5 mr-2" />
+                Assigned Study Halls
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{todayBookings.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Bookings</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{pendingBookings.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{bookings.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₹{totalRevenue.toFixed(2)}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="bookings" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="bookings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Bookings Management</CardTitle>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search bookings..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
-                    />
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {assignedStudyHalls.map((hall) => (
+                  <div key={hall.id} className="border rounded-lg p-3">
+                    <h3 className="font-medium">{hall.name}</h3>
+                    <p className="text-sm text-muted-foreground">{hall.location}</p>
+                    <div className="flex justify-between items-center mt-2 text-xs">
+                      <span>Daily: ₹{hall.daily_price}</span>
+                      <Badge variant="outline">{hall.status}</Badge>
+                    </div>
                   </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'bookings':
+        return (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Bookings Management</CardTitle>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search bookings..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-64"
+                  />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredBookings.map((booking) => (
-                    <div key={booking.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">#{booking.booking_number}</span>
-                            <Badge className={getStatusColor(booking.status)}>
-                              {booking.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {booking.user?.email} • {booking.study_hall?.name}
-                          </p>
-                          <p className="text-sm">
-                            {format(new Date(booking.start_date), 'MMM dd, yyyy')} - 
-                            {format(new Date(booking.end_date), 'MMM dd, yyyy')}
-                          </p>
-                        </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredBookings.map((booking) => (
+                  <div key={booking.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
                         <div className="flex items-center space-x-2">
-                          <span className="font-bold">₹{booking.total_amount}</span>
-                          <div className="flex space-x-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedBooking(booking)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {booking.status === 'pending' && (inchargeData.permissions as any)?.manage_bookings && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleBookingAction(booking.id, 'confirmed', booking)}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleBookingAction(booking.id, 'cancelled', booking)}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
+                          <span className="font-medium">#{booking.booking_number}</span>
+                          <Badge className={getStatusColor(booking.status)}>
+                            {booking.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {booking.user?.email} • {booking.study_hall?.name}
+                        </p>
+                        <p className="text-sm">
+                          {format(new Date(booking.start_date), 'MMM dd, yyyy')} - 
+                          {format(new Date(booking.end_date), 'MMM dd, yyyy')}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold">₹{booking.total_amount}</span>
+                        <div className="flex space-x-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSelectedBooking(booking)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {booking.status === 'pending' && (inchargeData.permissions as any)?.manage_bookings && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleBookingAction(booking.id, 'confirmed', booking)}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleBookingAction(booking.id, 'cancelled', booking)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
 
-          <TabsContent value="transactions" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {transactions.map((transaction) => (
-                    <div key={transaction.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">#{transaction.transaction_number}</span>
-                            <Badge className={getStatusColor(transaction.status)}>
-                              {transaction.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {transaction.payment_method?.toUpperCase()} • 
-                            {format(new Date(transaction.created_at), 'MMM dd, yyyy HH:mm')}
-                          </p>
+      case 'transactions':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {transactions.map((transaction) => (
+                  <div key={transaction.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">#{transaction.transaction_number}</span>
+                          <Badge className={getStatusColor(transaction.status)}>
+                            {transaction.status}
+                          </Badge>
                         </div>
-                        <span className="font-bold">₹{transaction.amount}</span>
+                        <p className="text-sm text-muted-foreground">
+                          {transaction.payment_method?.toUpperCase()} • 
+                          {format(new Date(transaction.created_at), 'MMM dd, yyyy HH:mm')}
+                        </p>
                       </div>
+                      <span className="font-bold">₹{transaction.amount}</span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
 
-        {/* Booking Detail Modal */}
-        {selectedBooking && (
-          <BookingDetailModal
-            booking={selectedBooking}
-            open={!!selectedBooking}
-            onOpenChange={() => setSelectedBooking(null)}
-            userRole="incharge"
-          />
-        )}
-      </div>
-    </div>
+      case 'activity':
+        return <InchargeActivityLogs inchargeId={inchargeData.id} />;
+
+      case 'profile':
+        return <InchargeProfile inchargeData={inchargeData} assignedStudyHalls={assignedStudyHalls} />;
+
+      default:
+        return <div>Tab content not found</div>;
+    }
+  };
+
+  return (
+    <DashboardSidebar
+      userRole="incharge"
+      userName={inchargeData.full_name}
+      onTabChange={setActiveTab}
+      activeTab={activeTab}
+    >
+      {renderTabContent()}
+
+      {/* Booking Detail Modal */}
+      {selectedBooking && (
+        <BookingDetailModal
+          booking={selectedBooking}
+          open={!!selectedBooking}
+          onOpenChange={() => setSelectedBooking(null)}
+          userRole="incharge"
+        />
+      )}
+    </DashboardSidebar>
   );
 };
 

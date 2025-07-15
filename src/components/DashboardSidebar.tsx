@@ -39,7 +39,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 interface DashboardSidebarProps {
-  userRole: "student" | "merchant" | "admin";
+  userRole: "student" | "merchant" | "admin" | "incharge";
   userName: string;
   children: React.ReactNode;
   onTabChange?: (tab: string) => void;
@@ -100,10 +100,18 @@ const sidebarItems = {
     { title: "Profile", url: "/admin/dashboard", icon: Settings, tab: "profile" },
     { title: "EKQR Recovery", url: "/admin/dashboard", icon: AlertCircle, tab: "ekqr-recovery" },
   ],
+  incharge: [
+    { title: "Dashboard", url: "/incharge/dashboard", icon: Home, tab: "overview" },
+    { title: "Assigned Study Halls", url: "/incharge/dashboard", icon: Building, tab: "studyhalls" },
+    { title: "Bookings Management", url: "/incharge/dashboard", icon: Calendar, tab: "bookings" },
+    { title: "Transactions", url: "/incharge/dashboard", icon: CreditCard, tab: "transactions" },
+    { title: "Activity Logs", url: "/incharge/dashboard", icon: BookOpen, tab: "activity" },
+    { title: "Profile Settings", url: "/incharge/dashboard", icon: Settings, tab: "profile" },
+  ],
 };
 
 function AppSidebar({ userRole, userName, onTabChange, activeTab }: { 
-  userRole: "student" | "merchant" | "admin"; 
+  userRole: "student" | "merchant" | "admin" | "incharge"; 
   userName: string;
   onTabChange?: (tab: string) => void;
   activeTab?: string;
