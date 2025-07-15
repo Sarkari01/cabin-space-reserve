@@ -50,13 +50,30 @@ export const useMerchantProfile = () => {
         .from('merchant_profiles')
         .select('*')
         .eq('merchant_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error;
       }
 
-      setProfile(data);
+      // If no profile exists, create one
+      if (!data) {
+        console.log('No merchant profile found, creating one for user:', user.id);
+        const { data: newProfile, error: createError } = await supabase
+          .from('merchant_profiles')
+          .insert({ merchant_id: user.id })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating merchant profile:', createError);
+          throw createError;
+        }
+
+        setProfile(newProfile);
+      } else {
+        setProfile(data);
+      }
     } catch (error) {
       console.error('Error fetching merchant profile:', error);
       toast({
