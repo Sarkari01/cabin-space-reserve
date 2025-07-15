@@ -356,6 +356,136 @@ export type Database = {
           },
         ]
       }
+      coupon_usage: {
+        Row: {
+          booking_id: string | null
+          coupon_id: string
+          discount_amount: number
+          id: string
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          coupon_id: string
+          discount_amount: number
+          id?: string
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          coupon_id?: string
+          discount_amount?: number
+          id?: string
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usage_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          description: string | null
+          end_date: string | null
+          id: string
+          max_discount: number | null
+          merchant_id: string | null
+          min_booking_amount: number | null
+          start_date: string
+          status: string
+          target_audience: string
+          title: string
+          type: string
+          updated_at: string
+          usage_count: number
+          usage_limit: number | null
+          user_usage_limit: number | null
+          value: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          max_discount?: number | null
+          merchant_id?: string | null
+          min_booking_amount?: number | null
+          start_date?: string
+          status?: string
+          target_audience?: string
+          title: string
+          type: string
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+          user_usage_limit?: number | null
+          value: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          max_discount?: number | null
+          merchant_id?: string | null
+          min_booking_amount?: number | null
+          start_date?: string
+          status?: string
+          target_audience?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+          user_usage_limit?: number | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -549,6 +679,227 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          status: string
+          successful_referrals: number
+          total_earnings: number
+          total_referrals: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          status?: string
+          successful_referrals?: number
+          total_earnings?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          status?: string
+          successful_referrals?: number
+          total_earnings?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_rewards: {
+        Row: {
+          booking_id: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          referee_coupon_id: string | null
+          referee_id: string
+          referee_reward_points: number
+          referral_code_id: string
+          referrer_coupon_id: string | null
+          referrer_id: string
+          referrer_reward_points: number
+          status: string
+        }
+        Insert: {
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referee_coupon_id?: string | null
+          referee_id: string
+          referee_reward_points?: number
+          referral_code_id: string
+          referrer_coupon_id?: string | null
+          referrer_id: string
+          referrer_reward_points?: number
+          status?: string
+        }
+        Update: {
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          referee_coupon_id?: string | null
+          referee_id?: string
+          referee_reward_points?: number
+          referral_code_id?: string
+          referrer_coupon_id?: string | null
+          referrer_id?: string
+          referrer_reward_points?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referee_coupon_id_fkey"
+            columns: ["referee_coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referrer_coupon_id_fkey"
+            columns: ["referrer_coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_transactions: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          id: string
+          points: number
+          reason: string
+          referral_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          points: number
+          reason: string
+          referral_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          points?: number
+          reason?: string
+          referral_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_transactions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          available_points: number
+          created_at: string
+          id: string
+          lifetime_earned: number
+          lifetime_redeemed: number
+          total_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_points?: number
+          created_at?: string
+          id?: string
+          lifetime_earned?: number
+          lifetime_redeemed?: number
+          total_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_points?: number
+          created_at?: string
+          id?: string
+          lifetime_earned?: number
+          lifetime_redeemed?: number
+          total_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       seats: {
         Row: {
@@ -924,6 +1275,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      generate_referral_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_short_id: {
         Args: { table_name: string; column_name: string }
         Returns: number
@@ -966,6 +1321,17 @@ export type Database = {
       }
       send_booking_reminders: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_user_rewards: {
+        Args: {
+          p_user_id: string
+          p_points: number
+          p_type: string
+          p_reason: string
+          p_booking_id?: string
+          p_referral_id?: string
+        }
         Returns: undefined
       }
     }
