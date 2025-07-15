@@ -380,12 +380,12 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
                   </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/* Business Management */}
+                {/* Business */}
                 <SidebarGroup>
                   <SidebarGroupLabel>
                     <div className="flex items-center space-x-2">
                       <Building className="h-3 w-3" />
-                      {!isCollapsed && <span className="text-xs font-semibold">Business Management</span>}
+                      {!isCollapsed && <span className="text-xs font-semibold">Business</span>}
                     </div>
                   </SidebarGroupLabel>
                   <SidebarGroupContent>
@@ -395,12 +395,12 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
                   </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/* Financial Operations */}
+                {/* Financial */}
                 <SidebarGroup>
                   <SidebarGroupLabel>
                     <div className="flex items-center space-x-2">
                       <CreditCard className="h-3 w-3" />
-                      {!isCollapsed && <span className="text-xs font-semibold">Financial Operations</span>}
+                      {!isCollapsed && <span className="text-xs font-semibold">Financial</span>}
                     </div>
                   </SidebarGroupLabel>
                   <SidebarGroupContent>
@@ -455,12 +455,12 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
                   </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/* Communication & Community */}
+                {/* Community */}
                 <SidebarGroup>
                   <SidebarGroupLabel>
                     <div className="flex items-center space-x-2">
                       <MessageSquare className="h-3 w-3" />
-                      {!isCollapsed && <span className="text-xs font-semibold">Communication & Community</span>}
+                      {!isCollapsed && <span className="text-xs font-semibold">Community</span>}
                     </div>
                   </SidebarGroupLabel>
                   <SidebarGroupContent>
