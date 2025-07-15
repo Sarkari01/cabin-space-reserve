@@ -4,7 +4,7 @@ import { geocodeAddress, reverseGeocode } from '@/utils/locationUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Loader2, Search, Crosshair, RotateCcw, ZoomIn, ZoomOut, Navigation } from 'lucide-react';
+import { MapPin, Loader2, Search, Crosshair, ZoomIn, ZoomOut, Navigation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface LocationData {
@@ -407,26 +407,6 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
               </Button>
             </div>
             
-            {/* Crosshair controls */}
-            <div className="absolute bottom-2 left-2 flex gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-background/90 backdrop-blur-sm text-xs"
-                onClick={handleUseCrosshair}
-              >
-                Use Center Point
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-background/90 backdrop-blur-sm text-xs"
-                onClick={handleReset}
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Reset
-              </Button>
-            </div>
           </div>
           
           {/* Location display */}
@@ -455,7 +435,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
           </div>
           
           <div className="flex justify-between items-center text-xs text-muted-foreground">
-            <p>🖱️ Click map, drag marker, or use crosshair to select location</p>
+            <p>🖱️ Click map or drag marker to select location</p>
             {currentLocation && (
               <Button
                 size="sm"
