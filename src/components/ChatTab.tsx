@@ -8,7 +8,7 @@ import { useChat } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Send, MessageSquare, Users, Shield, Image, Building2 } from "lucide-react";
-import { format } from "date-fns";
+import { safeFormatDate, safeFormatTime } from "@/lib/dateUtils";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ChatTabProps {
@@ -567,7 +567,7 @@ export function ChatTab({ userRole }: ChatTabProps = {}) {
                         </div>
                         {conversation.last_message_at && (
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(conversation.last_message_at), "MMM dd")}
+                            {safeFormatDate(conversation.last_message_at, "MMM dd")}
                           </span>
                         )}
                       </div>
@@ -629,7 +629,7 @@ export function ChatTab({ userRole }: ChatTabProps = {}) {
                             <p className={`text-xs mt-1 ${
                               isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
                             }`}>
-                              {format(new Date(message.created_at), "HH:mm")}
+                              {safeFormatTime(message.created_at, "HH:mm")}
                             </p>
                           </div>
                         </div>

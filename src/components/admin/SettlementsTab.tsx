@@ -14,7 +14,7 @@ import { useSettlements, Settlement, EligibleTransaction, UnsettledSummary } fro
 import { useAdminData } from "@/hooks/useAdminData";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { CheckIcon, XIcon, DollarSignIcon, Users, CalendarIcon, TrendingUp } from "lucide-react";
-import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/dateUtils";
 
 export function SettlementsTab() {
   const { settlements, loading, createSettlement, updateSettlementStatus, getEligibleTransactions, getUnsettledSummary } = useSettlements();
@@ -247,9 +247,7 @@ export function SettlementsTab() {
                       </div>
                       <div>
                         <div className="text-2xl font-bold">
-                          {unsettledSummary.oldest_transaction_date ? 
-                            format(new Date(unsettledSummary.oldest_transaction_date), "MMM d") : 
-                            "N/A"}
+                          {safeFormatDate(unsettledSummary.oldest_transaction_date, "MMM d")}
                         </div>
                         <div className="text-sm text-muted-foreground">Oldest Transaction</div>
                       </div>
@@ -304,14 +302,14 @@ export function SettlementsTab() {
                              <TableCell className="font-mono text-sm">
                                #{transaction.booking_number || 'N/A'}
                              </TableCell>
-                             <TableCell>
-                               {format(new Date(transaction.transaction_created_at), "MMM d, yyyy")}
-                             </TableCell>
+                              <TableCell>
+                                {safeFormatDate(transaction.transaction_created_at, "MMM d, yyyy")}
+                              </TableCell>
                              <TableCell>{transaction.study_hall_name}</TableCell>
                              <TableCell>{transaction.user_email}</TableCell>
-                             <TableCell>
-                               {format(new Date(transaction.booking_start_date), "MMM d")} - {format(new Date(transaction.booking_end_date), "MMM d")}
-                             </TableCell>
+                              <TableCell>
+                                {safeFormatDate(transaction.booking_start_date, "MMM d")} - {safeFormatDate(transaction.booking_end_date, "MMM d")}
+                              </TableCell>
                              <TableCell className="text-right">₹{transaction.amount.toFixed(2)}</TableCell>
                            </TableRow>
                          ))}
@@ -432,7 +430,7 @@ export function SettlementsTab() {
                       </TableCell>
                       <TableCell>{getStatusBadge(settlement.status)}</TableCell>
                       <TableCell>
-                        {format(new Date(settlement.created_at), "MMM d, yyyy")}
+                        {safeFormatDate(settlement.created_at, "MMM d, yyyy")}
                       </TableCell>
                       <TableCell className="text-right">
                         ₹{settlement.net_settlement_amount.toFixed(2)}

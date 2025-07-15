@@ -15,7 +15,7 @@ import { useSettlements, Settlement } from "@/hooks/useSettlements";
 import { useWithdrawals } from "@/hooks/useWithdrawals";
 import { useAuth } from "@/hooks/useAuth";
 import { DollarSignIcon, CalendarIcon, TrendingUp, Clock, CheckIcon, XIcon, Download, IndianRupee } from "lucide-react";
-import { format } from "date-fns";
+import { safeFormatDate, safeFormatTime } from "@/lib/dateUtils";
 
 export function MerchantSettlementsTab() {
   const { settlements, loading, getSettlementTransactions } = useSettlements();
@@ -182,7 +182,7 @@ export function MerchantSettlementsTab() {
               {
                 key: "created_at",
                 title: "Created Date",
-                render: (item: any) => format(new Date(item.created_at), "MMM d, yyyy")
+                render: (item: any) => safeFormatDate(item.created_at, "MMM d, yyyy")
               },
               {
                 key: "net_settlement_amount",
@@ -247,9 +247,9 @@ export function MerchantSettlementsTab() {
                     title: "Request Date",
                     render: (item: any) => (
                       <div className="space-y-1">
-                        <div>{format(new Date(item.created_at), "MMM dd, yyyy")}</div>
+                        <div>{safeFormatDate(item.created_at, "MMM dd, yyyy")}</div>
                         <div className="text-sm text-muted-foreground">
-                          {format(new Date(item.created_at), "hh:mm a")}
+                          {safeFormatTime(item.created_at, "hh:mm a")}
                         </div>
                       </div>
                     )

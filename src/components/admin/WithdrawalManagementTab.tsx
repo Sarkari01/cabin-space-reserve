@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { Download, Eye, CheckCircle, XCircle, Clock, IndianRupee, Building2, CreditCard } from "lucide-react";
 import { useWithdrawals } from "@/hooks/useWithdrawals";
-import { format } from "date-fns";
+import { safeFormatDate, safeFormatTime, safeFormatDateTime } from "@/lib/dateUtils";
 
 export function WithdrawalManagementTab() {
   const { withdrawals, loading, updateWithdrawalStatus } = useWithdrawals();
@@ -120,9 +120,9 @@ export function WithdrawalManagementTab() {
       title: "Request Date",
       render: (item: any) => (
         <div className="space-y-1">
-          <div>{format(new Date(item.created_at), "MMM dd, yyyy")}</div>
+          <div>{safeFormatDate(item.created_at, "MMM dd, yyyy")}</div>
           <div className="text-sm text-muted-foreground">
-            {format(new Date(item.created_at), "hh:mm a")}
+            {safeFormatTime(item.created_at, "hh:mm a")}
           </div>
         </div>
       )
@@ -182,7 +182,7 @@ export function WithdrawalManagementTab() {
                       Method: {item.withdrawal_method.replace("_", " ")}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Requested: {format(new Date(item.created_at), "MMM dd, yyyy hh:mm a")}
+                      Requested: {safeFormatDateTime(item.created_at, "MMM dd, yyyy hh:mm a")}
                     </div>
                   </CardContent>
                 </Card>

@@ -16,7 +16,7 @@ import {
 import { useBanners, useDeleteBanner } from "@/hooks/useBanners";
 import { BannerModal } from "@/components/BannerModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/dateUtils";
 
 export function BannersTab() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -202,9 +202,9 @@ export function BannersTab() {
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">
-                        {format(new Date(banner.start_date), "MMM dd, yyyy")}
+                        {safeFormatDate(banner.start_date, "MMM dd, yyyy")}
                         {banner.end_date && (
-                          <> - {format(new Date(banner.end_date), "MMM dd, yyyy")}</>
+                          <> - {safeFormatDate(banner.end_date, "MMM dd, yyyy")}</>
                         )}
                       </span>
                     </div>

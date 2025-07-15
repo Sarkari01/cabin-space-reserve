@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Search, Eye, Edit, Ban, Crown, DollarSign, Users, TrendingUp, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/dateUtils";
 import {
   Dialog,
   DialogContent,
@@ -299,12 +299,12 @@ export const MerchantSubscriptionManagementTab = () => {
                   </div>
                   
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    <span>Started: {format(new Date(subscription.start_date), "PPP")}</span>
+                    <span>Started: {safeFormatDate(subscription.start_date, "PPP")}</span>
                     {subscription.end_date && (
                       <span>
                         {subscription.status === 'active' 
                           ? `${calculateDaysRemaining(subscription.end_date)} days remaining`
-                          : `Ended: ${format(new Date(subscription.end_date), "PPP")}`
+                          : `Ended: ${safeFormatDate(subscription.end_date, "PPP")}`
                         }
                       </span>
                     )}
@@ -413,11 +413,11 @@ export const MerchantSubscriptionManagementTab = () => {
                 <h4 className="font-medium mb-2">Subscription Information</h4>
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Start Date:</span> {format(new Date(selectedSubscription.start_date), "PPP")}
+                    <span className="font-medium">Start Date:</span> {safeFormatDate(selectedSubscription.start_date, "PPP")}
                   </div>
                   {selectedSubscription.end_date && (
                     <div>
-                      <span className="font-medium">End Date:</span> {format(new Date(selectedSubscription.end_date), "PPP")}
+                      <span className="font-medium">End Date:</span> {safeFormatDate(selectedSubscription.end_date, "PPP")}
                     </div>
                   )}
                   <div>
@@ -428,7 +428,7 @@ export const MerchantSubscriptionManagementTab = () => {
                   </div>
                   {selectedSubscription.last_payment_date && (
                     <div>
-                      <span className="font-medium">Last Payment:</span> {format(new Date(selectedSubscription.last_payment_date), "PPP")}
+                      <span className="font-medium">Last Payment:</span> {safeFormatDate(selectedSubscription.last_payment_date, "PPP")}
                     </div>
                   )}
                 </div>

@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, MessageCircle, Send, Smile, Upload, X, Image as ImageIcon } from "lucide-react";
-import { format } from "date-fns";
+import { safeFormatDateTime } from "@/lib/dateUtils";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢"];
 
@@ -279,7 +279,7 @@ export function CommunityTab({ userRole }: CommunityTabProps = {}) {
                       {post.profiles?.full_name || post.profiles?.email || "Unknown User"}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(post.created_at), "MMM dd, yyyy 'at' HH:mm")}
+                      {safeFormatDateTime(post.created_at, "MMM dd, yyyy 'at' HH:mm")}
                     </p>
                   </div>
                 </div>
@@ -370,7 +370,7 @@ export function CommunityTab({ userRole }: CommunityTabProps = {}) {
                               <p className="text-sm">{comment.comment}</p>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {format(new Date(comment.created_at), "MMM dd, yyyy 'at' HH:mm")}
+                              {safeFormatDateTime(comment.created_at, "MMM dd, yyyy 'at' HH:mm")}
                             </p>
                           </div>
                         </div>

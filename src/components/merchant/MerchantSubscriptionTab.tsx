@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Crown, Star, Zap, Check, X, Calendar, CreditCard, Settings } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { safeFormatDate } from "@/lib/dateUtils";
 import {
   Dialog,
   DialogContent,
@@ -138,9 +139,9 @@ export const MerchantSubscriptionTab = () => {
                   Billing Information
                 </h4>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Start Date: {format(new Date(subscription.start_date), "PPP")}</p>
+                  <p>Start Date: {safeFormatDate(subscription.start_date, "PPP")}</p>
                   {subscription.end_date && (
-                    <p>End Date: {format(new Date(subscription.end_date), "PPP")}</p>
+                    <p>End Date: {safeFormatDate(subscription.end_date, "PPP")}</p>
                   )}
                   <p>Payment Method: {subscription.payment_method.toUpperCase()}</p>
                   <p>Auto Renew: {subscription.auto_renew ? "Enabled" : "Disabled"}</p>

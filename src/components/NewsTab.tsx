@@ -6,7 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { NewsModal } from "@/components/NewsModal";
 import { useNews } from "@/hooks/useNews";
 import { Edit, Trash2, Plus, Eye, EyeOff } from "lucide-react";
-import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/dateUtils";
 
 interface NewsTabProps {
   userRole: "student" | "merchant" | "admin";
@@ -87,7 +87,7 @@ export function NewsTab({ userRole }: NewsTabProps) {
                          newsItem.visible_to === "user" ? "Students" : "Merchants"}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
-                        {format(new Date(newsItem.created_at), "MMM dd, yyyy")}
+                        {safeFormatDate(newsItem.created_at, "MMM dd, yyyy")}
                       </span>
                     </div>
                   </div>

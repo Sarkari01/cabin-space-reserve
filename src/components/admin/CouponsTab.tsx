@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Search, Plus, Edit, Trash2, Calendar, Users, Target } from 'lucide-react';
 import { useCoupons, Coupon } from '@/hooks/useCoupons';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { safeFormatDate } from "@/lib/dateUtils";
 
 export const CouponsTab = () => {
   const { coupons, couponUsage, loading, createCoupon, updateCoupon, deleteCoupon } = useCoupons('admin');
@@ -355,12 +355,12 @@ export const CouponsTab = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span>{format(new Date(coupon.start_date), 'MMM dd, yyyy')}</span>
+                  <span>{safeFormatDate(coupon.start_date, 'MMM dd, yyyy')}</span>
                 </div>
                 {coupon.end_date && (
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span>Until {format(new Date(coupon.end_date), 'MMM dd, yyyy')}</span>
+                    <span>Until {safeFormatDate(coupon.end_date, 'MMM dd, yyyy')}</span>
                   </div>
                 )}
               </div>
