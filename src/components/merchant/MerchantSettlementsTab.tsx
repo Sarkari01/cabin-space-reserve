@@ -28,15 +28,26 @@ export function MerchantSettlementsTab() {
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
 
-  // Filter settlements for current merchant
-  const merchantSettlements = settlements.filter(s => s.merchant_id === user?.id);
+  // Early return if user not loaded
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-pulse text-muted-foreground">Loading user data...</div>
+      </div>
+    );
+  }
 
-  // Apply additional filters
+  // Filter settlements for current merchant with null safety
+  const merchantSettlements = settlements?.filter(s => s?.merchant_id === user?.id) || [];
+
+  // Apply additional filters with null safety
   const filteredSettlements = merchantSettlements.filter(settlement => {
+    if (!settlement) return false;
+    
     const matchesStatus = statusFilter === "all" || settlement.status === statusFilter;
     const matchesSearch = searchTerm === "" || 
-      settlement.settlement_number.toString().includes(searchTerm) ||
-      settlement.payment_reference?.toLowerCase().includes(searchTerm.toLowerCase());
+      settlement.settlement_number?.toString()?.includes(searchTerm) ||
+      settlement.payment_reference?.toLowerCase()?.includes(searchTerm.toLowerCase());
     
     return matchesStatus && matchesSearch;
   });
@@ -132,10 +143,13 @@ export function MerchantSettlementsTab() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ₹{settlements.filter(s => s.status === 'paid').reduce((sum, s) => sum + Number(s.net_settlement_amount), 0).toLocaleString()}
+                ₹{(settlements || [])
+                  .filter(s => s?.status === 'paid')
+                  .reduce((sum, s) => sum + Number(s?.net_settlement_amount || 0), 0)
+                  .toLocaleString()}
               </div>
               <div className="text-sm text-muted-foreground">
-                From {settlements.filter(s => s.status === 'paid').length} settlements
+                From {(settlements || []).filter(s => s?.status === 'paid').length} settlements
               </div>
             </CardContent>
           </Card>
@@ -149,7 +163,9 @@ export function MerchantSettlementsTab() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ₹{settlements.reduce((sum, s) => sum + Number(s.platform_fee_amount), 0).toLocaleString()}
+                ₹{(settlements || [])
+                  .reduce((sum, s) => sum + Number(s?.platform_fee_amount || 0), 0)
+                  .toLocaleString()}
               </div>
               <div className="text-sm text-muted-foreground">
                 Total deducted
@@ -166,33 +182,33 @@ export function MerchantSettlementsTab() {
         </TabsList>
 
         <TabsContent value="settlements">
-          <ResponsiveTable
-            data={filteredSettlements}
-            columns={[
-              {
-                key: "settlement_number",
-                title: "Settlement #",
-                render: (item: any) => `#${item.settlement_number}`
-              },
-              {
-                key: "status",
-                title: "Status",
-                render: (item: any) => getStatusBadge(item.status)
-              },
-              {
-                key: "created_at",
-                title: "Created Date",
-                render: (item: any) => safeFormatDate(item.created_at, "MMM d, yyyy")
-              },
-              {
-                key: "net_settlement_amount",
-                title: "Net Amount",
-                render: (item: any) => `₹${Number(item.net_settlement_amount).toFixed(2)}`
-              }
-            ]}
-            loading={loading}
-            emptyMessage="No settlements found"
-          />
+            <ResponsiveTable
+              data={filteredSettlements}
+              columns={[
+                {
+                  key: "settlement_number",
+                  title: "Settlement #",
+                  render: (item: any) => `#${item?.settlement_number || 'N/A'}`
+                },
+                {
+                  key: "status",
+                  title: "Status",
+                  render: (item: any) => getStatusBadge(item?.status || 'unknown')
+                },
+                {
+                  key: "created_at",
+                  title: "Created Date",
+                  render: (item: any) => safeFormatDate(item?.created_at, "MMM d, yyyy")
+                },
+                {
+                  key: "net_settlement_amount",
+                  title: "Net Amount",
+                  render: (item: any) => `₹${Number(item?.net_settlement_amount || 0).toFixed(2)}`
+                }
+              ]}
+              loading={loading}
+              emptyMessage="No settlements found"
+            />
         </TabsContent>
 
         <TabsContent value="withdrawals">
@@ -219,14 +235,14 @@ export function MerchantSettlementsTab() {
             </CardHeader>
             <CardContent>
               <ResponsiveTable
-                data={withdrawals}
+                data={withdrawals || []}
                 columns={[
                   {
                     key: "amount",
                     title: "Amount",
                     render: (item: any) => (
                       <div className="font-semibold text-lg">
-                        ₹{Number(item.requested_amount).toLocaleString()}
+                        ₹{Number(item?.requested_amount || 0).toLocaleString()}
                       </div>
                     )
                   },
@@ -234,22 +250,24 @@ export function MerchantSettlementsTab() {
                     key: "method",
                     title: "Method",
                     render: (item: any) => (
-                      <span className="capitalize">{item.withdrawal_method.replace("_", " ")}</span>
+                      <span className="capitalize">
+                        {item?.withdrawal_method?.replace("_", " ") || 'N/A'}
+                      </span>
                     )
                   },
                   {
                     key: "status",
                     title: "Status",
-                    render: (item: any) => getWithdrawalStatusBadge(item.status)
+                    render: (item: any) => getWithdrawalStatusBadge(item?.status || 'unknown')
                   },
                   {
                     key: "date",
                     title: "Request Date",
                     render: (item: any) => (
                       <div className="space-y-1">
-                        <div>{safeFormatDate(item.created_at, "MMM dd, yyyy")}</div>
+                        <div>{safeFormatDate(item?.created_at, "MMM dd, yyyy")}</div>
                         <div className="text-sm text-muted-foreground">
-                          {safeFormatTime(item.created_at, "hh:mm a")}
+                          {safeFormatTime(item?.created_at, "hh:mm a")}
                         </div>
                       </div>
                     )

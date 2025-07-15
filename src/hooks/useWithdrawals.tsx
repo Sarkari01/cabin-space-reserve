@@ -51,9 +51,19 @@ export const useWithdrawals = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setWithdrawals(data || []);
+      
+      // Validate and filter out any invalid data
+      const validData = (data || []).filter(withdrawal => 
+        withdrawal && 
+        typeof withdrawal === 'object' &&
+        withdrawal.id &&
+        withdrawal.merchant_id
+      );
+      
+      setWithdrawals(validData);
     } catch (error) {
       console.error("Error fetching withdrawals:", error);
+      setWithdrawals([]); // Set empty array on error
       toast({
         title: "Error",
         description: "Failed to fetch withdrawal requests",
@@ -78,17 +88,27 @@ export const useWithdrawals = () => {
       if (error) throw error;
       
       const balanceData = data?.[0];
-      if (balanceData) {
+      if (balanceData && typeof balanceData === 'object') {
         setBalance({
-          total_earnings: Number(balanceData.total_earnings),
-          platform_fees: Number(balanceData.platform_fees),
-          net_earnings: Number(balanceData.net_earnings),
-          pending_withdrawals: Number(balanceData.pending_withdrawals),
-          available_balance: Number(balanceData.available_balance)
+          total_earnings: Number(balanceData.total_earnings || 0),
+          platform_fees: Number(balanceData.platform_fees || 0),
+          net_earnings: Number(balanceData.net_earnings || 0),
+          pending_withdrawals: Number(balanceData.pending_withdrawals || 0),
+          available_balance: Number(balanceData.available_balance || 0)
+        });
+      } else {
+        // Set default balance if no data
+        setBalance({
+          total_earnings: 0,
+          platform_fees: 0,
+          net_earnings: 0,
+          pending_withdrawals: 0,
+          available_balance: 0
         });
       }
     } catch (error) {
       console.error("Error fetching merchant balance:", error);
+      setBalance(null); // Set null on error
       toast({
         title: "Error",
         description: "Failed to fetch merchant balance",

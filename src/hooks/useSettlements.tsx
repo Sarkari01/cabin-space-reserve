@@ -66,9 +66,19 @@ export function useSettlements() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setSettlements(data || []);
+      
+      // Validate and filter out any invalid data
+      const validData = (data || []).filter(settlement => 
+        settlement && 
+        typeof settlement === 'object' &&
+        settlement.id &&
+        settlement.merchant_id
+      );
+      
+      setSettlements(validData);
     } catch (error) {
       console.error("Error fetching settlements:", error);
+      setSettlements([]); // Set empty array on error
       toast({
         title: "Error",
         description: "Failed to fetch settlements",
