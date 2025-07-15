@@ -6,6 +6,8 @@ export const getRoleBasedDashboard = (role: string | null): string => {
       return '/merchant/dashboard';
     case 'student':
       return '/student/dashboard';
+    case 'incharge':
+      return '/incharge/dashboard';
     default:
       return '/';
   }

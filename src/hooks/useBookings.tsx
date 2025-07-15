@@ -35,7 +35,7 @@ export interface Booking {
   };
 }
 
-export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
+export const useBookings = (forceRole?: "student" | "merchant" | "admin" | "incharge") => {
   const { user, userRole } = useAuth();
   const effectiveRole = forceRole || userRole;
   console.log("useBookings: Current user role:", userRole, "Effective role:", effectiveRole);

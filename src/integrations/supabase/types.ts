@@ -548,6 +548,124 @@ export type Database = {
           },
         ]
       }
+      incharge_activity_logs: {
+        Row: {
+          action: string
+          booking_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          incharge_id: string
+          study_hall_id: string | null
+        }
+        Insert: {
+          action: string
+          booking_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          incharge_id: string
+          study_hall_id?: string | null
+        }
+        Update: {
+          action?: string
+          booking_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          incharge_id?: string
+          study_hall_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incharge_activity_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incharge_activity_logs_incharge_id_fkey"
+            columns: ["incharge_id"]
+            isOneToOne: false
+            referencedRelation: "incharges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incharge_activity_logs_study_hall_id_fkey"
+            columns: ["study_hall_id"]
+            isOneToOne: false
+            referencedRelation: "study_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incharges: {
+        Row: {
+          account_activated: boolean
+          assigned_study_halls: Json
+          created_at: string
+          created_by: string
+          email: string
+          full_name: string
+          id: string
+          invitation_sent_at: string | null
+          invitation_token: string | null
+          merchant_id: string
+          mobile: string
+          permissions: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_activated?: boolean
+          assigned_study_halls?: Json
+          created_at?: string
+          created_by: string
+          email: string
+          full_name: string
+          id?: string
+          invitation_sent_at?: string | null
+          invitation_token?: string | null
+          merchant_id: string
+          mobile: string
+          permissions?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_activated?: boolean
+          assigned_study_halls?: Json
+          created_at?: string
+          created_by?: string
+          email?: string
+          full_name?: string
+          id?: string
+          invitation_sent_at?: string | null
+          invitation_token?: string | null
+          merchant_id?: string
+          mobile?: string
+          permissions?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incharges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incharges_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_documents: {
         Row: {
           document_type: string
@@ -1678,6 +1796,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      generate_invitation_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_referral_code: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1822,7 +1944,7 @@ export type Database = {
       banner_target_audience: "user" | "merchant" | "both"
       booking_period: "daily" | "weekly" | "monthly"
       news_visibility: "user" | "merchant" | "both"
-      user_role: "admin" | "merchant" | "student"
+      user_role: "admin" | "merchant" | "student" | "incharge"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1954,7 +2076,7 @@ export const Constants = {
       banner_target_audience: ["user", "merchant", "both"],
       booking_period: ["daily", "weekly", "monthly"],
       news_visibility: ["user", "merchant", "both"],
-      user_role: ["admin", "merchant", "student"],
+      user_role: ["admin", "merchant", "student", "incharge"],
     },
   },
 } as const

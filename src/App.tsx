@@ -9,6 +9,7 @@ import Register from "./pages/Auth/Register";
 import StudentDashboard from "./pages/Student/Dashboard";
 import MerchantDashboard from "./pages/Merchant/Dashboard";
 import AdminDashboard from "./pages/Admin/Dashboard";
+import InchargeDashboard from "./pages/Incharge/Dashboard";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { AuthProvider } from "./hooks/useAuth";
@@ -55,6 +56,16 @@ const App = () => (
                 <ProtectedRoute requiredRole="admin">
                   <ErrorBoundary>
                     <AdminDashboard />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/incharge/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="incharge">
+                  <ErrorBoundary>
+                    <InchargeDashboard />
                   </ErrorBoundary>
                 </ProtectedRoute>
               } 

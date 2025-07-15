@@ -34,7 +34,7 @@ export interface Transaction {
   };
 }
 
-export const useTransactions = (forceRole?: "student" | "merchant" | "admin") => {
+export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "incharge") => {
   const { user, userRole } = useAuth();
   const effectiveRole = forceRole || userRole;
   const { toast } = useToast();

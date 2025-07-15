@@ -35,6 +35,7 @@ import { SeatSynchronizer } from "@/components/SeatSynchronizer";
 import { CouponsTab as MerchantCouponsTab } from "@/components/merchant/CouponsTab";
 import { SubscriptionStatusCard } from "@/components/SubscriptionStatusCard";
 import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
+import { InchargeManagementTab } from "@/components/merchant/InchargeManagementTab";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
