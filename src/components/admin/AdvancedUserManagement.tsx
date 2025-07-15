@@ -11,6 +11,7 @@ import { ResponsiveTable } from '@/components/ResponsiveTable';
 import { UserModal } from '@/components/admin/UserModal';
 import { EnhancedUserDetailModal } from '@/components/admin/EnhancedUserDetailModal';
 import { MerchantDetailModal } from '@/components/admin/MerchantDetailModal';
+import { StudentDetailModal } from '@/components/admin/StudentDetailModal';
 import { 
   User, Mail, Phone, Search, Eye, Calendar, Shield, 
   Plus, Edit, Trash2, Users, GraduationCap, Store, 
@@ -572,6 +573,12 @@ export const AdvancedUserManagement = () => {
           open={userDetailOpen}
           onOpenChange={setUserDetailOpen}
           merchant={selectedUser}
+        />
+      ) : selectedUser?.role === 'student' ? (
+        <StudentDetailModal
+          open={userDetailOpen}
+          onOpenChange={setUserDetailOpen}
+          student={selectedUser}
         />
       ) : (
         <EnhancedUserDetailModal
