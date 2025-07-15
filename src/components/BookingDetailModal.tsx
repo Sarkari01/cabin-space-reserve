@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Clock, DollarSign, User, Building, Edit } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, DollarSign, User, Building, Edit, Phone } from "lucide-react";
 import { Booking } from "@/hooks/useBookings";
 import { BookingQRCode } from "./BookingQRCode";
 
@@ -142,8 +142,8 @@ export function BookingDetailModal({
               </CardContent>
             </Card>
 
-            {/* User Information (for merchants and admins) */}
-            {(userRole === 'merchant' || userRole === 'admin') && (
+            {/* User Information (for merchants, admins, and incharges) */}
+            {(userRole === 'merchant' || userRole === 'admin' || userRole === 'incharge') && (
               <Card>
                 <CardContent className="p-4">
                   <h4 className="font-medium mb-3 flex items-center">
@@ -158,6 +158,10 @@ export function BookingDetailModal({
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Email:</span>
                       <span className="font-medium">{booking.user?.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Phone:</span>
+                      <span className="font-medium">{booking.user?.phone || 'Not provided'}</span>
                     </div>
                   </div>
                 </CardContent>

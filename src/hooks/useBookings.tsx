@@ -31,6 +31,7 @@ export interface Booking {
   user?: {
     full_name: string;
     email: string;
+    phone?: string;
     merchant_number?: number;
   };
 }
@@ -66,7 +67,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin" | "inch
           *,
           study_hall:study_halls(name, location, image_url, hall_number),
           seat:seats(seat_id, row_name, seat_number),
-          user:profiles(full_name, email, merchant_number)
+          user:profiles(full_name, email, phone, merchant_number)
         `);
 
       if (effectiveRole === "student") {

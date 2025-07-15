@@ -26,6 +26,7 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
         booking_number: booking.booking_number,
         user_name: booking.user?.full_name || "N/A",
         user_email: booking.user?.email || "N/A",
+        user_phone: booking.user?.phone || "N/A",
         study_hall: booking.study_hall?.name || "Study Hall",
         location: booking.study_hall?.location || "N/A",
         seat: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
@@ -163,6 +164,9 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
                 <div>
                   <p className="font-medium">{booking.user?.full_name || 'N/A'}</p>
                   <p className="text-muted-foreground">{booking.user?.email}</p>
+                  {booking.user?.phone && (
+                    <p className="text-muted-foreground text-xs">{booking.user.phone}</p>
+                  )}
                 </div>
                 <div className="sm:text-right">
                   <p className="text-xs text-muted-foreground">Status</p>

@@ -87,7 +87,8 @@ export function BookingEditModal({
             <span>Edit Booking</span>
           </DialogTitle>
           <DialogDescription>
-            Update booking details for {booking.user?.full_name || booking.user?.email}
+            Update booking details for {booking.user?.full_name || booking.user?.email} 
+            {booking.user?.phone && `(${booking.user.phone})`}
           </DialogDescription>
         </DialogHeader>
 
