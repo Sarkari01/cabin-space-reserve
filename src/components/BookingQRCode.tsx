@@ -98,7 +98,7 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
             <span className="font-bold text-lg">STUDY HALL TICKET</span>
           </div>
           <p className="text-sm opacity-90">
-            Booking #{booking.booking_number?.toString().padStart(6, '0') || 'Pending'}
+            Booking #{booking.booking_number ? `B${booking.booking_number}` : 'Pending'}
           </p>
         </div>
 

@@ -404,7 +404,7 @@ const StudentDashboard = () => {
                               </span>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              <div>Booking #{booking.booking_number?.toString().padStart(6, '0') || 'Pending'}</div>
+                              <div>Booking #{booking.booking_number ? `B${booking.booking_number}` : 'Pending'}</div>
                               <div>
                                 Period: {booking.booking_period} • Created: {formatDate(booking.created_at)}
                               </div>

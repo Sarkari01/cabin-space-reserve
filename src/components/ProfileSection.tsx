@@ -423,6 +423,11 @@ const ProfileSection = () => {
                   ID: M{userProfile.merchant_number}
                 </p>
               )}
+              {userRole === 'student' && userProfile?.student_number && (
+                <p className="text-sm text-muted-foreground">
+                  ID: S{userProfile.student_number}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground flex items-center">
                 <Mail className="h-3 w-3 mr-1" />
                 {user?.email}

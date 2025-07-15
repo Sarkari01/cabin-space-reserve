@@ -1050,6 +1050,7 @@ export type Database = {
           merchant_number: number | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          student_number: number | null
           updated_at: string
         }
         Insert: {
@@ -1060,6 +1061,7 @@ export type Database = {
           merchant_number?: number | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          student_number?: number | null
           updated_at?: string
         }
         Update: {
@@ -1070,6 +1072,7 @@ export type Database = {
           merchant_number?: number | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          student_number?: number | null
           updated_at?: string
         }
         Relationships: []

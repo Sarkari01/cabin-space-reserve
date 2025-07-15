@@ -310,7 +310,7 @@ const PaymentSuccess = () => {
           {bookingDetails && (
             <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
               {(bookingDetails.bookingNumber || bookingDetails.bookingId) && (
-                <p><strong>Booking ID:</strong> #{bookingDetails.bookingNumber ? bookingDetails.bookingNumber.toString().padStart(6, '0') : 'Processing...'}</p>
+                <p><strong>Booking ID:</strong> #{bookingDetails.bookingNumber ? `B${bookingDetails.bookingNumber}` : 'Processing...'}</p>
               )}
               {bookingDetails.studyHallName && (
                 <p><strong>Study Hall:</strong> {bookingDetails.studyHallName}</p>

@@ -739,7 +739,7 @@ const AdminDashboard = () => {
                               </span>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              <div>Booking #{booking.booking_number?.toString().padStart(6, '0') || 'Pending'}</div>
+                              <div>Booking #{booking.booking_number ? `B${booking.booking_number}` : 'Pending'}</div>
                               <div>
                                 <span>Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}</span> • 
                                 <span className="ml-2">Duration: {booking.booking_period}</span>
