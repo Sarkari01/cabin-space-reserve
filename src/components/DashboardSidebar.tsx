@@ -49,7 +49,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { MerchantSidebarWidget } from "./MerchantSidebarWidget";
+
 
 interface DashboardSidebarProps {
   userRole: "student" | "merchant" | "admin" | "incharge" | "telemarketing_executive" | "pending_payments_caller" | "customer_care_executive" | "settlement_manager" | "general_administrator";
@@ -277,12 +277,6 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
           </div>
         </div>
 
-        {/* Merchant Sidebar Widget */}
-        {userRole === "merchant" && (
-          <div className="border-b">
-            <MerchantSidebarWidget onTabChange={onTabChange} />
-          </div>
-        )}
 
         {/* Navigation - Check for grouped structure */}
         {(userRole === "telemarketing_executive" || userRole === "admin" || userRole === "merchant") && typeof items === "object" && !Array.isArray(items) ? (
