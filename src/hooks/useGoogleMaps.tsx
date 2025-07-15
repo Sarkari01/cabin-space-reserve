@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 
-// This should be replaced with the actual API key from Supabase secrets
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY_HERE'; // Replace with actual key
+// TODO: Replace with your actual Google Maps API key
+const GOOGLE_MAPS_API_KEY = 'YOUR_ACTUAL_GOOGLE_MAPS_API_KEY_HERE';
 
 interface UseGoogleMapsReturn {
   isLoaded: boolean;
