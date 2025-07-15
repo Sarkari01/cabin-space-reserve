@@ -82,6 +82,7 @@ const sidebarItems = {
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Coupons", url: "/admin/dashboard", icon: Ticket, tab: "coupons" },
     { title: "Rewards & Referrals", url: "/admin/dashboard", icon: Gift, tab: "rewards" },
+    { title: "Rewards Settings", url: "/admin/dashboard", icon: Settings, tab: "rewards-settings" },
     { title: "Settlements", url: "/admin/dashboard", icon: ArrowUpDown, tab: "settlements" },
     { title: "Transactions", url: "/admin/dashboard", icon: CreditCard, tab: "transactions" },
     { title: "Subscription Transactions", url: "/admin/dashboard", icon: Receipt, tab: "subscription-transactions" },

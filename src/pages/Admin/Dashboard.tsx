@@ -33,6 +33,7 @@ import { SubscriptionPlansTab } from "@/components/admin/SubscriptionPlansTab";
 import { MerchantSubscriptionManagementTab } from "@/components/admin/MerchantSubscriptionManagementTab";
 import EKQRRecoveryTab from "@/components/admin/EKQRRecoveryTab";
 import { RewardsTab } from "@/components/admin/RewardsTab";
+import { RewardsSettingsTab } from "@/components/admin/RewardsSettingsTab";
 import { CouponsTab } from "@/components/admin/CouponsTab";
 import { MerchantVerificationTab } from "@/components/admin/MerchantVerificationTab";
 import { SettlementsTab } from "@/components/admin/SettlementsTab";
@@ -798,6 +799,9 @@ const AdminDashboard = () => {
 
           {/* Rewards Tab */}
           {activeTab === "rewards" && <RewardsTab />}
+
+          {/* Rewards Settings Tab */}
+          {activeTab === "rewards-settings" && <RewardsSettingsTab />}
 
           {/* Settlements Tab */}
           {activeTab === "settlements" && <SettlementsTab />}

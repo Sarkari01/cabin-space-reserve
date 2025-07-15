@@ -48,6 +48,39 @@ serve(async (req) => {
     const { points_to_redeem, booking_id, booking_amount, validate_only }: RedeemRewardsRequest = await req.json();
     logStep("Request data", { points_to_redeem, booking_id, booking_amount, validate_only });
 
+    // Get business settings for rewards configuration
+    const { data: businessSettings, error: settingsError } = await supabaseClient
+      .from("business_settings")
+      .select("rewards_enabled, rewards_conversion_rate, min_redemption_points")
+      .maybeSingle();
+
+    if (settingsError) {
+      logStep("Error fetching business settings", { error: settingsError });
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to fetch rewards configuration" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    // Use admin-defined settings with fallbacks
+    const REWARDS_ENABLED = businessSettings?.rewards_enabled ?? true;
+    const CONVERSION_RATE = businessSettings?.rewards_conversion_rate ?? 0.10;
+    const MIN_REDEMPTION_POINTS = businessSettings?.min_redemption_points ?? 10;
+
+    logStep("Rewards configuration", { 
+      enabled: REWARDS_ENABLED, 
+      conversion_rate: CONVERSION_RATE, 
+      min_redemption: MIN_REDEMPTION_POINTS 
+    });
+
+    // Check if rewards are enabled
+    if (!REWARDS_ENABLED) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Rewards system is currently disabled" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
     // Validate points amount
     if (!points_to_redeem || points_to_redeem <= 0) {
       return new Response(
@@ -56,10 +89,14 @@ serve(async (req) => {
       );
     }
 
-    // Check minimum redemption (50 points = ₹1)
-    if (points_to_redeem < 50) {
+    // Check minimum redemption using admin settings
+    if (points_to_redeem < MIN_REDEMPTION_POINTS) {
+      const minValue = (MIN_REDEMPTION_POINTS * CONVERSION_RATE).toFixed(2);
       return new Response(
-        JSON.stringify({ success: false, error: "Minimum redemption is 50 points (₹1)" }),
+        JSON.stringify({ 
+          success: false, 
+          error: `Minimum redemption is ${MIN_REDEMPTION_POINTS} points (₹${minValue})` 
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -94,8 +131,8 @@ serve(async (req) => {
       );
     }
 
-    // Calculate discount amount (10 points = ₹1)
-    const discount_amount = points_to_redeem * 0.10;
+    // Calculate discount amount using admin-defined conversion rate
+    const discount_amount = parseFloat((points_to_redeem * CONVERSION_RATE).toFixed(2));
 
     // If validate_only is true, just return the validation result
     if (validate_only) {

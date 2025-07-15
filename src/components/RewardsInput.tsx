@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Gift, Check, X, Loader2 } from "lucide-react";
 import { useRewards } from "@/hooks/useRewards";
 import { useToast } from "@/hooks/use-toast";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 interface RewardsInputProps {
   bookingAmount: number;
@@ -28,10 +29,13 @@ export const RewardsInput = ({
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const [redeeming, setRedeeming] = useState(false);
   const { rewards, loading } = useRewards();
+  const { settings: businessSettings, loading: settingsLoading } = useBusinessSettings();
   const { toast } = useToast();
 
-  // Conversion rate: 1 point = ₹0.10 (10 points = ₹1)
-  const POINTS_TO_RUPEE_RATE = 0.10;
+  // Use admin-defined conversion rate, with fallback to default
+  const POINTS_TO_RUPEE_RATE = businessSettings?.rewards_conversion_rate || 0.10;
+  const MIN_REDEMPTION_POINTS = businessSettings?.min_redemption_points || 10;
+  const REWARDS_ENABLED = businessSettings?.rewards_enabled ?? true;
   
   const maxRedeemablePoints = Math.min(
     rewards?.available_points || 0,
@@ -92,7 +96,7 @@ export const RewardsInput = ({
     });
   };
 
-  if (loading) {
+  if (loading || settingsLoading) {
     return (
       <Card>
         <CardContent className="p-4">
@@ -105,14 +109,22 @@ export const RewardsInput = ({
     );
   }
 
-  if (!rewards || rewards.available_points <= 0) {
+  // Don't show rewards if disabled by admin
+  if (!REWARDS_ENABLED) {
+    return null;
+  }
+
+  if (!rewards || rewards.available_points <= 0 || rewards.available_points < MIN_REDEMPTION_POINTS) {
     return (
       <Card>
         <CardContent className="p-4">
           <div className="text-center py-4">
             <Gift className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              No reward points available
+              {!rewards || rewards.available_points <= 0 
+                ? "No reward points available"
+                : `Minimum ${MIN_REDEMPTION_POINTS} points required`
+              }
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Complete bookings to earn reward points
@@ -143,7 +155,7 @@ export const RewardsInput = ({
                 </p>
               </div>
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                10 points = ₹1
+                {Math.round(1 / POINTS_TO_RUPEE_RATE)} points = ₹1
               </Badge>
             </div>
           </div>
@@ -189,16 +201,16 @@ export const RewardsInput = ({
                 
                 <Slider
                   id="points-slider"
-                  min={0}
+                  min={MIN_REDEMPTION_POINTS}
                   max={maxRedeemablePoints}
-                  step={10}
+                  step={Math.max(Math.round(1 / POINTS_TO_RUPEE_RATE / 10), 1)}
                   value={[pointsToRedeem]}
                   onValueChange={(values) => setPointsToRedeem(values[0])}
                   className="w-full"
                 />
                 
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>0</span>
+                  <span>{MIN_REDEMPTION_POINTS}</span>
                   <span>{maxRedeemablePoints}</span>
                 </div>
               </div>
@@ -209,16 +221,16 @@ export const RewardsInput = ({
                   placeholder="Enter points"
                   value={pointsToRedeem || ""}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value) || 0;
-                    setPointsToRedeem(Math.min(value, maxRedeemablePoints));
+                    const value = parseInt(e.target.value) || MIN_REDEMPTION_POINTS;
+                    setPointsToRedeem(Math.min(Math.max(value, MIN_REDEMPTION_POINTS), maxRedeemablePoints));
                   }}
-                  min={0}
+                  min={MIN_REDEMPTION_POINTS}
                   max={maxRedeemablePoints}
                   disabled={redeeming}
                 />
                 <Button 
                   onClick={handleApplyRewards} 
-                  disabled={redeeming || pointsToRedeem <= 0}
+                  disabled={redeeming || pointsToRedeem < MIN_REDEMPTION_POINTS}
                   className="px-6"
                 >
                   {redeeming ? (

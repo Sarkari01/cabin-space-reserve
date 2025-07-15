@@ -132,11 +132,17 @@ export type Database = {
           created_at: string
           ekqr_enabled: boolean
           id: string
+          min_redemption_points: number | null
           minimum_settlement_amount: number | null
           minimum_withdrawal_amount: number | null
           offline_enabled: boolean
           platform_fee_percentage: number | null
+          points_per_booking: number | null
+          points_per_referral: number | null
+          points_profile_complete: number | null
           razorpay_enabled: boolean
+          rewards_conversion_rate: number | null
+          rewards_enabled: boolean | null
           updated_at: string
           withdrawal_processing_days: number | null
         }
@@ -145,11 +151,17 @@ export type Database = {
           created_at?: string
           ekqr_enabled?: boolean
           id?: string
+          min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null
           offline_enabled?: boolean
           platform_fee_percentage?: number | null
+          points_per_booking?: number | null
+          points_per_referral?: number | null
+          points_profile_complete?: number | null
           razorpay_enabled?: boolean
+          rewards_conversion_rate?: number | null
+          rewards_enabled?: boolean | null
           updated_at?: string
           withdrawal_processing_days?: number | null
         }
@@ -158,11 +170,17 @@ export type Database = {
           created_at?: string
           ekqr_enabled?: boolean
           id?: string
+          min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null
           offline_enabled?: boolean
           platform_fee_percentage?: number | null
+          points_per_booking?: number | null
+          points_per_referral?: number | null
+          points_profile_complete?: number | null
           razorpay_enabled?: boolean
+          rewards_conversion_rate?: number | null
+          rewards_enabled?: boolean | null
           updated_at?: string
           withdrawal_processing_days?: number | null
         }

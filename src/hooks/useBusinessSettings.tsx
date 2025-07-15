@@ -9,6 +9,12 @@ export interface BusinessSettings {
   razorpay_enabled: boolean;
   platform_fee_percentage?: number;
   minimum_settlement_amount?: number;
+  rewards_enabled?: boolean;
+  rewards_conversion_rate?: number;
+  points_per_booking?: number;
+  points_per_referral?: number;
+  points_profile_complete?: number;
+  min_redemption_points?: number;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +42,12 @@ export const useBusinessSettings = () => {
             ekqr_enabled: true,
             offline_enabled: true,
             razorpay_enabled: false,
+            rewards_enabled: true,
+            rewards_conversion_rate: 0.10,
+            points_per_booking: 50,
+            points_per_referral: 500,
+            points_profile_complete: 100,
+            min_redemption_points: 10,
           })
           .select()
           .single();
