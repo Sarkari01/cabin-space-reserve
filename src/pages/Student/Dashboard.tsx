@@ -20,6 +20,7 @@ import { StudentTransactionsTab } from "@/components/student/StudentTransactions
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
+import { BookingLifecycleManager } from "@/components/BookingLifecycleManager";
 import UserProfileSettings from "@/components/UserProfileSettings";
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -124,6 +125,7 @@ const StudentDashboard = () => {
 
   return (
     <>
+      <BookingLifecycleManager />
       <DashboardSidebar 
         userRole="student" 
         userName={user.email || "Student"}

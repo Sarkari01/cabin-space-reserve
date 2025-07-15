@@ -27,6 +27,7 @@ import { MerchantSubscriptionTransactionsTab } from "@/components/merchant/Merch
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
+import { BookingLifecycleManager } from "@/components/BookingLifecycleManager";
 import UserProfileSettings from "@/components/UserProfileSettings";
 
 const MerchantDashboard = () => {
@@ -255,12 +256,14 @@ const MerchantDashboard = () => {
   };
 
   return (
-    <DashboardSidebar 
-      userRole="merchant" 
-      userName={user?.email || 'Merchant'}
-      onTabChange={setActiveTab}
-      activeTab={activeTab}
-    >
+    <>
+      <BookingLifecycleManager />
+      <DashboardSidebar 
+        userRole="merchant" 
+        userName={user?.email || 'Merchant'}
+        onTabChange={setActiveTab}
+        activeTab={activeTab}
+      >
       <div className="p-6">
         {/* Banner Carousel */}
         <BannerCarousel targetAudience="merchant" className="mb-6" />
@@ -1534,6 +1537,7 @@ const MerchantDashboard = () => {
         />
       </div>
     </DashboardSidebar>
+    </>
   );
 };
 

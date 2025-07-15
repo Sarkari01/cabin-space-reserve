@@ -886,6 +886,31 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      auto_release_expired_bookings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          released_count: number
+          released_booking_ids: string[]
+        }[]
+      }
+      calculate_booking_amount: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+          p_daily_price: number
+          p_weekly_price: number
+          p_monthly_price: number
+        }
+        Returns: {
+          amount: number
+          days: number
+          method: string
+        }[]
+      }
+      check_seat_availability: {
+        Args: { p_seat_id: string; p_start_date: string; p_end_date: string }
+        Returns: boolean
+      }
       cleanup_old_failed_transactions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -893,6 +918,19 @@ export type Database = {
       generate_short_id: {
         Args: { table_name: string; column_name: string }
         Returns: number
+      }
+      get_available_seats: {
+        Args: {
+          p_study_hall_id: string
+          p_start_date: string
+          p_end_date: string
+        }
+        Returns: {
+          seat_id: string
+          seat_identifier: string
+          row_name: string
+          seat_number: number
+        }[]
       }
       get_booking_health_metrics: {
         Args: Record<PropertyKey, never>
