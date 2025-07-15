@@ -1550,6 +1550,8 @@ export type Database = {
           booking_end_date: string
           user_email: string
           study_hall_name: string
+          transaction_number: number
+          booking_number: number
         }[]
       }
       get_unsettled_transactions_summary: {
