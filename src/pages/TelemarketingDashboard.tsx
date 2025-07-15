@@ -89,26 +89,26 @@ const TelemarketingDashboard = () => {
     {
       title: 'Merchant',
       key: 'merchant',
-      render: (merchant: any) => (
+      render: (_: any, merchant: any) => (
         <div>
-          <div className="font-medium">{merchant.full_name || 'N/A'}</div>
-          <div className="text-sm text-muted-foreground">{merchant.email}</div>
+          <div className="font-medium">{merchant?.full_name || 'N/A'}</div>
+          <div className="text-sm text-muted-foreground">{merchant?.email || 'No email'}</div>
         </div>
       )
     },
     {
       title: 'Contact',
       key: 'contact',
-      render: (merchant: any) => (
+      render: (_: any, merchant: any) => (
         <div>
-          <div className="text-sm">{merchant.phone || 'No phone'}</div>
+          <div className="text-sm">{merchant?.phone || 'No phone'}</div>
         </div>
       )
     },
     {
       title: 'Status',
       key: 'status',
-      render: (merchant: any) => (
+      render: (_: any, merchant: any) => (
         <Badge variant={getStatusBadge('pending')}>
           Pending Call
         </Badge>
@@ -117,20 +117,21 @@ const TelemarketingDashboard = () => {
     {
       title: 'Joined',
       key: 'created_at',
-      render: (merchant: any) => (
+      render: (_: any, merchant: any) => (
         <div className="text-sm">
-          {new Date(merchant.created_at).toLocaleDateString()}
+          {merchant?.created_at ? new Date(merchant.created_at).toLocaleDateString() : 'N/A'}
         </div>
       )
     },
     {
       title: 'Actions',
       key: 'actions',
-      render: (merchant: any) => (
+      render: (_: any, merchant: any) => (
         <Button
           size="sm"
           onClick={() => handleMerchantCall(merchant)}
           className="flex items-center gap-2"
+          disabled={!merchant}
         >
           <Phone className="h-4 w-4" />
           Call
