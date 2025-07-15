@@ -32,6 +32,8 @@ import UserProfileSettings from "@/components/UserProfileSettings";
 import { SubscriptionPlansTab } from "@/components/admin/SubscriptionPlansTab";
 import { MerchantSubscriptionManagementTab } from "@/components/admin/MerchantSubscriptionManagementTab";
 import EKQRRecoveryTab from "@/components/admin/EKQRRecoveryTab";
+import { RewardsTab } from "@/components/admin/RewardsTab";
+import { CouponsTab } from "@/components/admin/CouponsTab";
 import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/loading";
@@ -789,6 +791,11 @@ const AdminDashboard = () => {
           {/* EKQR Recovery Tab */}
           {activeTab === "ekqr-recovery" && <EKQRRecoveryTab />}
 
+          {/* Coupons Tab */}
+          {activeTab === "coupons" && <CouponsTab />}
+
+          {/* Rewards Tab */}
+          {activeTab === "rewards" && <RewardsTab />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && (

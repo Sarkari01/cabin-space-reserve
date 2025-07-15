@@ -54,7 +54,7 @@ export const RewardsTab = () => {
             <CardTitle className="text-sm font-medium">Active Referral Codes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{allReferralCodes.filter(c => c.status === 'active').length}</div>
+            <div className="text-2xl font-bold">{(allReferralCodes || []).filter(c => c.status === 'active').length}</div>
             <p className="text-xs text-muted-foreground">Users sharing codes</p>
           </CardContent>
         </Card>
@@ -64,7 +64,7 @@ export const RewardsTab = () => {
             <CardTitle className="text-sm font-medium">Successful Referrals</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{referralRewards.filter(r => r.status === 'completed').length}</div>
+            <div className="text-2xl font-bold">{(referralRewards || []).filter(r => r.status === 'completed').length}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -74,7 +74,7 @@ export const RewardsTab = () => {
             <CardTitle className="text-sm font-medium">Coupon Savings</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{couponUsage.reduce((sum, usage) => sum + usage.discount_amount, 0).toLocaleString()}</div>
+            <div className="text-2xl font-bold">₹{(couponUsage || []).reduce((sum, usage) => sum + usage.discount_amount, 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Total discounts given</p>
           </CardContent>
         </Card>
@@ -149,9 +149,9 @@ export const RewardsTab = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {allReferralCodes.length > 0 ? (
+                {(allReferralCodes || []).length > 0 ? (
                   <div className="space-y-3">
-                    {allReferralCodes
+                    {(allReferralCodes || [])
                       .sort((a, b) => b.successful_referrals - a.successful_referrals)
                       .slice(0, 5)
                       .map((code, index) => (
@@ -191,9 +191,9 @@ export const RewardsTab = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {referralRewards.length > 0 ? (
+                {(referralRewards || []).length > 0 ? (
                   <div className="space-y-3">
-                    {referralRewards.slice(0, 5).map((reward) => (
+                    {(referralRewards || []).slice(0, 5).map((reward) => (
                       <div key={reward.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="font-medium">Referral Reward</p>
@@ -236,9 +236,9 @@ export const RewardsTab = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {coupons.length > 0 ? (
+                {(coupons || []).length > 0 ? (
                   <div className="space-y-3">
-                    {coupons
+                    {(coupons || [])
                       .sort((a, b) => b.usage_count - a.usage_count)
                       .slice(0, 5)
                       .map((coupon) => (
@@ -276,9 +276,9 @@ export const RewardsTab = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {couponUsage.length > 0 ? (
+                {(couponUsage || []).length > 0 ? (
                   <div className="space-y-3">
-                    {couponUsage.slice(0, 5).map((usage) => (
+                    {(couponUsage || []).slice(0, 5).map((usage) => (
                       <div key={usage.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="font-medium">{usage.coupon?.title || 'Coupon'}</p>
