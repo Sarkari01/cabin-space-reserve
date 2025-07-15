@@ -48,6 +48,7 @@ import { EnhancedAnalytics } from "@/components/EnhancedAnalytics";
 import { useOperationalUsers } from "@/hooks/useOperationalUsers";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useSupportTickets } from "@/hooks/useSupportTickets";
+import { AdminReviewsTab } from "@/components/admin/AdminReviewsTab";
 
 
 const AdminDashboard = () => {
@@ -1164,6 +1165,9 @@ const AdminDashboard = () => {
               />
             </div>
           )}
+
+          {/* Reviews Tab */}
+          {activeTab === "reviews" && <AdminReviewsTab />}
 
           {/* Support Tickets Management Tab */}
           {activeTab === "support-tickets-management" && (

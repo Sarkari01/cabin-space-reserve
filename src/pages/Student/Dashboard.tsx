@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,8 @@ import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
 import { StudentTransactionsTab } from "@/components/student/StudentTransactionsTab";
 import { RewardsTab } from "@/components/student/RewardsTab";
+import { StudentReviewsTab } from "@/components/student/StudentReviewsTab";
+import { RatingDisplay } from "@/components/reviews/RatingDisplay";
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
@@ -40,6 +42,16 @@ const StudentDashboard = () => {
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const { seats, fetchSeats } = useSeats();
+
+  // Listen for navigation to reviews tab
+  useEffect(() => {
+    const handleNavigateToReviews = () => {
+      setActiveTab("reviews");
+    };
+    
+    window.addEventListener('navigateToReviews', handleNavigateToReviews);
+    return () => window.removeEventListener('navigateToReviews', handleNavigateToReviews);
+  }, []);
 
   // Filter active study halls for browsing
   const activeStudyHalls = studyHalls.filter(hall => hall.status === 'active');
@@ -327,6 +339,15 @@ const StudentDashboard = () => {
                           <MapPin className="h-3 w-3 mr-1" />
                           {studyHall.location}
                         </p>
+                        {(studyHall as any).average_rating && (
+                          <div className="mb-2">
+                            <RatingDisplay 
+                              rating={(studyHall as any).average_rating} 
+                              totalReviews={(studyHall as any).total_reviews || 0}
+                              size="sm"
+                            />
+                          </div>
+                        )}
                         <p className="text-sm text-muted-foreground mb-3 flex items-center">
                           <Users className="h-3 w-3 mr-1" />
                           {studyHall.rows} rows • {studyHall.seats_per_row} seats per row
@@ -470,6 +491,11 @@ const StudentDashboard = () => {
           {/* Rewards Tab */}
           {activeTab === "rewards" && (
             <RewardsTab />
+          )}
+
+          {/* Reviews Tab */}
+          {activeTab === "reviews" && (
+            <StudentReviewsTab />
           )}
 
           {/* Transactions Tab */}

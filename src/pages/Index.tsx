@@ -15,6 +15,7 @@ import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
 import AdvancedSearch from "@/components/AdvancedSearch";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { StudyHallMainImage } from "@/components/StudyHallMainImage";
+import { RatingDisplay } from "@/components/reviews/RatingDisplay";
 
 const Index = () => {
   const { studyHalls, loading, fetchStudyHalls } = useStudyHalls();
@@ -234,6 +235,15 @@ const Index = () => {
                             <MapPin className="h-4 w-4 mr-1" />
                             <span>{studyHall.location}</span>
                           </div>
+                          {(studyHall as any).average_rating && (
+                            <div className="mt-2">
+                              <RatingDisplay 
+                                rating={(studyHall as any).average_rating} 
+                                totalReviews={(studyHall as any).total_reviews || 0}
+                                size="sm"
+                              />
+                            </div>
+                          )}
                         </div>
                         <Badge variant="secondary">
                           {studyHall.status}

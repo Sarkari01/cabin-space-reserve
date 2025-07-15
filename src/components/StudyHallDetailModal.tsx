@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Users, Calendar, DollarSign, Grid, Eye, Heart } from "lucide-react";
+import { MapPin, Users, Calendar, DollarSign, Grid, Eye, Heart, Star } from "lucide-react";
 import { BookingModal } from "./BookingModal";
 import { useFavorites } from "@/hooks/useFavorites";
 import { StudyHallImageGallery } from "./StudyHallImageGallery";
 import { StudyHallData, Seat } from "@/types/StudyHall";
+import { ReviewsList } from "./reviews/ReviewsList";
+import { ReviewForm } from "./reviews/ReviewForm";
+import { RatingDisplay } from "./reviews/RatingDisplay";
+import { useReviews } from "@/hooks/useReviews";
+import { useAuth } from "@/hooks/useAuth";
 
 interface StudyHallDetailModalProps {
   open: boolean;
@@ -28,9 +33,19 @@ export function StudyHallDetailModal({
   onEdit 
 }: StudyHallDetailModalProps) {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
+  const { user } = useAuth();
+  const { reviews, loading: reviewsLoading, fetchReviews, createReview, fetchEligibleBookings } = useReviews();
 
   if (!studyHall) return null;
+
+  // Fetch reviews when study hall changes
+  useEffect(() => {
+    if (studyHall?.id && open) {
+      fetchReviews(studyHall.id);
+    }
+  }, [studyHall?.id, open, fetchReviews]);
 
   // Debug logging for incharges data
   console.log('StudyHallDetailModal received studyHall:', {
@@ -79,9 +94,18 @@ export function StudyHallDetailModal({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Grid className="h-5 w-5" />
-              {studyHall.name}
+            <DialogTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Grid className="h-5 w-5" />
+                {studyHall.name}
+              </div>
+              {(studyHall as any).average_rating && (
+                <RatingDisplay 
+                  rating={(studyHall as any).average_rating} 
+                  totalReviews={(studyHall as any).total_reviews || 0}
+                  size="sm"
+                />
+              )}
             </DialogTitle>
             <DialogDescription>
               Complete study hall information and seat layout
@@ -89,10 +113,11 @@ export function StudyHallDetailModal({
           </DialogHeader>
 
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="layout">Seat Layout</TabsTrigger>
               <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -191,6 +216,42 @@ export function StudyHallDetailModal({
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">{studyHall.description}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Reviews Summary */}
+              {((studyHall as any).average_rating || reviews.length > 0) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Star className="h-5 w-5" />
+                      Reviews & Rating
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <RatingDisplay 
+                        rating={(studyHall as any).average_rating || 0} 
+                        totalReviews={(studyHall as any).total_reviews || 0}
+                        size="lg"
+                      />
+                      {userRole === "student" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Navigate to reviews tab in student dashboard
+                            onOpenChange(false);
+                            window.dispatchEvent(new CustomEvent('navigateToReviews', { 
+                              detail: { studyHallId: studyHall.id } 
+                            }));
+                          }}
+                        >
+                          Write Review
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -310,6 +371,33 @@ export function StudyHallDetailModal({
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="reviews" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Reviews</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {(studyHall as any).total_reviews || 0} review{((studyHall as any).total_reviews || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                {userRole === "student" && (
+                  <Button onClick={() => {
+                    onOpenChange(false);
+                    window.dispatchEvent(new CustomEvent('navigateToReviews', { 
+                      detail: { studyHallId: studyHall.id } 
+                    }));
+                  }}>
+                    Write Review
+                  </Button>
+                )}
+              </div>
+
+              <ReviewsList 
+                studyHallId={studyHall.id}
+                showFilters={false}
+                limit={10}
+              />
+            </TabsContent>
           </Tabs>
 
           <div className="flex gap-2 pt-4">
@@ -352,6 +440,8 @@ export function StudyHallDetailModal({
           onOpenChange(false);
         }}
       />
+
+      {/* Note: Review form will be handled by the StudentReviewsTab component */}
     </>
   );
 }
