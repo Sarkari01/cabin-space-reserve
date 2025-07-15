@@ -224,17 +224,34 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
         return;
       }
 
-      // Update transaction with EKQR order details
+      // Get existing payment data to preserve qr_id
+      console.log('💾 EKQR: Fetching current transaction data to preserve qr_id...');
+      const { data: currentTransaction } = await supabase
+        .from('transactions')
+        .select('payment_data, qr_id')
+        .eq('id', transaction.id)
+        .single();
+
+      const existingPaymentData = (currentTransaction?.payment_data as any) || {};
+      
+      // Update transaction with EKQR order details (preserve existing data including qr_id)
       const updateData = {
         payment_id: orderResponse.orderId,
         payment_data: {
-          bookingIntent: bookingIntent,
+          ...existingPaymentData, // Preserve existing data including bookingIntent
           sessionId: orderResponse.sessionId,
           paymentUrl: orderResponse.paymentUrl,
           upiIntent: orderResponse.upiIntent,
-          isUtrRequired: orderResponse.isUtrRequired
+          isUtrRequired: orderResponse.isUtrRequired,
+          frontend_updated_at: new Date().toISOString()
         }
       };
+
+      console.log('💾 EKQR: Updating transaction with preserved data:', { 
+        existingQrId: currentTransaction?.qr_id,
+        hasExistingPaymentData: !!existingPaymentData,
+        updateData 
+      });
 
       const { error: updateError } = await supabase
         .from('transactions')
@@ -356,15 +373,31 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             .eq('id', transactionId)
             .single();
           
-          // Use multiple fallback options for order ID
+          // Use multiple fallback options for order ID with enhanced logic
           const paymentData = latestTransaction?.payment_data as any;
-          const orderIdToUse = orderId || 
-                              latestTransaction?.qr_id || 
-                              paymentData?.ekqr_order_id ||
-                              latestTransaction?.payment_id;
+          const orderIdToUse = latestTransaction?.qr_id || // Prefer qr_id from edge function
+                              orderId || // Original order ID from frontend
+                              paymentData?.ekqr_order_id || // Backup from payment data
+                              latestTransaction?.payment_id; // Last resort
+          
+          console.log('🔍 EKQR: Order ID resolution:', {
+            qr_id: latestTransaction?.qr_id,
+            original_orderId: orderId,
+            ekqr_order_id: paymentData?.ekqr_order_id,
+            payment_id: latestTransaction?.payment_id,
+            final_orderIdToUse: orderIdToUse
+          });
           
           if (!orderIdToUse) {
-            console.log('⚠️ No order ID available for EKQR status check, skipping API call');
+            console.log('⚠️ No order ID available for EKQR status check, attempting auto-recovery');
+            
+            // Trigger auto-recovery as fallback
+            try {
+              const { data: recoveryResult } = await supabase.functions.invoke('auto-ekqr-recovery');
+              console.log('🔄 Auto-recovery triggered:', recoveryResult);
+            } catch (recoveryError) {
+              console.error('❌ Auto-recovery failed:', recoveryError);
+            }
           } else {
             console.log(`🔍 Using order ID for status check: ${orderIdToUse}`);
             
@@ -373,7 +406,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
                 action: 'checkOrderStatus',
                 orderId: orderIdToUse,
                 transactionId: transactionId,
-                txnDate: new Date().toISOString().split('T')[0] // Add current date
+                txnDate: new Date().toISOString().split('T')[0]
               }
             });
           

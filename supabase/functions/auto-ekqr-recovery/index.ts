@@ -26,15 +26,15 @@ Deno.serve(async (req) => {
       throw new Error('EKQR_API_KEY not configured');
     }
 
-    // Find pending EKQR transactions older than 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // Find pending EKQR transactions older than 2 minutes (faster recovery)
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     
     const { data: pendingTransactions, error: fetchError } = await supabase
       .from('transactions')
       .select('*')
       .eq('payment_method', 'ekqr')
       .eq('status', 'pending')
-      .lt('created_at', fiveMinutesAgo);
+      .lt('created_at', twoMinutesAgo);
 
     if (fetchError) {
       console.error('❌ Failed to fetch pending transactions:', fetchError);
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     }
 
     if (!pendingTransactions || pendingTransactions.length === 0) {
-      console.log('✅ No pending EKQR transactions found older than 5 minutes');
+      console.log('✅ No pending EKQR transactions found older than 2 minutes');
       return new Response(
         JSON.stringify({ 
           success: true, 

@@ -21,10 +21,10 @@ BEGIN
 END;
 $$;
 
--- Schedule the function to run every 5 minutes
+-- Schedule the function to run every 2 minutes (faster recovery)
 SELECT cron.schedule(
   'auto-ekqr-recovery',
-  '*/5 * * * *', -- Every 5 minutes
+  '*/2 * * * *', -- Every 2 minutes
   'SELECT auto_recover_pending_ekqr_payments();'
 );
 
