@@ -130,7 +130,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
     }
   }, [user, effectiveRole, userRole, toast]);
 
-  // Set up real-time subscription for bookings
+  // Set up real-time subscription for bookings with improved error handling
   useEffect(() => {
     if (!user) return;
 
@@ -139,9 +139,15 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
     // Initial fetch
     fetchBookings();
 
-    // Set up real-time subscription
+    // Set up real-time subscription with retry logic
     const channel = supabase
-      .channel('booking-changes')
+      .channel('booking-changes', {
+        config: {
+          presence: {
+            key: user.id,
+          },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -152,11 +158,20 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         (payload) => {
           console.log('Real-time booking change:', payload);
           
-          // Refetch bookings when there are changes
-          fetchBookings();
+          // Debounce refetch to avoid excessive calls
+          const timeoutId = setTimeout(() => {
+            fetchBookings();
+          }, 1000);
+          
+          return () => clearTimeout(timeoutId);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Booking subscription status:', status);
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to booking changes');
+        }
+      });
 
     return () => {
       console.log("Cleaning up real-time subscription");

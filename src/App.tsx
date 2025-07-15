@@ -33,7 +33,9 @@ const App = () => (
               path="/student/dashboard" 
               element={
                 <ProtectedRoute requiredRole="student">
-                  <StudentDashboard />
+                  <ErrorBoundary>
+                    <StudentDashboard />
+                  </ErrorBoundary>
                 </ProtectedRoute>
               } 
             />
@@ -41,7 +43,9 @@ const App = () => (
               path="/merchant/dashboard" 
               element={
                 <ProtectedRoute requiredRole="merchant">
-                  <MerchantDashboard />
+                  <ErrorBoundary>
+                    <MerchantDashboard />
+                  </ErrorBoundary>
                 </ProtectedRoute>
               } 
             />
@@ -49,7 +53,9 @@ const App = () => (
               path="/admin/dashboard" 
               element={
                 <ProtectedRoute requiredRole="admin">
-                  <AdminDashboard />
+                  <ErrorBoundary>
+                    <AdminDashboard />
+                  </ErrorBoundary>
                 </ProtectedRoute>
               } 
             />
@@ -57,7 +63,9 @@ const App = () => (
               path="/payment-success" 
               element={
                 <ProtectedRoute allowMultipleRoles={['student', 'merchant']}>
-                  <PaymentSuccess />
+                  <ErrorBoundary>
+                    <PaymentSuccess />
+                  </ErrorBoundary>
                 </ProtectedRoute>
               } 
             />

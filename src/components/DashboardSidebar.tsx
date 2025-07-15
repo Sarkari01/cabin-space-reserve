@@ -95,7 +95,7 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
   activeTab?: string;
 }) {
   const location = useLocation();
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   const handleLogout = async () => {
@@ -112,16 +112,19 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
   const items = sidebarItems[userRole];
 
   return (
-    <Sidebar className={isCollapsed ? "w-14" : "w-60"} collapsible="icon">
+    <Sidebar 
+      className={`${isCollapsed ? "w-14" : "w-60"} ${isMobile ? "fixed inset-y-0 left-0 z-50" : ""}`} 
+      collapsible="icon"
+    >
       <SidebarContent>
         {/* Header */}
-        <div className="p-4 border-b">
+        <div className="p-3 sm:p-4 border-b">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex-shrink-0"></div>
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-lg flex-shrink-0"></div>
             {!isCollapsed && (
-              <div>
-                <h2 className="text-lg font-bold">StudySpace</h2>
-                <p className="text-xs text-muted-foreground capitalize">{userRole} Panel</p>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base sm:text-lg font-bold truncate">StudySpace</h2>
+                <p className="text-xs text-muted-foreground capitalize truncate">{userRole} Panel</p>
               </div>
             )}
           </div>
@@ -163,11 +166,11 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
         </SidebarGroup>
 
         {/* User Info & Logout */}
-        <div className="mt-auto p-4 border-t">
+        <div className="mt-auto p-3 sm:p-4 border-t">
           {!isCollapsed && (
-            <div className="mb-2">
-              <p className="text-sm font-medium">{userName}</p>
-              <p className="text-xs text-muted-foreground">Welcome back!</p>
+            <div className="mb-2 min-w-0">
+              <p className="text-sm font-medium truncate">{userName}</p>
+              <p className="text-xs text-muted-foreground truncate">Welcome back!</p>
             </div>
           )}
           <Button
@@ -176,8 +179,8 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
             className="w-full justify-start"
             onClick={handleLogout}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            {!isCollapsed && "Logout"}
+            <LogOut className="h-4 w-4 flex-shrink-0" />
+            {!isCollapsed && <span className="ml-2 truncate">Logout</span>}
           </Button>
         </div>
       </SidebarContent>
@@ -190,17 +193,17 @@ export function DashboardSidebar({ userRole, userName, children, onTabChange, ac
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar userRole={userRole} userName={userName} onTabChange={onTabChange} activeTab={activeTab} />
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col min-w-0">
           {/* Header with trigger */}
-          <header className="h-14 border-b bg-background flex items-center px-4">
-            <SidebarTrigger />
-            <div className="ml-4">
-              <h1 className="text-lg font-semibold capitalize">{userRole} Dashboard</h1>
+          <header className="h-14 border-b bg-background flex items-center px-2 sm:px-4 sticky top-0 z-40">
+            <SidebarTrigger className="md:hidden" />
+            <div className="ml-2 sm:ml-4 flex-1 min-w-0">
+              <h1 className="text-lg font-semibold capitalize truncate">{userRole} Dashboard</h1>
             </div>
           </header>
           
           {/* Main content */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto p-2 sm:p-4 lg:p-6">
             {children}
           </div>
         </main>
