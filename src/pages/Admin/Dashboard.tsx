@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3 } from "lucide-react";
+import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3, Phone, Headphones, Banknote, AlertCircle } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
@@ -44,6 +44,9 @@ import { LoadingSpinner, LoadingOverlay } from "@/components/ui/loading";
 import { RealTimeManager } from "@/components/RealTimeManager";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { EnhancedAnalytics } from "@/components/EnhancedAnalytics";
+import { useOperationalUsers } from "@/hooks/useOperationalUsers";
+import { useCallLogs } from "@/hooks/useCallLogs";
+import { useSupportTickets } from "@/hooks/useSupportTickets";
 
 
 const AdminDashboard = () => {
@@ -62,6 +65,9 @@ const AdminDashboard = () => {
   } = useAdminData();
   const { bookings, loading: bookingsLoading, fetchBookings } = useBookings();
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
+  const { operationalUsers, loading: operationalLoading } = useOperationalUsers();
+  const { callLogs: allCallLogs } = useCallLogs();
+  const { tickets: allSupportTickets } = useSupportTickets();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -874,6 +880,188 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          )}
+
+          {/* Operational Users Tab */}
+          {activeTab === "operational-users" && (
+            <div className="space-y-6">
+              <PageHeader
+                title="Operational Users Management"
+                description="Manage operational staff including telemarketing executives, payment callers, customer care, and settlement managers"
+                breadcrumbs={[
+                  { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
+                  { label: "Operational Users", active: true }
+                ]}
+              />
+
+              <div className="grid lg:grid-cols-4 gap-6 mb-6">
+                <StatCard 
+                  title="Telemarketing Executives"
+                  value={operationalUsers.filter(u => u.role === 'telemarketing_executive').length.toString()}
+                  icon={Phone}
+                  loading={operationalLoading}
+                />
+                <StatCard 
+                  title="Payment Callers"
+                  value={operationalUsers.filter(u => u.role === 'pending_payments_caller').length.toString()}
+                  icon={AlertCircle}
+                  loading={operationalLoading}
+                />
+                <StatCard 
+                  title="Customer Care"
+                  value={operationalUsers.filter(u => u.role === 'customer_care_executive').length.toString()}
+                  icon={Headphones}
+                  loading={operationalLoading}
+                />
+                <StatCard 
+                  title="Settlement Managers"
+                  value={operationalUsers.filter(u => u.role === 'settlement_manager').length.toString()}
+                  icon={Banknote}
+                  loading={operationalLoading}
+                />
+              </div>
+
+              <ResponsiveTable
+                data={operationalUsers}
+                columns={[
+                  {
+                    key: 'full_name',
+                    title: 'Name',
+                    render: (value, user) => (
+                      <div>
+                        <p className="font-medium">{value || 'Anonymous'}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'role',
+                    title: 'Role',
+                    render: (value) => <Badge variant="default">{value.replace('_', ' ')}</Badge>
+                  },
+                  {
+                    key: 'created_at',
+                    title: 'Joined',
+                    mobileHidden: true,
+                    render: (value) => new Date(value).toLocaleDateString()
+                  }
+                ]}
+                searchPlaceholder="Search operational users..."
+                onRowClick={(user) => handleEditUser(user)}
+                actions={(user) => (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                )}
+                loading={operationalLoading}
+              />
+            </div>
+          )}
+
+          {/* Call Logs Management Tab */}
+          {activeTab === "call-logs-management" && (
+            <div className="space-y-6">
+              <PageHeader
+                title="Call Logs Management"
+                description="Monitor and manage all call logs across the platform"
+                breadcrumbs={[
+                  { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
+                  { label: "Call Logs", active: true }
+                ]}
+              />
+
+              <ResponsiveTable
+                data={allCallLogs || []}
+                columns={[
+                  {
+                    key: 'caller_id',
+                    title: 'Caller',
+                    render: (value, log) => {
+                      const caller = operationalUsers.find(u => u.id === value);
+                      return caller ? caller.full_name || caller.email : 'Unknown';
+                    }
+                  },
+                  {
+                    key: 'contact_type',
+                    title: 'Contact Type',
+                    render: (value) => <Badge variant="outline">{value}</Badge>
+                  },
+                  {
+                    key: 'call_purpose',
+                    title: 'Purpose',
+                    render: (value) => value
+                  },
+                  {
+                    key: 'call_status',
+                    title: 'Status',
+                    render: (value) => <Badge variant={value === 'completed' ? 'default' : 'secondary'}>{value}</Badge>
+                  },
+                  {
+                    key: 'created_at',
+                    title: 'Date',
+                    mobileHidden: true,
+                    render: (value) => new Date(value).toLocaleDateString()
+                  }
+                ]}
+                searchPlaceholder="Search call logs..."
+                loading={operationalLoading}
+              />
+            </div>
+          )}
+
+          {/* Support Tickets Management Tab */}
+          {activeTab === "support-tickets-management" && (
+            <div className="space-y-6">
+              <PageHeader
+                title="Support Tickets Management"
+                description="Monitor and manage all support tickets"
+                breadcrumbs={[
+                  { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
+                  { label: "Support Tickets", active: true }
+                ]}
+              />
+
+              <ResponsiveTable
+                data={allSupportTickets || []}
+                columns={[
+                  {
+                    key: 'title',
+                    title: 'Title',
+                    render: (value) => value
+                  },
+                  {
+                    key: 'category',
+                    title: 'Category',
+                    render: (value) => <Badge variant="outline">{value}</Badge>
+                  },
+                  {
+                    key: 'priority',
+                    title: 'Priority',
+                    render: (value) => (
+                      <Badge variant={value === 'high' ? 'destructive' : value === 'medium' ? 'secondary' : 'outline'}>
+                        {value}
+                      </Badge>
+                    )
+                  },
+                  {
+                    key: 'status',
+                    title: 'Status',
+                    render: (value) => <Badge variant={value === 'resolved' ? 'default' : 'secondary'}>{value}</Badge>
+                  },
+                  {
+                    key: 'created_at',
+                    title: 'Created',
+                    mobileHidden: true,
+                    render: (value) => new Date(value).toLocaleDateString()
+                  }
+                ]}
+                searchPlaceholder="Search support tickets..."
+                loading={operationalLoading}
+              />
             </div>
           )}
         </LoadingOverlay>

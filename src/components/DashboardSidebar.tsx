@@ -22,6 +22,10 @@ import {
   Ticket,
   ArrowUpDown,
   UserPlus,
+  Phone,
+  Headphones,
+  Banknote,
+  UserCog,
 } from "lucide-react";
 import {
   Sidebar,
@@ -97,6 +101,9 @@ const sidebarItems = {
     { title: "Community", url: "/admin/dashboard", icon: Heart, tab: "community" },
     { title: "Chat", url: "/admin/dashboard", icon: MessageSquare, tab: "chat" },
     { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
+    { title: "Operational Users", url: "/admin/dashboard", icon: UserCog, tab: "operational-users" },
+    { title: "Call Logs", url: "/admin/dashboard", icon: Phone, tab: "call-logs-management" },
+    { title: "Support Tickets", url: "/admin/dashboard", icon: Headphones, tab: "support-tickets-management" },
     { title: "Profile", url: "/admin/dashboard", icon: Settings, tab: "profile" },
     { title: "EKQR Recovery", url: "/admin/dashboard", icon: AlertCircle, tab: "ekqr-recovery" },
   ],
@@ -107,6 +114,41 @@ const sidebarItems = {
     { title: "Transactions", url: "/incharge/dashboard", icon: CreditCard, tab: "transactions" },
     { title: "Activity Logs", url: "/incharge/dashboard", icon: BookOpen, tab: "activity" },
     { title: "Profile Settings", url: "/incharge/dashboard", icon: Settings, tab: "profile" },
+  ],
+  telemarketing_executive: [
+    { title: "Dashboard", url: "/telemarketing/dashboard", icon: Home, tab: "overview" },
+    { title: "Call Logs", url: "/telemarketing/dashboard", icon: Phone, tab: "call-logs" },
+    { title: "Contacts", url: "/telemarketing/dashboard", icon: Users, tab: "contacts" },
+    { title: "Performance", url: "/telemarketing/dashboard", icon: BarChart3, tab: "performance" },
+    { title: "Profile", url: "/telemarketing/dashboard", icon: Settings, tab: "profile" },
+  ],
+  pending_payments_caller: [
+    { title: "Dashboard", url: "/payments-caller/dashboard", icon: Home, tab: "overview" },
+    { title: "Payment Recovery", url: "/payments-caller/dashboard", icon: AlertCircle, tab: "payment-recovery" },
+    { title: "Call Logs", url: "/payments-caller/dashboard", icon: Phone, tab: "call-logs" },
+    { title: "Pending Transactions", url: "/payments-caller/dashboard", icon: CreditCard, tab: "transactions" },
+    { title: "Profile", url: "/payments-caller/dashboard", icon: Settings, tab: "profile" },
+  ],
+  customer_care_executive: [
+    { title: "Dashboard", url: "/customer-care/dashboard", icon: Home, tab: "overview" },
+    { title: "Support Tickets", url: "/customer-care/dashboard", icon: Headphones, tab: "support-tickets" },
+    { title: "User Assistance", url: "/customer-care/dashboard", icon: Users, tab: "user-assistance" },
+    { title: "Call Logs", url: "/customer-care/dashboard", icon: Phone, tab: "call-logs" },
+    { title: "Profile", url: "/customer-care/dashboard", icon: Settings, tab: "profile" },
+  ],
+  settlement_manager: [
+    { title: "Dashboard", url: "/settlement-manager/dashboard", icon: Home, tab: "overview" },
+    { title: "Settlements", url: "/settlement-manager/dashboard", icon: ArrowUpDown, tab: "settlements" },
+    { title: "Merchant Payments", url: "/settlement-manager/dashboard", icon: Banknote, tab: "merchant-payments" },
+    { title: "Financial Reports", url: "/settlement-manager/dashboard", icon: BarChart3, tab: "reports" },
+    { title: "Profile", url: "/settlement-manager/dashboard", icon: Settings, tab: "profile" },
+  ],
+  general_administrator: [
+    { title: "Dashboard", url: "/general-admin/dashboard", icon: Home, tab: "overview" },
+    { title: "Operational Users", url: "/general-admin/dashboard", icon: UserCog, tab: "operational-users" },
+    { title: "System Monitoring", url: "/general-admin/dashboard", icon: BarChart3, tab: "monitoring" },
+    { title: "Reports", url: "/general-admin/dashboard", icon: BookOpen, tab: "reports" },
+    { title: "Profile", url: "/general-admin/dashboard", icon: Settings, tab: "profile" },
   ],
 };
 
