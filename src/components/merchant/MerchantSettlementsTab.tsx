@@ -215,7 +215,7 @@ export function MerchantSettlementsTab() {
                   {
                     key: "settlement_number",
                     title: "Settlement #",
-                    render: (item: any) => {
+                    render: (value: any, item: any) => {
                       try {
                         const settlementNum = item?.settlement_number;
                         if (!settlementNum || settlementNum === 0) {
@@ -235,7 +235,7 @@ export function MerchantSettlementsTab() {
                 {
                   key: "status",
                   title: "Status",
-                  render: (item: any) => {
+                  render: (value: any, item: any) => {
                     try {
                       return getStatusBadge(item?.status || 'unknown');
                     } catch (error) {
@@ -247,7 +247,7 @@ export function MerchantSettlementsTab() {
                 {
                   key: "created_at",
                   title: "Created Date",
-                  render: (item: any) => {
+                  render: (value: any, item: any) => {
                     try {
                       return safeFormatDate(item?.created_at, "MMM d, yyyy");
                     } catch (error) {
@@ -259,7 +259,7 @@ export function MerchantSettlementsTab() {
                 {
                   key: "net_settlement_amount",
                   title: "Net Amount",
-                  render: (item: any) => {
+                  render: (value: any, item: any) => {
                     try {
                       const amount = Number(item?.net_settlement_amount || 0);
                       return `₹${amount.toFixed(2)}`;
@@ -306,9 +306,9 @@ export function MerchantSettlementsTab() {
                   data={withdrawals || []}
                   columns={[
                     {
-                      key: "amount",
+                      key: "requested_amount",
                       title: "Amount",
-                      render: (item: any) => {
+                      render: (value: any, item: any) => {
                         try {
                           const amount = Number(item?.requested_amount || 0);
                           return (
@@ -323,9 +323,9 @@ export function MerchantSettlementsTab() {
                       }
                     },
                     {
-                      key: "method",
+                      key: "withdrawal_method",
                       title: "Method",
-                      render: (item: any) => {
+                      render: (value: any, item: any) => {
                         try {
                           const method = item?.withdrawal_method?.replace("_", " ") || 'N/A';
                           return <span className="capitalize">{method}</span>;
@@ -338,7 +338,7 @@ export function MerchantSettlementsTab() {
                     {
                       key: "status",
                       title: "Status",
-                      render: (item: any) => {
+                      render: (value: any, item: any) => {
                         try {
                           return getWithdrawalStatusBadge(item?.status || 'unknown');
                         } catch (error) {
@@ -348,9 +348,9 @@ export function MerchantSettlementsTab() {
                       }
                     },
                     {
-                      key: "date",
+                      key: "created_at",
                       title: "Request Date",
-                      render: (item: any) => {
+                      render: (value: any, item: any) => {
                         try {
                           return (
                             <div className="space-y-1">
