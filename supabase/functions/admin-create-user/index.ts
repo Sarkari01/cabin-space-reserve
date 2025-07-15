@@ -94,25 +94,39 @@ serve(async (req) => {
       );
     }
 
-    // Create profile entry
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .insert({
-        id: newUser.user.id,
-        email: newUser.user.email,
-        full_name: user_metadata.full_name || '',
-        phone: user_metadata.phone || '',
-        role: user_metadata.role
-      });
+    // Wait a moment for the trigger to create the profile
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-    if (profileError) {
-      console.error('Error creating profile:', profileError);
-      // Try to clean up the auth user if profile creation failed
-      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create user profile' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Update the profile created by the trigger with additional information
+    const { error: profileUpdateError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        full_name: user_metadata.full_name || '',
+        phone: user_metadata.phone || ''
+      })
+      .eq('id', newUser.user.id);
+
+    if (profileUpdateError) {
+      console.error('Error updating profile:', profileUpdateError);
+      // Don't fail the entire operation for profile update errors
+    }
+
+    // Create admin profile for operational users
+    const operationalRoles = ['telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator'];
+    if (operationalRoles.includes(user_metadata.role)) {
+      const { error: adminProfileError } = await supabaseAdmin
+        .from('admin_user_profiles')
+        .insert({
+          user_id: newUser.user.id,
+          department: user_metadata.department || 'Operations',
+          status: 'active',
+          permissions: {}
+        });
+
+      if (adminProfileError) {
+        console.error('Error creating admin profile:', adminProfileError);
+        // Don't fail the entire operation for admin profile creation errors
+      }
     }
 
     console.log('User created successfully:', newUser.user.id);
