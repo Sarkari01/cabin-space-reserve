@@ -7,6 +7,8 @@ export interface BusinessSettings {
   ekqr_enabled: boolean;
   offline_enabled: boolean;
   razorpay_enabled: boolean;
+  platform_fee_percentage?: number;
+  minimum_settlement_amount?: number;
   created_at: string;
   updated_at: string;
 }

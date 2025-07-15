@@ -131,7 +131,9 @@ export type Database = {
           created_at: string
           ekqr_enabled: boolean
           id: string
+          minimum_settlement_amount: number | null
           offline_enabled: boolean
+          platform_fee_percentage: number | null
           razorpay_enabled: boolean
           updated_at: string
         }
@@ -139,7 +141,9 @@ export type Database = {
           created_at?: string
           ekqr_enabled?: boolean
           id?: string
+          minimum_settlement_amount?: number | null
           offline_enabled?: boolean
+          platform_fee_percentage?: number | null
           razorpay_enabled?: boolean
           updated_at?: string
         }
@@ -147,7 +151,9 @@ export type Database = {
           created_at?: string
           ekqr_enabled?: boolean
           id?: string
+          minimum_settlement_amount?: number | null
           offline_enabled?: boolean
+          platform_fee_percentage?: number | null
           razorpay_enabled?: boolean
           updated_at?: string
         }
@@ -1054,6 +1060,117 @@ export type Database = {
           },
         ]
       }
+      settlement_transactions: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          settlement_id: string
+          transaction_amount: number
+          transaction_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          settlement_id: string
+          transaction_amount: number
+          transaction_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          settlement_id?: string
+          transaction_amount?: number
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_transactions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlement_transactions_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlement_transactions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlements: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          merchant_id: string
+          net_settlement_amount: number
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          platform_fee_amount: number
+          platform_fee_percentage: number
+          settlement_number: number
+          status: string
+          total_booking_amount: number
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          merchant_id: string
+          net_settlement_amount?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          platform_fee_amount?: number
+          platform_fee_percentage?: number
+          settlement_number: number
+          status?: string
+          total_booking_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          net_settlement_amount?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          platform_fee_amount?: number
+          platform_fee_percentage?: number
+          settlement_number?: number
+          status?: string
+          total_booking_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_halls: {
         Row: {
           amenities: Json | null
@@ -1420,6 +1537,27 @@ export type Database = {
           orphaned_seats: number
           confirmed_future: number
           completed_today: number
+        }[]
+      }
+      get_eligible_transactions_for_settlement: {
+        Args: { p_merchant_id: string }
+        Returns: {
+          transaction_id: string
+          booking_id: string
+          amount: number
+          transaction_created_at: string
+          booking_start_date: string
+          booking_end_date: string
+          user_email: string
+          study_hall_name: string
+        }[]
+      }
+      get_unsettled_transactions_summary: {
+        Args: { p_merchant_id: string }
+        Returns: {
+          total_transactions: number
+          total_amount: number
+          oldest_transaction_date: string
         }[]
       }
       is_admin: {

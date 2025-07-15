@@ -35,6 +35,7 @@ import EKQRRecoveryTab from "@/components/admin/EKQRRecoveryTab";
 import { RewardsTab } from "@/components/admin/RewardsTab";
 import { CouponsTab } from "@/components/admin/CouponsTab";
 import { MerchantVerificationTab } from "@/components/admin/MerchantVerificationTab";
+import { SettlementsTab } from "@/components/admin/SettlementsTab";
 import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/loading";
@@ -797,6 +798,9 @@ const AdminDashboard = () => {
 
           {/* Rewards Tab */}
           {activeTab === "rewards" && <RewardsTab />}
+
+          {/* Settlements Tab */}
+          {activeTab === "settlements" && <SettlementsTab />}
 
           {/* Merchant Verification Tab */}
           {activeTab === "merchantverification" && <MerchantVerificationTab />}
