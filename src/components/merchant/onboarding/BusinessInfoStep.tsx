@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,31 +9,53 @@ import { toast } from "@/hooks/use-toast";
 interface BusinessInfoStepProps {
   profile: MerchantProfile | null;
   updateProfile: (updates: Partial<MerchantProfile>) => Promise<any>;
+  onDataChange?: (isValid: boolean) => void;
 }
 
-export const BusinessInfoStep = ({ profile, updateProfile }: BusinessInfoStepProps) => {
+export const BusinessInfoStep = ({ profile, updateProfile, onDataChange }: BusinessInfoStepProps) => {
   const { uploadDocument } = useMerchantProfile();
   const [formData, setFormData] = useState({
     phone: profile?.phone || '',
     business_address: profile?.business_address || '',
     trade_license_number: profile?.trade_license_number || '',
   });
-  const [loading, setLoading] = useState(false);
+
+  // Debounced auto-save
+  const debouncedSave = useCallback(
+    debounce(async (data: typeof formData) => {
+      try {
+        await updateProfile(data);
+      } catch (error) {
+        console.error('Error auto-saving business info:', error);
+      }
+    }, 1000),
+    [updateProfile]
+  );
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await updateProfile(formData);
-    } catch (error) {
-      console.error('Error saving business info:', error);
-    } finally {
-      setLoading(false);
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+    
+    // Auto-save with debouncing
+    debouncedSave(newData);
+    
+    // Notify parent of validation status
+    if (onDataChange) {
+      const isValid = !!(newData.phone?.trim() && newData.business_address?.trim() && isValidPhone(newData.phone.trim()));
+      onDataChange(isValid);
     }
   };
+
+  // Update form data when profile changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        phone: profile.phone || '',
+        business_address: profile.business_address || '',
+        trade_license_number: profile.trade_license_number || '',
+      });
+    }
+  }, [profile]);
 
   const handleDocumentUpload = async (file: File) => {
     try {
@@ -58,9 +79,20 @@ export const BusinessInfoStep = ({ profile, updateProfile }: BusinessInfoStepPro
 
   // Validate Indian phone number
   const isValidPhone = (phone: string) => {
+    if (!phone) return false;
+    const cleanPhone = phone.trim().replace(/\D/g, '');
     const phoneRegex = /^[6-9]\d{9}$/;
-    return phoneRegex.test(phone);
+    return phoneRegex.test(cleanPhone);
   };
+
+  // Debounce utility function
+  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+    let timeout: NodeJS.Timeout;
+    return ((...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    }) as T;
+  }
 
   return (
     <div className="space-y-6">
@@ -75,9 +107,9 @@ export const BusinessInfoStep = ({ profile, updateProfile }: BusinessInfoStepPro
             placeholder="Enter 10-digit mobile number"
             value={formData.phone}
             onChange={(e) => handleInputChange('phone', e.target.value)}
-            className={!isValidPhone(formData.phone) && formData.phone ? 'border-destructive' : ''}
+            className={!isValidPhone(formData.phone.trim()) && formData.phone ? 'border-destructive' : ''}
           />
-          {!isValidPhone(formData.phone) && formData.phone && (
+          {!isValidPhone(formData.phone.trim()) && formData.phone && (
             <p className="text-sm text-destructive">Please enter a valid 10-digit Indian mobile number</p>
           )}
         </div>
@@ -123,13 +155,6 @@ export const BusinessInfoStep = ({ profile, updateProfile }: BusinessInfoStepPro
         </p>
       </div>
 
-      <Button 
-        onClick={handleSave} 
-        disabled={loading}
-        className="w-full md:w-auto"
-      >
-        {loading ? "Saving..." : "Save Business Information"}
-      </Button>
     </div>
   );
 };

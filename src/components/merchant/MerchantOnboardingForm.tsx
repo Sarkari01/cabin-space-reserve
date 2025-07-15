@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,9 +12,10 @@ import { toast } from "@/hooks/use-toast";
 
 export const MerchantOnboardingForm = () => {
   const { user } = useAuth();
-  const { profile, updateProfile, completeOnboarding } = useMerchantProfile();
+  const { profile, updateProfile, completeOnboarding, refetch } = useMerchantProfile();
   const [currentStep, setCurrentStep] = useState(profile?.onboarding_step || 1);
   const [loading, setLoading] = useState(false);
+  const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
 
   const steps = [
     {
@@ -49,6 +50,7 @@ export const MerchantOnboardingForm = () => {
       if (currentStep < steps.length) {
         const nextStep = currentStep + 1;
         await updateProfile({ onboarding_step: nextStep });
+        await refetch(); // Ensure profile is up to date
         setCurrentStep(nextStep);
       } else {
         await completeOnboarding();
@@ -59,6 +61,11 @@ export const MerchantOnboardingForm = () => {
       }
     } catch (error) {
       console.error('Error progressing onboarding:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your information. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -67,25 +74,46 @@ export const MerchantOnboardingForm = () => {
   const handlePrevious = async () => {
     if (currentStep > 1) {
       const prevStep = currentStep - 1;
-      await updateProfile({ onboarding_step: prevStep });
-      setCurrentStep(prevStep);
+      try {
+        await updateProfile({ onboarding_step: prevStep });
+        await refetch(); // Ensure profile is up to date
+        setCurrentStep(prevStep);
+      } catch (error) {
+        console.error('Error going to previous step:', error);
+      }
     }
   };
 
   const canProceed = () => {
+    // Use step validation state if available, otherwise fall back to profile check
+    if (stepValidation[currentStep] !== undefined) {
+      return stepValidation[currentStep];
+    }
+    
     if (!profile) return false;
     
     switch (currentStep) {
       case 1:
-        return !!(profile.phone && profile.business_address);
+        return !!(profile.phone?.trim() && profile.business_address?.trim());
       case 2:
-        return !!(profile.account_holder_name && profile.bank_name && profile.account_number && profile.ifsc_code);
+        return !!(profile.account_holder_name?.trim() && profile.bank_name?.trim() && profile.account_number?.trim() && profile.ifsc_code?.trim());
       case 3:
         return true; // KYC step is optional
       default:
         return false;
     }
   };
+
+  const handleStepValidation = (step: number) => (isValid: boolean) => {
+    setStepValidation(prev => ({ ...prev, [step]: isValid }));
+  };
+
+  // Update current step when profile changes
+  useEffect(() => {
+    if (profile?.onboarding_step && profile.onboarding_step !== currentStep) {
+      setCurrentStep(profile.onboarding_step);
+    }
+  }, [profile?.onboarding_step]);
 
   if (!user) {
     return null;
@@ -139,7 +167,11 @@ export const MerchantOnboardingForm = () => {
 
           <CardContent className="pt-6">
             {currentStepData?.component && (
-              <currentStepData.component profile={profile} updateProfile={updateProfile} />
+              <currentStepData.component 
+                profile={profile} 
+                updateProfile={updateProfile} 
+                onDataChange={handleStepValidation(currentStep)}
+              />
             )}
 
             <div className="flex justify-between mt-8 pt-6 border-t border-border">

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MerchantProfile, useMerchantProfile } from "@/hooks/useMerchantProfile";
@@ -10,30 +9,50 @@ import { Badge } from "@/components/ui/badge";
 interface KYCDocumentsStepProps {
   profile: MerchantProfile | null;
   updateProfile: (updates: Partial<MerchantProfile>) => Promise<any>;
+  onDataChange?: (isValid: boolean) => void;
 }
 
-export const KYCDocumentsStep = ({ profile, updateProfile }: KYCDocumentsStepProps) => {
+export const KYCDocumentsStep = ({ profile, updateProfile, onDataChange }: KYCDocumentsStepProps) => {
   const { uploadDocument } = useMerchantProfile();
   const [formData, setFormData] = useState({
     gstin_pan: profile?.gstin_pan || '',
     business_email: profile?.business_email || '',
   });
-  const [loading, setLoading] = useState(false);
+
+  // Debounced auto-save
+  const debouncedSave = useCallback(
+    debounce(async (data: typeof formData) => {
+      try {
+        await updateProfile(data);
+      } catch (error) {
+        console.error('Error auto-saving KYC details:', error);
+      }
+    }, 1000),
+    [updateProfile]
+  );
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await updateProfile(formData);
-    } catch (error) {
-      console.error('Error saving KYC details:', error);
-    } finally {
-      setLoading(false);
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+    
+    // Auto-save with debouncing
+    debouncedSave(newData);
+    
+    // Notify parent that this step is always valid (optional)
+    if (onDataChange) {
+      onDataChange(true);
     }
   };
+
+  // Update form data when profile changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        gstin_pan: profile.gstin_pan || '',
+        business_email: profile.business_email || '',
+      });
+    }
+  }, [profile]);
 
   const handleDocumentUpload = async (file: File) => {
     try {
@@ -66,9 +85,19 @@ export const KYCDocumentsStep = ({ profile, updateProfile }: KYCDocumentsStepPro
 
   // Validate email
   const isValidEmail = (email: string) => {
+    if (!email) return true; // Email is optional
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return emailRegex.test(email.trim());
   };
+
+  // Debounce utility function
+  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+    let timeout: NodeJS.Timeout;
+    return ((...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    }) as T;
+  }
 
   return (
     <div className="space-y-6">
@@ -149,13 +178,6 @@ export const KYCDocumentsStep = ({ profile, updateProfile }: KYCDocumentsStepPro
         </ul>
       </div>
 
-      <Button 
-        onClick={handleSave} 
-        disabled={loading}
-        className="w-full md:w-auto"
-      >
-        {loading ? "Saving..." : "Save KYC Information"}
-      </Button>
     </div>
   );
 };

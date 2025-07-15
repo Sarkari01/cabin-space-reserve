@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MerchantProfile } from "@/hooks/useMerchantProfile";
@@ -8,31 +7,61 @@ import { Shield } from "lucide-react";
 interface BankDetailsStepProps {
   profile: MerchantProfile | null;
   updateProfile: (updates: Partial<MerchantProfile>) => Promise<any>;
+  onDataChange?: (isValid: boolean) => void;
 }
 
-export const BankDetailsStep = ({ profile, updateProfile }: BankDetailsStepProps) => {
+export const BankDetailsStep = ({ profile, updateProfile, onDataChange }: BankDetailsStepProps) => {
   const [formData, setFormData] = useState({
     account_holder_name: profile?.account_holder_name || '',
     bank_name: profile?.bank_name || '',
     account_number: profile?.account_number || '',
     ifsc_code: profile?.ifsc_code || '',
   });
-  const [loading, setLoading] = useState(false);
+
+  // Debounced auto-save
+  const debouncedSave = useCallback(
+    debounce(async (data: typeof formData) => {
+      try {
+        await updateProfile(data);
+      } catch (error) {
+        console.error('Error auto-saving bank details:', error);
+      }
+    }, 1000),
+    [updateProfile]
+  );
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await updateProfile(formData);
-    } catch (error) {
-      console.error('Error saving bank details:', error);
-    } finally {
-      setLoading(false);
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+    
+    // Auto-save with debouncing
+    debouncedSave(newData);
+    
+    // Notify parent of validation status
+    if (onDataChange) {
+      const isValid = !!(
+        newData.account_holder_name?.trim() && 
+        newData.bank_name?.trim() && 
+        newData.account_number?.trim() && 
+        newData.ifsc_code?.trim() &&
+        isValidAccountNumber(newData.account_number.trim()) &&
+        isValidIFSC(newData.ifsc_code.trim())
+      );
+      onDataChange(isValid);
     }
   };
+
+  // Update form data when profile changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        account_holder_name: profile.account_holder_name || '',
+        bank_name: profile.bank_name || '',
+        account_number: profile.account_number || '',
+        ifsc_code: profile.ifsc_code || '',
+      });
+    }
+  }, [profile]);
 
   // Validate IFSC code
   const isValidIFSC = (ifsc: string) => {
@@ -42,8 +71,19 @@ export const BankDetailsStep = ({ profile, updateProfile }: BankDetailsStepProps
 
   // Validate account number
   const isValidAccountNumber = (accountNumber: string) => {
-    return /^\d{9,18}$/.test(accountNumber);
+    if (!accountNumber) return false;
+    const cleanAccount = accountNumber.trim().replace(/\D/g, '');
+    return /^\d{9,18}$/.test(cleanAccount);
   };
+
+  // Debounce utility function
+  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+    let timeout: NodeJS.Timeout;
+    return ((...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    }) as T;
+  }
 
   return (
     <div className="space-y-6">
@@ -122,13 +162,6 @@ export const BankDetailsStep = ({ profile, updateProfile }: BankDetailsStepProps
         </ul>
       </div>
 
-      <Button 
-        onClick={handleSave} 
-        disabled={loading}
-        className="w-full md:w-auto"
-      >
-        {loading ? "Saving..." : "Save Bank Details"}
-      </Button>
     </div>
   );
 };
