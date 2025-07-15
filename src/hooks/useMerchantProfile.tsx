@@ -158,12 +158,46 @@ export const useMerchantProfile = () => {
   };
 
   const completeOnboarding = async () => {
-    if (!profile) return;
+    if (!profile) {
+      console.error('completeOnboarding: No profile found');
+      return;
+    }
 
-    await updateProfile({
-      is_onboarding_complete: true,
-      onboarding_step: 4,
-    });
+    try {
+      console.log('completeOnboarding: Starting onboarding completion');
+      
+      // Update the profile with completion status
+      const updatedProfile = await updateProfile({
+        is_onboarding_complete: true,
+        onboarding_step: 4,
+      });
+
+      console.log('completeOnboarding: Profile updated successfully', updatedProfile);
+
+      // Force a fresh fetch of the profile to ensure state is consistent
+      await fetchProfile();
+      
+      console.log('completeOnboarding: Profile refetched, current status:', {
+        is_onboarding_complete: profile?.is_onboarding_complete,
+        verification_status: profile?.verification_status,
+        onboarding_step: profile?.onboarding_step
+      });
+
+      // Show success message
+      toast({
+        title: "Onboarding Complete!",
+        description: "Your application is now under review. We'll notify you once it's approved.",
+      });
+
+    } catch (error) {
+      console.error('completeOnboarding: Error completing onboarding:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete onboarding. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   useEffect(() => {
