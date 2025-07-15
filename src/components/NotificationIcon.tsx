@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications } from "@/hooks/useNotifications";
-import { formatDistanceToNow } from "date-fns";
+import { safeFormatDistanceToNow } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 
 const NotificationIcon = () => {
@@ -103,7 +103,7 @@ const NotificationIcon = () => {
                     {notification.message}
                   </p>
                   <time className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                    {safeFormatDistanceToNow(notification.created_at, { addSuffix: true })}
                   </time>
                 </div>
               </DropdownMenuItem>

@@ -1,4 +1,4 @@
-import { format, isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO, formatDistanceToNow } from "date-fns";
 
 /**
  * Safe date formatting utility that handles null, undefined, and invalid dates gracefully
@@ -82,4 +82,33 @@ export function safeFormatDateTime(
   fallback: string = "N/A"
 ): string {
   return safeFormatDate(date, formatStr, fallback);
+}
+
+/**
+ * Safe distance to now formatting that handles null, undefined, and invalid dates gracefully
+ */
+export function safeFormatDistanceToNow(
+  date: string | Date | null | undefined,
+  options: { addSuffix?: boolean } = { addSuffix: true },
+  fallback: string = "N/A"
+): string {
+  try {
+    if (!date) {
+      return fallback;
+    }
+
+    // Convert string to Date if needed
+    const dateObj = typeof date === "string" ? parseISO(date) : date;
+    
+    // Check if the date is valid
+    if (!isValid(dateObj)) {
+      console.warn("Invalid date provided to safeFormatDistanceToNow:", date);
+      return fallback;
+    }
+
+    return formatDistanceToNow(dateObj, options);
+  } catch (error) {
+    console.error("Error formatting distance to now:", error, "Date:", date);
+    return fallback;
+  }
 }

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Download, QrCode, Ticket } from "lucide-react";
 import QRCode from "qrcode";
 import { Booking } from "@/hooks/useBookings";
+import { safeFormatDate } from "@/lib/dateUtils";
 
 interface BookingQRCodeProps {
   booking: Booking;
@@ -70,11 +71,7 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return safeFormatDate(dateString, 'MMM d, yyyy', 'Invalid Date');
   };
 
   if (loading) {
@@ -191,7 +188,7 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
           {/* Footer */}
           <div className="text-center text-xs text-muted-foreground border-t pt-4">
             <p>Present this QR code at the study hall entrance</p>
-            <p className="mt-1">Generated on {formatDate(new Date().toISOString())}</p>
+            <p className="mt-1">Generated on {safeFormatDate(new Date(), 'MMM d, yyyy')}</p>
           </div>
         </div>
       </CardContent>

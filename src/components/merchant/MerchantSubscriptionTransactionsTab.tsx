@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Eye, CheckCircle, XCircle, Clock, DollarSign, CreditCard, AlertCircle, Download, Receipt } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { safeFormatDistanceToNow } from "@/lib/dateUtils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
@@ -213,7 +213,7 @@ export const MerchantSubscriptionTransactionsTab = () => {
                         <span>•</span>
                         <span>Duration: {transaction.subscription?.plan?.duration || "N/A"}</span>
                         <span>•</span>
-                        <span>{formatDistanceToNow(new Date(transaction.created_at))} ago</span>
+                        <span>{safeFormatDistanceToNow(transaction.created_at)} ago</span>
                       </div>
                       <div className="flex items-center gap-4 mt-1">
                         <span>Transaction: {transaction.id.slice(0, 8)}...</span>

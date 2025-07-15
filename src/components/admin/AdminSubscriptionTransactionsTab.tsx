@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, Download, Eye, CheckCircle, XCircle, Clock, DollarSign, AlertCircle, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
+import { safeFormatDistanceToNow } from "@/lib/dateUtils";
 
 export const AdminSubscriptionTransactionsTab = () => {
   const { transactions, loading, updateSubscriptionTransactionStatus } = useSubscriptionTransactions("admin");
@@ -255,7 +255,7 @@ export const AdminSubscriptionTransactionsTab = () => {
                       <div className="flex items-center gap-4 mt-1">
                         <span>ID: {transaction.id.slice(0, 8)}...</span>
                         <span>•</span>
-                        <span>Date: {formatDistanceToNow(new Date(transaction.created_at))} ago</span>
+                        <span>Date: {safeFormatDistanceToNow(transaction.created_at)} ago</span>
                         {transaction.payment_id && (
                           <>
                             <span>•</span>

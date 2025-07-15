@@ -3,7 +3,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, Clock, DollarSign, Download } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { safeFormatDistanceToNow } from "@/lib/dateUtils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -163,7 +163,7 @@ export const StudentTransactionsTab = () => {
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      <span>{formatDistanceToNow(new Date(transaction.created_at))} ago</span>
+                      <span>{safeFormatDistanceToNow(transaction.created_at)} ago</span>
                       {transaction.payment_id && (
                         <>
                           {" • "}
