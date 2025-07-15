@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMerchantProfile } from "@/hooks/useMerchantProfile";
 import { MerchantOnboardingForm } from "./MerchantOnboardingForm";
+import { MerchantUnderReview } from "./MerchantUnderReview";
 
 interface MerchantOnboardingGuardProps {
   children: React.ReactNode;
@@ -35,6 +36,11 @@ export const MerchantOnboardingGuard = ({ children }: MerchantOnboardingGuardPro
     return <MerchantOnboardingForm />;
   }
 
-  // Allow access to dashboard
+  // If onboarding is complete but not approved, show under review screen
+  if (profile.verification_status !== 'approved') {
+    return <MerchantUnderReview profile={profile} />;
+  }
+
+  // Allow access to dashboard only when approved
   return <>{children}</>;
 };

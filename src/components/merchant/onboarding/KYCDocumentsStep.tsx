@@ -38,21 +38,40 @@ export const KYCDocumentsStep = ({ profile, updateProfile, onDataChange }: KYCDo
     // Auto-save with debouncing
     debouncedSave(newData);
     
-    // Notify parent that this step is always valid (optional)
+    // Validate the step and notify parent
+    const isValid = validateStep(newData);
     if (onDataChange) {
-      onDataChange(true);
+      onDataChange(isValid);
     }
+  };
+
+  // Validation function for the step
+  const validateStep = (data: typeof formData) => {
+    // Step is always valid as it's optional, but if data is provided, it should be valid
+    if (data.gstin_pan) {
+      return isValidGSTIN(data.gstin_pan) || isValidPAN(data.gstin_pan);
+    }
+    if (data.business_email) {
+      return isValidEmail(data.business_email);
+    }
+    return true; // Optional step is always valid if empty
   };
 
   // Update form data when profile changes
   useEffect(() => {
     if (profile) {
-      setFormData({
+      const newData = {
         gstin_pan: profile.gstin_pan || '',
         business_email: profile.business_email || '',
-      });
+      };
+      setFormData(newData);
+      
+      // Initial validation check
+      if (onDataChange) {
+        onDataChange(validateStep(newData));
+      }
     }
-  }, [profile]);
+  }, [profile, onDataChange]);
 
   const handleDocumentUpload = async (file: File) => {
     try {

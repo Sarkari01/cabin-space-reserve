@@ -56,7 +56,7 @@ export const MerchantOnboardingForm = () => {
         await completeOnboarding();
         toast({
           title: "Onboarding Complete!",
-          description: "Welcome to CabinSpace. Your profile is now being reviewed.",
+          description: "Your profile has been submitted for review. You'll be notified once approved.",
         });
       }
     } catch (error) {
