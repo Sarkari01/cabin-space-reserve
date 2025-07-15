@@ -44,9 +44,28 @@ export function BookingEditModal({
     e.preventDefault();
     if (!booking) return;
 
-    const success = await onSave(booking.id, formData);
-    if (success) {
-      onOpenChange(false);
+    console.log("Submitting booking update:", {
+      bookingId: booking.id,
+      currentData: booking,
+      formData: formData,
+      changes: Object.keys(formData).reduce((acc, key) => {
+        if (formData[key] !== booking[key]) {
+          acc[key] = { from: booking[key], to: formData[key] };
+        }
+        return acc;
+      }, {})
+    });
+
+    try {
+      const success = await onSave(booking.id, formData);
+      if (success) {
+        console.log("Booking update successful, closing modal");
+        onOpenChange(false);
+      } else {
+        console.error("Booking update failed");
+      }
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
     }
   };
 
