@@ -41,7 +41,7 @@ export const useOperationalUsers = () => {
         .from('profiles')
         .select(`
           *,
-          admin_profile:admin_user_profiles(*)
+          admin_profile:admin_user_profiles!admin_user_profiles_user_id_fkey(*)
         `)
         .in('role', [
           'telemarketing_executive',
@@ -78,10 +78,12 @@ export const useOperationalUsers = () => {
     } catch (error: any) {
       console.error('Error fetching operational users:', error);
       // Only show toast for actual errors, not empty results
-      if (error.message && !error.message.includes('No rows')) {
+      if (error.message && !error.message.includes('No rows') && !error.message.includes('relationship')) {
         toast({
           title: "Error",
-          description: error.message || "Failed to fetch operational users",
+          description: error.message.includes('more than one relationship') 
+            ? "Database relationship error. Please contact support." 
+            : error.message || "Failed to fetch operational users",
           variant: "destructive"
         });
       }
