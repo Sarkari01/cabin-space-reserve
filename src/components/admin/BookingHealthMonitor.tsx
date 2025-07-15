@@ -36,9 +36,43 @@ export function BookingHealthMonitor() {
   const fetchHealthData = async () => {
     setLoading(true);
     try {
-      // Get booking health metrics
-      const { data: healthData, error: healthError } = await supabase.rpc('get_booking_health_metrics');
-      if (healthError) throw healthError;
+      // Get booking health metrics using direct queries
+      const [
+        totalBookings,
+        pendingUnpaid,
+        expiredActive,
+        orphanedSeats,
+        confirmedFuture,
+        completedToday
+      ] = await Promise.all([
+        supabase.from('bookings').select('id', { count: 'exact', head: true }),
+        supabase.from('bookings').select('id', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .eq('payment_status', 'unpaid')
+          .lt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+        supabase.from('bookings').select('id', { count: 'exact', head: true })
+          .in('status', ['active', 'confirmed'])
+          .eq('payment_status', 'paid')
+          .lt('end_date', new Date().toISOString().split('T')[0]),
+        supabase.from('seats').select('id', { count: 'exact', head: true })
+          .eq('is_available', false),
+        supabase.from('bookings').select('id', { count: 'exact', head: true })
+          .eq('status', 'confirmed')
+          .eq('payment_status', 'paid')
+          .gt('start_date', new Date().toISOString().split('T')[0]),
+        supabase.from('bookings').select('id', { count: 'exact', head: true })
+          .eq('status', 'completed')
+          .gte('updated_at', new Date().toISOString().split('T')[0])
+      ]);
+
+      const healthData = {
+        total_bookings: totalBookings.count || 0,
+        pending_unpaid: pendingUnpaid.count || 0,
+        expired_active: expiredActive.count || 0,
+        orphaned_seats: orphanedSeats.count || 0,
+        confirmed_future: confirmedFuture.count || 0,
+        completed_today: completedToday.count || 0,
+      };
 
       // Get stuck bookings
       const { data: stuckData, error: stuckError } = await supabase
@@ -54,19 +88,12 @@ export function BookingHealthMonitor() {
           profiles!bookings_user_id_fkey(email),
           study_halls(name)
         `)
-        .or('and(status.eq.pending,payment_status.eq.unpaid,created_at.lt.2024-01-01),and(status.in.(active,confirmed),payment_status.eq.paid,end_date.lt.2024-01-01)')
+        .or(`and(status.eq.pending,payment_status.eq.unpaid,created_at.lt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}),and(status.in.(active,confirmed),payment_status.eq.paid,end_date.lt.${new Date().toISOString().split('T')[0]})`)
         .limit(20);
 
       if (stuckError) throw stuckError;
 
-      setHealth(healthData?.[0] || {
-        total_bookings: 0,
-        pending_unpaid: 0,
-        expired_active: 0,
-        orphaned_seats: 0,
-        confirmed_future: 0,
-        completed_today: 0,
-      });
+      setHealth(healthData);
 
       setStuckBookings(
         stuckData?.map((booking: any) => ({

@@ -894,6 +894,17 @@ export type Database = {
         Args: { table_name: string; column_name: string }
         Returns: number
       }
+      get_booking_health_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_bookings: number
+          pending_unpaid: number
+          expired_active: number
+          orphaned_seats: number
+          confirmed_future: number
+          completed_today: number
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

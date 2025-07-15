@@ -30,6 +30,7 @@ import UserProfileSettings from "@/components/UserProfileSettings";
 import { SubscriptionPlansTab } from "@/components/admin/SubscriptionPlansTab";
 import { MerchantSubscriptionManagementTab } from "@/components/admin/MerchantSubscriptionManagementTab";
 import EKQRRecoveryTab from "@/components/admin/EKQRRecoveryTab";
+import { BookingHealthMonitor } from "@/components/admin/BookingHealthMonitor";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -729,6 +730,9 @@ const AdminDashboard = () => {
 
           {/* EKQR Recovery Tab */}
           {activeTab === "ekqr-recovery" && <EKQRRecoveryTab />}
+
+          {/* Booking Health Monitor Tab */}
+          {activeTab === "booking-health" && <BookingHealthMonitor />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && (
