@@ -1674,6 +1674,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      validate_date_string: {
+        Args: { date_string: string }
+        Returns: boolean
+      }
       validate_withdrawal_request: {
         Args: { p_merchant_id: string; p_amount: number }
         Returns: {
