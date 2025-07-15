@@ -487,6 +487,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
           {calculatedAmount && (
             <CouponInput
               bookingAmount={getCurrentAmount()}
+              studyHallId={studyHall.id}
               onCouponApplied={(discount, code) => {
                 setAppliedCoupon({ code, discount });
               }}

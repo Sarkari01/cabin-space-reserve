@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CouponInputProps {
   bookingAmount: number;
+  studyHallId?: string;
   onCouponApplied: (discount: number, couponCode: string) => void;
   onCouponRemoved: () => void;
   appliedCoupon?: {
@@ -21,6 +22,7 @@ interface CouponInputProps {
 
 export const CouponInput = ({ 
   bookingAmount, 
+  studyHallId,
   onCouponApplied, 
   onCouponRemoved, 
   appliedCoupon 
@@ -42,7 +44,7 @@ export const CouponInput = ({
 
     setValidating(true);
     try {
-      const result = await validateCoupon(couponCode.trim().toUpperCase(), bookingAmount);
+      const result = await validateCoupon(couponCode.trim().toUpperCase(), bookingAmount, studyHallId);
       
       if (result.valid) {
         onCouponApplied(result.discount_amount, couponCode.trim().toUpperCase());
