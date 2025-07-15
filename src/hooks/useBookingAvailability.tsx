@@ -140,7 +140,8 @@ export const useBookingAvailability = () => {
   };
 
   /**
-   * Calculate booking amount based on actual date range
+   * Calculate booking amount with Razorpay fee handling
+   * Returns final amount that includes the fee as a "discount"
    */
   const calculateBookingAmount = (
     startDate: string,
@@ -148,35 +149,65 @@ export const useBookingAvailability = () => {
     dailyPrice: number,
     weeklyPrice: number,
     monthlyPrice: number
-  ): { amount: number; days: number; method: string } => {
+  ): { 
+    amount: number; 
+    baseAmount: number;
+    discountAmount: number;
+    days: number; 
+    method: string;
+    priceBreakdown: {
+      baseDaily: number;
+      baseWeekly: number;
+      baseMonthly: number;
+    };
+  } => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const timeDiff = end.getTime() - start.getTime();
-    const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1; // +1 to include both start and end dates
+    const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
     console.log(`Calculating amount for ${days} days from ${startDate} to ${endDate}`);
 
-    // Choose the most cost-effective pricing option
-    const dailyTotal = days * dailyPrice;
-    const weeklyTotal = Math.ceil(days / 7) * weeklyPrice;
-    const monthlyTotal = Math.ceil(days / 30) * monthlyPrice;
+    // Calculate base prices (98% of display price to account for 2% Razorpay fee)
+    const baseDailyPrice = Math.round(dailyPrice * 0.98);
+    const baseWeeklyPrice = Math.round(weeklyPrice * 0.98);
+    const baseMonthlyPrice = Math.round(monthlyPrice * 0.98);
 
-    let amount = dailyTotal;
+    // Calculate totals for each method using base prices
+    const dailyTotal = days * baseDailyPrice;
+    const weeklyTotal = Math.ceil(days / 7) * baseWeeklyPrice;
+    const monthlyTotal = Math.ceil(days / 30) * baseMonthlyPrice;
+
+    let baseAmount = dailyTotal;
     let calculationMethod = 'daily';
 
-    // Use weekly pricing if it's cheaper and booking is 7+ days
-    if (days >= 7 && weeklyTotal < amount) {
-      amount = weeklyTotal;
+    // Choose the most cost-effective option
+    if (days >= 7 && weeklyTotal < baseAmount) {
+      baseAmount = weeklyTotal;
       calculationMethod = 'weekly';
     }
 
-    // Use monthly pricing if it's cheaper and booking is 30+ days
-    if (days >= 30 && monthlyTotal < amount) {
-      amount = monthlyTotal;
+    if (days >= 30 && monthlyTotal < baseAmount) {
+      baseAmount = monthlyTotal;
       calculationMethod = 'monthly';
     }
 
-    return { amount, days, method: calculationMethod };
+    // Calculate the "discount" amount (covers Razorpay fee)
+    const discountAmount = Math.round(baseAmount * 0.02);
+    const finalAmount = baseAmount + discountAmount;
+
+    return { 
+      amount: finalAmount, 
+      baseAmount,
+      discountAmount,
+      days, 
+      method: calculationMethod,
+      priceBreakdown: {
+        baseDaily: baseDailyPrice,
+        baseWeekly: baseWeeklyPrice,
+        baseMonthly: baseMonthlyPrice
+      }
+    };
   };
 
   /**

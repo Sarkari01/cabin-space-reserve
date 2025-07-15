@@ -265,9 +265,12 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                   <DollarSign className="h-4 w-4 mr-2" />
                   Study Hall Pricing (₹)
                 </h4>
+                <div className="text-sm text-muted-foreground mb-3">
+                  Set display prices. Users will see: "Base Price + 2% Remaining Discount" format
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="dailyPrice">Daily Rate (₹)</Label>
+                  <Label htmlFor="dailyPrice">Daily Display Rate (₹)</Label>
                   <Input
                     id="dailyPrice"
                     type="number"
@@ -281,9 +284,14 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                     disabled={isReadOnly}
                     required
                   />
+                  {!isReadOnly && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Users see: ₹{Math.round(formData.daily_price * 0.98)} + 2% Remaining Discount
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="weeklyPrice">Weekly Rate (₹)</Label>
+                  <Label htmlFor="weeklyPrice">Weekly Display Rate (₹)</Label>
                   <Input
                     id="weeklyPrice"
                     type="number"
@@ -297,9 +305,14 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                     disabled={isReadOnly}
                     required
                   />
+                  {!isReadOnly && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Users see: ₹{Math.round(formData.weekly_price * 0.98)} + 2% Remaining Discount
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="monthlyPrice">Monthly Rate (₹)</Label>
+                  <Label htmlFor="monthlyPrice">Monthly Display Rate (₹)</Label>
                   <Input
                     id="monthlyPrice"
                     type="number"
@@ -313,6 +326,11 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                     disabled={isReadOnly}
                     required
                   />
+                  {!isReadOnly && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Users see: ₹{Math.round(formData.monthly_price * 0.98)} + 2% Remaining Discount
+                    </div>
+                  )}
                 </div>
                 </div>
               </div>

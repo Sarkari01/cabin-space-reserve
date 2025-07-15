@@ -49,7 +49,18 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   const [availabilityMap, setAvailabilityMap] = useState<Record<string, boolean>>({});
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string>("");
-  const [calculatedAmount, setCalculatedAmount] = useState<{amount: number; days: number; method: string} | null>(null);
+  const [calculatedAmount, setCalculatedAmount] = useState<{
+    amount: number; 
+    baseAmount?: number;
+    discountAmount?: number;
+    days: number; 
+    method: string;
+    priceBreakdown?: {
+      baseDaily: number;
+      baseWeekly: number;
+      baseMonthly: number;
+    };
+  } | null>(null);
 
   const { toast } = useToast();
   const { checkSeatAvailability, getSeatAvailabilityMap, calculateBookingAmount } = useBookingAvailability();
@@ -389,9 +400,15 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Daily - ₹{studyHall.daily_price}</SelectItem>
-                <SelectItem value="weekly">Weekly - ₹{studyHall.weekly_price}</SelectItem>
-                <SelectItem value="monthly">Monthly - ₹{studyHall.monthly_price}</SelectItem>
+                <SelectItem value="daily">
+                  Daily - ₹{Math.round(studyHall.daily_price * 0.98)} + 2% Remaining Discount
+                </SelectItem>
+                <SelectItem value="weekly">
+                  Weekly - ₹{Math.round(studyHall.weekly_price * 0.98)} + 2% Remaining Discount
+                </SelectItem>
+                <SelectItem value="monthly">
+                  Monthly - ₹{Math.round(studyHall.monthly_price * 0.98)} + 2% Remaining Discount
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -424,14 +441,30 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
           <Card>
             <CardContent className="p-4">
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total Amount:</span>
-                  <span className="text-lg font-bold">₹{getCurrentAmount().toLocaleString()}</span>
-                </div>
                 {calculatedAmount && (
-                  <div className="text-sm text-muted-foreground">
-                    {calculatedAmount.days} day{calculatedAmount.days !== 1 ? 's' : ''} • 
-                    Calculated using {calculatedAmount.method} pricing
+                  <>
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Base Price:</span>
+                      <span>₹{(calculatedAmount.baseAmount || Math.round(getCurrentAmount() * 0.98)).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-green-600">
+                      <span>2% Remaining Discount:</span>
+                      <span>+ ₹{(calculatedAmount.discountAmount || Math.round(getCurrentAmount() * 0.02)).toLocaleString()}</span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between items-center">
+                      <span className="font-medium">Total Amount:</span>
+                      <span className="text-lg font-bold">₹{getCurrentAmount().toLocaleString()}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {calculatedAmount.days} day{calculatedAmount.days !== 1 ? 's' : ''} • 
+                      Calculated using {calculatedAmount.method} pricing
+                    </div>
+                  </>
+                )}
+                {!calculatedAmount && (
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Total Amount:</span>
+                    <span className="text-lg font-bold">₹{getCurrentAmount().toLocaleString()}</span>
                   </div>
                 )}
               </div>

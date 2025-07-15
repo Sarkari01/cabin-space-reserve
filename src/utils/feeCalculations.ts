@@ -1,0 +1,119 @@
+/**
+ * Fee calculation utilities for Razorpay integration
+ * Hides the 2% transaction fee by showing it as a "discount"
+ */
+
+// Razorpay transaction fee percentage
+export const RAZORPAY_FEE_RATE = 0.02; // 2%
+
+/**
+ * Calculate the base price from display price (removing the hidden fee)
+ * Display price (₹1800) -> Base price (₹1700)
+ */
+export const calculateBasePrice = (displayPrice: number): number => {
+  return Math.round(displayPrice * (1 - RAZORPAY_FEE_RATE));
+};
+
+/**
+ * Calculate the "discount" amount that covers the Razorpay fee
+ * Base price (₹1700) -> Discount amount (₹34)
+ */
+export const calculateDiscountAmount = (basePrice: number): number => {
+  return Math.round(basePrice * RAZORPAY_FEE_RATE);
+};
+
+/**
+ * Calculate the final amount user pays (base price + discount)
+ * This equals approximately the original display price
+ */
+export const calculateFinalAmount = (basePrice: number): number => {
+  return basePrice + calculateDiscountAmount(basePrice);
+};
+
+/**
+ * Format price display for user: "₹1700 + 2% Remaining Discount"
+ */
+export const formatPriceWithDiscount = (displayPrice: number): {
+  basePrice: number;
+  discountAmount: number;
+  finalAmount: number;
+  displayText: string;
+} => {
+  const basePrice = calculateBasePrice(displayPrice);
+  const discountAmount = calculateDiscountAmount(basePrice);
+  const finalAmount = calculateFinalAmount(basePrice);
+  
+  return {
+    basePrice,
+    discountAmount,
+    finalAmount,
+    displayText: `₹${basePrice} + 2% Remaining Discount`
+  };
+};
+
+/**
+ * Calculate booking amount with fee handling
+ */
+export const calculateBookingAmountWithFees = (
+  startDate: string,
+  endDate: string,
+  dailyDisplayPrice: number,
+  weeklyDisplayPrice: number,
+  monthlyDisplayPrice: number
+): {
+  baseAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+  days: number;
+  method: string;
+  priceBreakdown: {
+    baseDaily: number;
+    baseWeekly: number;
+    baseMonthly: number;
+  };
+} => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const timeDiff = end.getTime() - start.getTime();
+  const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+
+  // Calculate base prices (without hidden fees)
+  const baseDailyPrice = calculateBasePrice(dailyDisplayPrice);
+  const baseWeeklyPrice = calculateBasePrice(weeklyDisplayPrice);
+  const baseMonthlyPrice = calculateBasePrice(monthlyDisplayPrice);
+
+  // Calculate totals for each method
+  const dailyTotal = days * baseDailyPrice;
+  const weeklyTotal = Math.ceil(days / 7) * baseWeeklyPrice;
+  const monthlyTotal = Math.ceil(days / 30) * baseMonthlyPrice;
+
+  let baseAmount = dailyTotal;
+  let method = 'daily';
+
+  // Choose the most cost-effective option
+  if (days >= 7 && weeklyTotal < baseAmount) {
+    baseAmount = weeklyTotal;
+    method = 'weekly';
+  }
+
+  if (days >= 30 && monthlyTotal < baseAmount) {
+    baseAmount = monthlyTotal;
+    method = 'monthly';
+  }
+
+  const discountAmount = calculateDiscountAmount(baseAmount);
+  const finalAmount = calculateFinalAmount(baseAmount);
+
+  return {
+    baseAmount,
+    discountAmount,
+    finalAmount,
+    days,
+    method,
+    priceBreakdown: {
+      baseDaily: baseDailyPrice,
+      baseWeekly: baseWeeklyPrice,
+      baseMonthly: baseMonthlyPrice
+    }
+  };
+};
