@@ -1953,7 +1953,16 @@ export type Database = {
       banner_target_audience: "user" | "merchant" | "both"
       booking_period: "daily" | "weekly" | "monthly"
       news_visibility: "user" | "merchant" | "both"
-      user_role: "admin" | "merchant" | "student" | "incharge"
+      user_role:
+        | "admin"
+        | "merchant"
+        | "student"
+        | "incharge"
+        | "telemarketing_executive"
+        | "pending_payments_caller"
+        | "customer_care_executive"
+        | "settlement_manager"
+        | "general_administrator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2085,7 +2094,17 @@ export const Constants = {
       banner_target_audience: ["user", "merchant", "both"],
       booking_period: ["daily", "weekly", "monthly"],
       news_visibility: ["user", "merchant", "both"],
-      user_role: ["admin", "merchant", "student", "incharge"],
+      user_role: [
+        "admin",
+        "merchant",
+        "student",
+        "incharge",
+        "telemarketing_executive",
+        "pending_payments_caller",
+        "customer_care_executive",
+        "settlement_manager",
+        "general_administrator",
+      ],
     },
   },
 } as const
