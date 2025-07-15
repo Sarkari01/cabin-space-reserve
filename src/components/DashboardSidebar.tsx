@@ -88,33 +88,49 @@ const sidebarItems = {
     { title: "Chat", url: "/merchant/dashboard", icon: MessageSquare, tab: "chat" },
     { title: "Profile", url: "/merchant/dashboard", icon: Settings, tab: "profile" },
   ],
-  admin: [
-    { title: "Dashboard", url: "/admin/dashboard", icon: Home, tab: "overview" },
-    { title: "Users", url: "/admin/dashboard", icon: Users, tab: "users" },
-    { title: "Incharges", url: "/admin/dashboard", icon: UserPlus, tab: "incharges" },
-    { title: "Merchant Verification", url: "/admin/dashboard", icon: ShieldCheck, tab: "merchantverification" },
-    { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
-    { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
-    { title: "Coupons", url: "/admin/dashboard", icon: Ticket, tab: "coupons" },
-    { title: "Rewards & Referrals", url: "/admin/dashboard", icon: Gift, tab: "rewards" },
-    { title: "Rewards Settings", url: "/admin/dashboard", icon: Settings, tab: "rewards-settings" },
-    { title: "Settlements", url: "/admin/dashboard", icon: ArrowUpDown, tab: "settlements" },
-    { title: "Transactions", url: "/admin/dashboard", icon: CreditCard, tab: "transactions" },
-    { title: "Subscription Transactions", url: "/admin/dashboard", icon: Receipt, tab: "subscription-transactions" },
-    { title: "Subscription Plans", url: "/admin/dashboard", icon: Shield, tab: "subscription-plans" },
-    { title: "Merchant Subscriptions", url: "/admin/dashboard", icon: CreditCard, tab: "merchant-subscriptions" },
-    { title: "Banners", url: "/admin/dashboard", icon: BookOpen, tab: "banners" },
-    { title: "Business Settings", url: "/admin/dashboard", icon: Settings, tab: "business" },
-    { title: "News", url: "/admin/dashboard", icon: Newspaper, tab: "news" },
-    { title: "Community", url: "/admin/dashboard", icon: Heart, tab: "community" },
-    { title: "Chat", url: "/admin/dashboard", icon: MessageSquare, tab: "chat" },
-    { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
-    { title: "Operational Users", url: "/admin/dashboard", icon: UserCog, tab: "operational-users" },
-    { title: "Call Logs", url: "/admin/dashboard", icon: Phone, tab: "call-logs-management" },
-    { title: "Support Tickets", url: "/admin/dashboard", icon: Headphones, tab: "support-tickets-management" },
-    { title: "Profile", url: "/admin/dashboard", icon: Settings, tab: "profile" },
-    { title: "EKQR Recovery", url: "/admin/dashboard", icon: AlertCircle, tab: "ekqr-recovery" },
-  ],
+  admin: {
+    coreOps: [
+      { title: "Dashboard", url: "/admin/dashboard", icon: Home, tab: "overview" },
+      { title: "Users", url: "/admin/dashboard", icon: Users, tab: "users" },
+      { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
+      { title: "Call Logs", url: "/admin/dashboard", icon: Phone, tab: "call-logs-management" },
+    ],
+    businessMgmt: [
+      { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
+      { title: "Merchant Verification", url: "/admin/dashboard", icon: ShieldCheck, tab: "merchantverification" },
+      { title: "Incharges", url: "/admin/dashboard", icon: UserPlus, tab: "incharges" },
+      { title: "Settlements", url: "/admin/dashboard", icon: ArrowUpDown, tab: "settlements" },
+    ],
+    financial: [
+      { title: "Transactions", url: "/admin/dashboard", icon: CreditCard, tab: "transactions" },
+      { title: "Subscription Plans", url: "/admin/dashboard", icon: Shield, tab: "subscription-plans" },
+      { title: "Merchant Subscriptions", url: "/admin/dashboard", icon: CreditCard, tab: "merchant-subscriptions" },
+      { title: "Subscription Transactions", url: "/admin/dashboard", icon: Receipt, tab: "subscription-transactions" },
+      { title: "Rewards & Referrals", url: "/admin/dashboard", icon: Gift, tab: "rewards" },
+    ],
+    platformAdmin: [
+      { title: "Operational Users", url: "/admin/dashboard", icon: UserCog, tab: "operational-users" },
+      { title: "Support Tickets", url: "/admin/dashboard", icon: Headphones, tab: "support-tickets-management" },
+      { title: "Business Settings", url: "/admin/dashboard", icon: Settings, tab: "business" },
+      { title: "EKQR Recovery", url: "/admin/dashboard", icon: AlertCircle, tab: "ekqr-recovery" },
+    ],
+    marketing: [
+      { title: "Coupons", url: "/admin/dashboard", icon: Ticket, tab: "coupons" },
+      { title: "Banners", url: "/admin/dashboard", icon: BookOpen, tab: "banners" },
+      { title: "News", url: "/admin/dashboard", icon: Newspaper, tab: "news" },
+      { title: "Rewards Settings", url: "/admin/dashboard", icon: Settings, tab: "rewards-settings" },
+    ],
+    analytics: [
+      { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
+    ],
+    communication: [
+      { title: "Community", url: "/admin/dashboard", icon: Heart, tab: "community" },
+      { title: "Chat", url: "/admin/dashboard", icon: MessageSquare, tab: "chat" },
+    ],
+    settings: [
+      { title: "Profile", url: "/admin/dashboard", icon: Settings, tab: "profile" },
+    ]
+  },
   incharge: [
     { title: "Dashboard", url: "/incharge/dashboard", icon: Home, tab: "overview" },
     { title: "Assigned Study Halls", url: "/incharge/dashboard", icon: Building, tab: "studyhalls" },
@@ -250,98 +266,226 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
           </div>
         </div>
 
-        {/* Navigation - Check if telemarketing_executive for grouped structure */}
-        {userRole === "telemarketing_executive" && typeof items === "object" && !Array.isArray(items) ? (
+        {/* Navigation - Check for grouped structure */}
+        {(userRole === "telemarketing_executive" || userRole === "admin") && typeof items === "object" && !Array.isArray(items) ? (
           <>
-            {/* Primary Actions */}
-            <SidebarGroup>
-              <SidebarGroupLabel>
-                <div className="flex items-center space-x-2">
-                  <Zap className="h-3 w-3" />
-                  {!isCollapsed && <span className="text-xs font-semibold">Primary Actions</span>}
-                </div>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.primary?.map(renderMenuItem)}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {userRole === "telemarketing_executive" && (
+              <>
+                {/* Primary Actions */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Zap className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Primary Actions</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'primary' in items && items.primary?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
 
-            {/* Customer Operations */}
-            <SidebarGroup>
-              <SidebarGroupLabel>
-                <div className="flex items-center space-x-2">
-                  <Users className="h-3 w-3" />
-                  {!isCollapsed && <span className="text-xs font-semibold">Customer Operations</span>}
-                </div>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.customerOps?.map(renderMenuItem)}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                {/* Customer Operations */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Customer Operations</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'customerOps' in items && items.customerOps?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
 
-            {/* Business Data & Analytics */}
-            <SidebarGroup>
-              <SidebarGroupLabel>
-                <div className="flex items-center space-x-2">
-                  <Briefcase className="h-3 w-3" />
-                  {!isCollapsed && <span className="text-xs font-semibold">Business Data</span>}
-                </div>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.businessData?.map(renderMenuItem)}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                {/* Business Data & Analytics */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Briefcase className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Business Data</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'businessData' in items && items.businessData?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
 
-            {/* Communication & Content */}
-            <SidebarGroup>
-              <SidebarGroupLabel>
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="h-3 w-3" />
-                  {!isCollapsed && <span className="text-xs font-semibold">Communication</span>}
-                </div>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.communication?.map(renderMenuItem)}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                {/* Communication & Content */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Communication</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'communication' in items && items.communication?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
 
-            {/* Analytics & Reports */}
-            <SidebarGroup>
-              <SidebarGroupLabel>
-                <div className="flex items-center space-x-2">
-                  <TrendingUp className="h-3 w-3" />
-                  {!isCollapsed && <span className="text-xs font-semibold">Analytics</span>}
-                </div>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.analytics?.map(renderMenuItem)}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                {/* Analytics & Reports */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Analytics</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'analytics' in items && items.analytics?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
 
-            {/* Settings */}
-            <SidebarGroup>
-              <SidebarGroupLabel>
-                <div className="flex items-center space-x-2">
-                  <Settings className="h-3 w-3" />
-                  {!isCollapsed && <span className="text-xs font-semibold">Settings</span>}
-                </div>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.settings?.map(renderMenuItem)}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                {/* Settings */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Settings</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'settings' in items && items.settings?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </>
+            )}
+
+            {userRole === "admin" && (
+              <>
+                {/* Core Operations */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Zap className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Core Operations</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'coreOps' in items && items.coreOps?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Business Management */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Building className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Business Management</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'businessMgmt' in items && items.businessMgmt?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Financial Operations */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <CreditCard className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Financial Operations</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'financial' in items && items.financial?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Platform Administration */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <UserCog className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Platform Administration</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'platformAdmin' in items && items.platformAdmin?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Marketing & Content */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Ticket className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Marketing & Content</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'marketing' in items && items.marketing?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Analytics & Reports */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <BarChart3 className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Analytics & Reports</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'analytics' in items && items.analytics?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Communication & Community */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Communication & Community</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'communication' in items && items.communication?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Account & Settings */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Account & Settings</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'settings' in items && items.settings?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </>
+            )}
           </>
         ) : (
           /* Standard flat navigation for other roles */
