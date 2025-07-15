@@ -83,7 +83,7 @@ export const useMerchantProfile = () => {
     }
   };
 
-  const updateProfile = async (updates: Partial<MerchantProfile>) => {
+  const updateProfile = async (updates: Partial<MerchantProfile>, showSuccessToast: boolean = true) => {
     if (!user || !profile) return;
 
     try {
@@ -97,10 +97,13 @@ export const useMerchantProfile = () => {
       if (error) throw error;
 
       setProfile(data);
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      
+      if (showSuccessToast) {
+        toast({
+          title: "Success",
+          description: "Profile updated successfully",
+        });
+      }
 
       return data;
     } catch (error) {

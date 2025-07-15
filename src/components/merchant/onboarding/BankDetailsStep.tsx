@@ -6,7 +6,7 @@ import { Shield } from "lucide-react";
 
 interface BankDetailsStepProps {
   profile: MerchantProfile | null;
-  updateProfile: (updates: Partial<MerchantProfile>) => Promise<any>;
+  updateProfile: (updates: Partial<MerchantProfile>, showSuccessToast?: boolean) => Promise<any>;
   onDataChange?: (isValid: boolean) => void;
 }
 
@@ -22,7 +22,7 @@ export const BankDetailsStep = ({ profile, updateProfile, onDataChange }: BankDe
   const debouncedSave = useCallback(
     debounce(async (data: typeof formData) => {
       try {
-        await updateProfile(data);
+        await updateProfile(data, false); // Silent auto-save
       } catch (error) {
         console.error('Error auto-saving bank details:', error);
       }
