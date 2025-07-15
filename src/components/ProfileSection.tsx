@@ -50,11 +50,12 @@ const enhancedProfileSchema = z.object({
 const ProfileSection = () => {
   const { user, userProfile, userRole } = useAuth();
   const { settings, loading: settingsLoading, updateSettings, updateAvatar, updateNotificationPreferences, updateTheme } = useUserSettings();
-  const { profile: merchantProfile, loading: merchantLoading } = useMerchantProfile();
+  const { profile: merchantProfile, loading: merchantLoading, updateProfile: updateMerchantProfile } = useMerchantProfile();
   const { referralCode, referralStats } = useReferrals();
   const { rewards } = useRewards();
   
   const [editMode, setEditMode] = useState(false);
+  const [businessEditMode, setBusinessEditMode] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: userProfile?.full_name || '',
@@ -63,7 +64,16 @@ const ProfileSection = () => {
     location: settings?.location || '',
   });
   
+  const [businessFormData, setBusinessFormData] = useState({
+    phone: merchantProfile?.phone || '',
+    business_email: merchantProfile?.business_email || '',
+    business_address: merchantProfile?.business_address || '',
+    trade_license_number: merchantProfile?.trade_license_number || '',
+    gstin_pan: merchantProfile?.gstin_pan || '',
+  });
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [businessErrors, setBusinessErrors] = useState<Record<string, string>>({});
 
   // Update form data when user profile or settings change
   useEffect(() => {
@@ -74,6 +84,19 @@ const ProfileSection = () => {
       location: settings?.location || '',
     });
   }, [userProfile, settings]);
+
+  // Update business form data when merchant profile changes
+  useEffect(() => {
+    if (merchantProfile) {
+      setBusinessFormData({
+        phone: merchantProfile.phone || '',
+        business_email: merchantProfile.business_email || '',
+        business_address: merchantProfile.business_address || '',
+        trade_license_number: merchantProfile.trade_license_number || '',
+        gstin_pan: merchantProfile.gstin_pan || '',
+      });
+    }
+  }, [merchantProfile]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -102,12 +125,51 @@ const ProfileSection = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const validateBusinessForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Business phone validation
+    if (businessFormData.phone && !/^\+?[\d\s\-\(\)]{10,15}$/.test(businessFormData.phone)) {
+      newErrors.phone = "Invalid phone number format";
+    }
+
+    // Business email validation
+    if (businessFormData.business_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessFormData.business_email)) {
+      newErrors.business_email = "Invalid email format";
+    }
+
+    // Field length validations
+    if (businessFormData.business_address && businessFormData.business_address.length > 500) {
+      newErrors.business_address = "Address cannot exceed 500 characters";
+    }
+
+    if (businessFormData.trade_license_number && businessFormData.trade_license_number.length > 100) {
+      newErrors.trade_license_number = "Trade license number too long";
+    }
+
+    if (businessFormData.gstin_pan && businessFormData.gstin_pan.length > 50) {
+      newErrors.gstin_pan = "GSTIN/PAN too long";
+    }
+
+    setBusinessErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleBusinessInputChange = (field: string, value: string) => {
+    setBusinessFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear error for this field when user starts typing
+    if (businessErrors[field]) {
+      setBusinessErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -206,6 +268,40 @@ const ProfileSection = () => {
       toast({
         title: "Error",
         description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSaveBusinessInfo = async () => {
+    if (!validateBusinessForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors before saving",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await updateMerchantProfile({
+        phone: businessFormData.phone?.trim() || null,
+        business_email: businessFormData.business_email?.trim() || null,
+        business_address: businessFormData.business_address?.trim() || null,
+        trade_license_number: businessFormData.trade_license_number?.trim() || null,
+        gstin_pan: businessFormData.gstin_pan?.trim() || null,
+      });
+
+      setBusinessEditMode(false);
+      toast({
+        title: "Success",
+        description: "Business information updated successfully"
+      });
+    } catch (error) {
+      console.error('Error updating business information:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update business information. Please try again.",
         variant: "destructive"
       });
     }
@@ -544,7 +640,7 @@ const ProfileSection = () => {
             </CardContent>
           </Card>
 
-          {/* Business Information Summary */}
+          {/* Business Information - Editable */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -552,21 +648,106 @@ const ProfileSection = () => {
                 Business Information
               </CardTitle>
               <CardDescription>
-                Quick overview of your business details
+                Manage your business details and information
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-muted-foreground">Business Phone</label>
-                <p>{merchantProfile.phone || 'Not provided'}</p>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="business_phone">Business Phone</Label>
+                  <Input
+                    id="business_phone"
+                    value={businessFormData.phone}
+                    onChange={(e) => handleBusinessInputChange('phone', e.target.value)}
+                    disabled={!businessEditMode}
+                    placeholder="Enter business phone number"
+                    className={businessErrors.phone ? "border-red-500" : ""}
+                  />
+                  {businessErrors.phone && (
+                    <p className="text-sm text-red-500">{businessErrors.phone}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="business_email">Business Email</Label>
+                  <Input
+                    id="business_email"
+                    type="email"
+                    value={businessFormData.business_email}
+                    onChange={(e) => handleBusinessInputChange('business_email', e.target.value)}
+                    disabled={!businessEditMode}
+                    placeholder="Enter business email"
+                    className={businessErrors.business_email ? "border-red-500" : ""}
+                  />
+                  {businessErrors.business_email && (
+                    <p className="text-sm text-red-500">{businessErrors.business_email}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="trade_license_number">Trade License Number</Label>
+                  <Input
+                    id="trade_license_number"
+                    value={businessFormData.trade_license_number}
+                    onChange={(e) => handleBusinessInputChange('trade_license_number', e.target.value)}
+                    disabled={!businessEditMode}
+                    placeholder="Enter trade license number"
+                    className={businessErrors.trade_license_number ? "border-red-500" : ""}
+                  />
+                  {businessErrors.trade_license_number && (
+                    <p className="text-sm text-red-500">{businessErrors.trade_license_number}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gstin_pan">GSTIN/PAN</Label>
+                  <Input
+                    id="gstin_pan"
+                    value={businessFormData.gstin_pan}
+                    onChange={(e) => handleBusinessInputChange('gstin_pan', e.target.value)}
+                    disabled={!businessEditMode}
+                    placeholder="Enter GSTIN or PAN number"
+                    className={businessErrors.gstin_pan ? "border-red-500" : ""}
+                  />
+                  {businessErrors.gstin_pan && (
+                    <p className="text-sm text-red-500">{businessErrors.gstin_pan}</p>
+                  )}
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-muted-foreground">Trade License</label>
-                <p>{merchantProfile.trade_license_number || 'Not provided'}</p>
+
+              <div className="space-y-2">
+                <Label htmlFor="business_address">Business Address</Label>
+                <Textarea
+                  id="business_address"
+                  value={businessFormData.business_address}
+                  onChange={(e) => handleBusinessInputChange('business_address', e.target.value)}
+                  disabled={!businessEditMode}
+                  placeholder="Enter complete business address"
+                  rows={3}
+                  className={businessErrors.business_address ? "border-red-500" : ""}
+                />
+                {businessErrors.business_address && (
+                  <p className="text-sm text-red-500">{businessErrors.business_address}</p>
+                )}
               </div>
-              <div className="md:col-span-2 space-y-1">
-                <label className="text-sm font-medium text-muted-foreground">Business Address</label>
-                <p>{merchantProfile.business_address || 'Not provided'}</p>
+
+              <div className="flex justify-end space-x-3">
+                {businessEditMode ? (
+                  <>
+                    <Button variant="outline" onClick={() => setBusinessEditMode(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveBusinessInfo}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setBusinessEditMode(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Business Info
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
