@@ -17,7 +17,6 @@ import {
   CreditCard,
   Receipt,
   AlertCircle,
-  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -73,7 +72,7 @@ const sidebarItems = {
     { title: "Merchants", url: "/admin/dashboard", icon: Users, tab: "merchants" },
     { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
     { title: "Bookings", url: "/admin/dashboard", icon: Calendar, tab: "bookings" },
-    { title: "Booking Health", url: "/admin/dashboard", icon: Activity, tab: "booking-health" },
+    
     { title: "Transactions", url: "/admin/dashboard", icon: CreditCard, tab: "transactions" },
     { title: "Subscription Transactions", url: "/admin/dashboard", icon: Receipt, tab: "subscription-transactions" },
     { title: "Subscription Plans", url: "/admin/dashboard", icon: Shield, tab: "subscription-plans" },

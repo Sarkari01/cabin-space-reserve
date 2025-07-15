@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3, Activity } from "lucide-react";
+import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3 } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
@@ -30,7 +30,7 @@ import UserProfileSettings from "@/components/UserProfileSettings";
 import { SubscriptionPlansTab } from "@/components/admin/SubscriptionPlansTab";
 import { MerchantSubscriptionManagementTab } from "@/components/admin/MerchantSubscriptionManagementTab";
 import EKQRRecoveryTab from "@/components/admin/EKQRRecoveryTab";
-import { BookingHealthMonitor } from "@/components/admin/BookingHealthMonitor";
+
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -731,8 +731,6 @@ const AdminDashboard = () => {
           {/* EKQR Recovery Tab */}
           {activeTab === "ekqr-recovery" && <EKQRRecoveryTab />}
 
-          {/* Booking Health Monitor Tab */}
-          {activeTab === "booking-health" && <BookingHealthMonitor />}
 
           {/* Profile Tab */}
           {activeTab === "profile" && (
