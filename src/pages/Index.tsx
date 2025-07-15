@@ -72,8 +72,21 @@ const Index = () => {
     return matchesSearch && matchesLocation && matchesPrice && studyHall.status === 'active';
   });
 
-  const handleViewDetails = (studyHall: any) => {
-    setSelectedStudyHall(studyHall);
+  const handleViewDetails = async (studyHall: any) => {
+    // Refresh study halls to ensure we have latest incharge data
+    await fetchStudyHalls();
+    
+    // Find the updated study hall with incharges from the latest data
+    const updatedStudyHall = studyHalls.find(hall => hall.id === studyHall.id) || studyHall;
+    
+    console.log('Index: Setting selected study hall:', {
+      originalHall: studyHall,
+      updatedHall: updatedStudyHall,
+      hasIncharges: updatedStudyHall.incharges?.length > 0,
+      inchargesList: updatedStudyHall.incharges?.map(i => i.full_name)
+    });
+    
+    setSelectedStudyHall(updatedStudyHall);
     setDetailModalOpen(true);
   };
 

@@ -64,6 +64,16 @@ export function StudyHallDetailModal({
 
   if (!studyHall) return null;
 
+  // Debug logging for incharges data
+  console.log('StudyHallDetailModal received studyHall:', {
+    id: studyHall.id,
+    name: studyHall.name,
+    incharges: studyHall.incharges,
+    inchargesCount: studyHall.incharges?.length || 0,
+    inchargesType: typeof studyHall.incharges,
+    inchargesIsArray: Array.isArray(studyHall.incharges)
+  });
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
