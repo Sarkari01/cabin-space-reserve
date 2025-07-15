@@ -104,11 +104,9 @@ const AdminDashboard = () => {
   const handleCreateUser = async (userData: any) => {
     setIsSubmitting(true);
     try {
-      // Check if this is an operational role
-      const operationalRoles = ['telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator'];
-      
-      if (operationalRoles.includes(userData.role)) {
-        // Use the edge function for operational users
+      // Check if this is a telemarketing executive
+      if (userData.role === 'telemarketing_executive') {
+        // Use the edge function for telemarketing executives
         const { data, error } = await supabase.functions.invoke('admin-create-user', {
           body: {
             email: userData.email,
@@ -123,20 +121,23 @@ const AdminDashboard = () => {
 
         if (error) throw error;
 
-        // Create admin profile if additional data provided
-        if (userData.department || userData.employee_id) {
-          await supabase
-            .from('admin_user_profiles')
-            .insert({
-              user_id: data.user.id,
-              department: userData.department,
-              employee_id: userData.employee_id,
-              permissions: {},
-              status: 'active'
-            });
-        }
+        // Create admin profile with functional permissions
+        await supabase
+          .from('admin_user_profiles')
+          .insert({
+            user_id: data.user.id,
+            department: userData.department || null,
+            employee_id: userData.employee_id || null,
+            permissions: userData.permissions || {
+              merchant_onboarding: true,
+              payment_recovery: true,
+              customer_support: true,
+              settlement_management: true
+            },
+            status: 'active'
+          });
       } else {
-        // Use regular user creation for basic roles
+        // Use regular user creation for basic roles (student, merchant, admin)
         await createUser(userData);
       }
       
@@ -949,29 +950,27 @@ const AdminDashboard = () => {
                 }
               />
 
-              <div className="grid lg:grid-cols-4 gap-6 mb-6">
+              <div className="grid lg:grid-cols-3 gap-6 mb-6">
                 <StatCard 
-                  title="Telemarketing Executives"
+                  title="Total Telemarketing Executives"
                   value={operationalUsers.filter(u => u.role === 'telemarketing_executive').length.toString()}
                   icon={Phone}
                   loading={operationalLoading}
                 />
                 <StatCard 
-                  title="Payment Callers"
-                  value={operationalUsers.filter(u => u.role === 'pending_payments_caller').length.toString()}
+                  title="Call Logs Today"
+                  value={(allCallLogs?.filter(log => 
+                    new Date(log.created_at).toDateString() === new Date().toDateString()
+                  ).length || 0).toString()}
                   icon={AlertCircle}
                   loading={operationalLoading}
                 />
                 <StatCard 
-                  title="Customer Care"
-                  value={operationalUsers.filter(u => u.role === 'customer_care_executive').length.toString()}
+                  title="Open Support Tickets"
+                  value={(allSupportTickets?.filter(ticket => 
+                    ticket.status !== 'resolved'
+                  ).length || 0).toString()}
                   icon={Headphones}
-                  loading={operationalLoading}
-                />
-                <StatCard 
-                  title="Settlement Managers"
-                  value={operationalUsers.filter(u => u.role === 'settlement_manager').length.toString()}
-                  icon={Banknote}
                   loading={operationalLoading}
                 />
               </div>

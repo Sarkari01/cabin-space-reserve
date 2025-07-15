@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { UserProfile } from "@/hooks/useAdminData";
 
 interface UserModalProps {
@@ -13,15 +14,28 @@ interface UserModalProps {
     email: string;
     password: string;
     full_name: string;
-    role: 'admin' | 'merchant' | 'student' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator';
+    role: 'admin' | 'merchant' | 'student' | 'telemarketing_executive';
     phone?: string;
     department?: string;
     employee_id?: string;
+    permissions?: {
+      merchant_onboarding?: boolean;
+      payment_recovery?: boolean;
+      customer_support?: boolean;
+      settlement_management?: boolean;
+    };
   }) => void;
   user?: UserProfile | null;
   isEdit?: boolean;
   loading?: boolean;
 }
+
+const functionalAreas = [
+  { key: 'merchant_onboarding', label: 'Merchant Onboarding', description: 'Call and onboard merchants' },
+  { key: 'payment_recovery', label: 'Payment Recovery', description: 'Call users with unpaid bookings' },
+  { key: 'customer_support', label: 'Customer Support', description: 'Handle support tickets and queries' },
+  { key: 'settlement_management', label: 'Settlement Management', description: 'Process merchant settlements' },
+];
 
 export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit = false }: UserModalProps) => {
   const [formData, setFormData] = useState({
@@ -32,6 +46,12 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
     phone: user?.phone || '',
     department: '',
     employee_id: '',
+    permissions: {
+      merchant_onboarding: true,
+      payment_recovery: true,
+      customer_support: true,
+      settlement_management: true,
+    },
   });
 
   // Reset form when user changes
@@ -45,6 +65,12 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
         phone: user.phone || '',
         department: '',
         employee_id: '',
+        permissions: {
+          merchant_onboarding: true,
+          payment_recovery: true,
+          customer_support: true,
+          settlement_management: true,
+        },
       });
     } else {
       setFormData({
@@ -55,6 +81,12 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
         phone: '',
         department: '',
         employee_id: '',
+        permissions: {
+          merchant_onboarding: true,
+          payment_recovery: true,
+          customer_support: true,
+          settlement_management: true,
+        },
       });
     }
   }, [user]);
@@ -70,12 +102,28 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
       phone: '',
       department: '',
       employee_id: '',
+      permissions: {
+        merchant_onboarding: true,
+        payment_recovery: true,
+        customer_support: true,
+        settlement_management: true,
+      },
     });
     onOpenChange(false);
   };
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePermissionChange = (permission: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [permission]: checked
+      }
+    }));
   };
 
   return (
@@ -132,10 +180,6 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
                 <SelectItem value="merchant">Merchant</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="telemarketing_executive">Telemarketing Executive</SelectItem>
-                <SelectItem value="pending_payments_caller">Payments Caller</SelectItem>
-                <SelectItem value="customer_care_executive">Customer Care Executive</SelectItem>
-                <SelectItem value="settlement_manager">Settlement Manager</SelectItem>
-                <SelectItem value="general_administrator">General Administrator</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -149,8 +193,8 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
             />
           </div>
 
-          {/* Show additional fields for operational roles */}
-          {['telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator'].includes(formData.role) && (
+          {/* Show additional fields for telemarketing executives */}
+          {formData.role === 'telemarketing_executive' && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="department">Department (Optional)</Label>
@@ -170,6 +214,33 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
                   onChange={(e) => handleChange('employee_id', e.target.value)}
                   placeholder="e.g., EMP001"
                 />
+              </div>
+
+              {/* Functional Areas Permissions */}
+              <div className="space-y-3">
+                <Label>Functional Areas (Select capabilities for this telemarketing executive)</Label>
+                <div className="space-y-3">
+                  {functionalAreas.map((area) => (
+                    <div key={area.key} className="flex items-start space-x-3">
+                      <Checkbox
+                        id={area.key}
+                        checked={formData.permissions[area.key as keyof typeof formData.permissions]}
+                        onCheckedChange={(checked) => handlePermissionChange(area.key, !!checked)}
+                      />
+                      <div className="grid gap-1.5 leading-none">
+                        <Label
+                          htmlFor={area.key}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {area.label}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {area.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
