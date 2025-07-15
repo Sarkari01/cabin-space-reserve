@@ -365,6 +365,24 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
     try {
       console.log("Updating booking:", bookingId, "with updates:", updates);
       
+      // First check if the booking exists and user has permission to update it
+      const { data: existingBooking, error: checkError } = await supabase
+        .from("bookings")
+        .select("id, user_id, study_hall_id, study_hall:study_halls(merchant_id)")
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("Error checking booking permissions:", checkError);
+        throw new Error(`Permission check failed: ${checkError.message}`);
+      }
+
+      if (!existingBooking) {
+        throw new Error("Booking not found or access denied");
+      }
+
+      console.log("Booking permission check passed, proceeding with update");
+
       const { data, error } = await supabase
         .from("bookings")
         .update({
@@ -373,11 +391,18 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
         })
         .eq("id", bookingId)
         .select("*")
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Database error:", error);
-        throw error;
+        if (error.code === "PGRST116") {
+          throw new Error("No permission to update this booking or booking not found");
+        }
+        throw new Error(`Update failed: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error("Booking update returned no data - possible permission issue");
       }
 
       console.log("Booking updated successfully:", data);
@@ -394,7 +419,7 @@ export const useBookings = (forceRole?: "student" | "merchant" | "admin") => {
       console.error("Error updating booking:", error);
       toast({
         title: "Error",
-        description: `Failed to update booking: ${error.message || 'Unknown error'}`,
+        description: `Failed to update booking: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
       return false;
