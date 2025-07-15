@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useBookingAvailability } from "@/hooks/useBookingAvailability";
 
 interface BookingIntent {
   study_hall_id: string;
@@ -30,6 +31,81 @@ export const createBookingFromIntent = async (
     if (!bookingIntent.study_hall_id || !bookingIntent.seat_id) {
       throw new Error('Study hall ID and seat ID are required');
     }
+
+    // Validate booking dates
+    const startDate = new Date(bookingIntent.start_date);
+    const endDate = new Date(bookingIntent.end_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      throw new Error('Cannot create booking for past dates');
+    }
+
+    if (endDate < startDate) {
+      throw new Error('End date must be after start date');
+    }
+
+    // Final availability check before creating booking
+    console.log('Performing final availability check...');
+    const { data: conflictCheck, error: conflictError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('seat_id', bookingIntent.seat_id)
+      .in('status', ['confirmed', 'active', 'pending'])
+      .or(`and(start_date.lte.${bookingIntent.end_date},end_date.gte.${bookingIntent.start_date})`);
+
+    if (conflictError) {
+      console.error('Error checking for conflicts:', conflictError);
+      throw new Error('Failed to verify seat availability');
+    }
+
+    if (conflictCheck && conflictCheck.length > 0) {
+      throw new Error('Seat is no longer available for the selected dates. Another booking may have been created.');
+    }
+
+    // Get study hall details for payment validation
+    console.log('Validating payment amount...');
+    const { data: studyHall, error: hallError } = await supabase
+      .from('study_halls')
+      .select('daily_price, weekly_price, monthly_price')
+      .eq('id', bookingIntent.study_hall_id)
+      .single();
+
+    if (hallError) {
+      console.error('Error fetching study hall details:', hallError);
+      throw new Error('Failed to validate booking details');
+    }
+
+    // Calculate expected amount and validate
+    const start = new Date(bookingIntent.start_date);
+    const end = new Date(bookingIntent.end_date);
+    const timeDiff = end.getTime() - start.getTime();
+    const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+
+    const dailyTotal = days * studyHall.daily_price;
+    const weeklyTotal = Math.ceil(days / 7) * studyHall.weekly_price;
+    const monthlyTotal = Math.ceil(days / 30) * studyHall.monthly_price;
+
+    let expectedAmount = dailyTotal;
+    if (days >= 7 && weeklyTotal < expectedAmount) {
+      expectedAmount = weeklyTotal;
+    }
+    if (days >= 30 && monthlyTotal < expectedAmount) {
+      expectedAmount = monthlyTotal;
+    }
+
+    // Allow for small rounding differences (up to 1 rupee)
+    if (Math.abs(bookingIntent.total_amount - expectedAmount) > 1) {
+      console.error('Payment amount mismatch:', {
+        provided: bookingIntent.total_amount,
+        expected: expectedAmount,
+        days: days
+      });
+      throw new Error(`Invalid payment amount. Expected ₹${expectedAmount}, got ₹${bookingIntent.total_amount}`);
+    }
+
+    console.log('Payment amount validated successfully');
 
     // Create booking
     console.log('Inserting booking into database with status:', bookingStatus, 'payment:', paymentStatus);

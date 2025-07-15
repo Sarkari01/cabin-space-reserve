@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
+import { Calendar, AlertCircle } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
+import { useBookingAvailability } from "@/hooks/useBookingAvailability";
 import { PaymentProcessor } from "./PaymentProcessor";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudyHall {
   id: string;
@@ -43,72 +46,158 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [bookingIntent, setBookingIntent] = useState<any>(null);
+  const [availabilityMap, setAvailabilityMap] = useState<Record<string, boolean>>({});
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string>("");
+  const [calculatedAmount, setCalculatedAmount] = useState<{amount: number; days: number; method: string} | null>(null);
 
-  const availableSeats = seats.filter(seat => seat.is_available);
+  const { toast } = useToast();
+  const { checkSeatAvailability, getSeatAvailabilityMap, calculateBookingAmount } = useBookingAvailability();
+
+  // Filter seats based on date-specific availability
+  const getAvailableSeats = () => {
+    if (Object.keys(availabilityMap).length === 0) {
+      return seats.filter(seat => seat.is_available);
+    }
+    return seats.filter(seat => seat.is_available && availabilityMap[seat.id]);
+  };
+
+  const availableSeats = getAvailableSeats();
+
+  // Check availability when dates change
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (!studyHall || !startDate || !endDate) {
+        setAvailabilityMap({});
+        setCalculatedAmount(null);
+        return;
+      }
+
+      setCheckingAvailability(true);
+      setAvailabilityError("");
+      
+      try {
+        // Calculate amount based on actual date range
+        const amountCalc = calculateBookingAmount(
+          startDate, 
+          endDate, 
+          studyHall.daily_price, 
+          studyHall.weekly_price, 
+          studyHall.monthly_price
+        );
+        setCalculatedAmount(amountCalc);
+
+        // Get availability for the date range
+        const availability = await getSeatAvailabilityMap(studyHall.id, startDate, endDate);
+        setAvailabilityMap(availability);
+        
+        // Clear selected seat if it's no longer available
+        if (selectedSeat && !availability[selectedSeat]) {
+          setSelectedSeat("");
+          toast({
+            title: "Seat No Longer Available",
+            description: "Your selected seat is not available for the chosen dates. Please select another seat.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('Error checking availability:', error);
+        setAvailabilityError("Failed to check availability for selected dates");
+      } finally {
+        setCheckingAvailability(false);
+      }
+    };
+
+    checkAvailability();
+  }, [studyHall, startDate, endDate, getSeatAvailabilityMap, calculateBookingAmount, selectedSeat, toast]);
 
   useEffect(() => {
     if (open && studyHall) {
       setSelectedSeat("");
       setBookingPeriod("daily");
+      setAvailabilityMap({});
+      setAvailabilityError("");
+      setCalculatedAmount(null);
       
       // Set default dates
       const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
       setStartDate(today.toISOString().split('T')[0]);
-      
-      if (bookingPeriod === "daily") {
-        setEndDate(today.toISOString().split('T')[0]);
-      } else if (bookingPeriod === "weekly") {
-        const weekLater = new Date(today);
-        weekLater.setDate(weekLater.getDate() + 7);
-        setEndDate(weekLater.toISOString().split('T')[0]);
-      } else if (bookingPeriod === "monthly") {
-        const monthLater = new Date(today);
-        monthLater.setMonth(monthLater.getMonth() + 1);
-        setEndDate(monthLater.toISOString().split('T')[0]);
-      }
+      setEndDate(today.toISOString().split('T')[0]);
     }
-  }, [open, studyHall, bookingPeriod]);
+  }, [open, studyHall]);
 
-  const calculateAmount = () => {
-    if (!studyHall) return 0;
+  // Update end date when booking period changes
+  useEffect(() => {
+    if (!startDate) return;
     
-    switch (bookingPeriod) {
-      case "daily":
-        return studyHall.daily_price;
-      case "weekly":
-        return studyHall.weekly_price;
-      case "monthly":
-        return studyHall.monthly_price;
-      default:
-        return 0;
+    const start = new Date(startDate);
+    let end = new Date(start);
+    
+    if (bookingPeriod === "weekly") {
+      end.setDate(end.getDate() + 6); // 7 days total
+    } else if (bookingPeriod === "monthly") {
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(end.getDate() - 1); // 30 days total
     }
+    
+    setEndDate(end.toISOString().split('T')[0]);
+  }, [bookingPeriod, startDate]);
+
+  const getCurrentAmount = () => {
+    return calculatedAmount?.amount || 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!studyHall || !selectedSeat || !startDate || !endDate) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
       return;
     }
 
     setLoading(true);
     
-    // Create booking intent (no actual booking yet)
-    const intent = {
-      study_hall_id: studyHall.id,
-      seat_id: selectedSeat,
-      booking_period: bookingPeriod,
-      start_date: startDate,
-      end_date: endDate,
-      total_amount: calculateAmount(),
-    };
+    try {
+      // Final availability check before creating booking intent
+      const { available, conflicts } = await checkSeatAvailability(selectedSeat, startDate, endDate);
+      
+      if (!available) {
+        toast({
+          title: "Seat Not Available",
+          description: `This seat is not available for the selected dates. ${conflicts.length} conflicting booking(s) found.`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
 
-    setBookingIntent(intent);
-    setShowPayment(true);
-    setLoading(false);
+      // Create booking intent with calculated amount
+      const intent = {
+        study_hall_id: studyHall.id,
+        seat_id: selectedSeat,
+        booking_period: calculatedAmount?.method === 'daily' ? 'daily' : 
+                       calculatedAmount?.method === 'weekly' ? 'weekly' : 'monthly',
+        start_date: startDate,
+        end_date: endDate,
+        total_amount: getCurrentAmount(),
+      };
+
+      setBookingIntent(intent);
+      setShowPayment(true);
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process booking request",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePaymentSuccess = (bookingData?: any) => {
@@ -182,8 +271,22 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </CardContent>
           </Card>
 
+          {availabilityError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{availabilityError}</AlertDescription>
+            </Alert>
+          )}
+
+          {checkingAvailability && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>Checking seat availability for selected dates...</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
-            <Label>Select Seat</Label>
+            <Label>Select Seat {checkingAvailability && "(Checking availability...)"}</Label>
             <div className="max-h-64 overflow-y-auto border rounded-lg p-4">
               {availableSeats.length > 0 ? (
                 <div className="space-y-3">
@@ -207,13 +310,17 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                               w-10 h-10 sm:w-8 sm:h-8 rounded text-xs font-medium border-2 transition-all touch-manipulation
                               ${selectedSeat === seat.id
                                 ? 'border-primary bg-primary text-primary-foreground'
-                                : seat.is_available
+                                : (seat.is_available && availabilityMap[seat.id] !== false)
                                 ? 'border-green-300 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100'
                                 : 'border-red-300 bg-red-50 text-red-700 cursor-not-allowed'
                               }
                             `}
-                            disabled={!seat.is_available}
-                            title={`Seat ${seat.seat_id} - ${seat.is_available ? 'Available' : 'Occupied'}`}
+                            disabled={!seat.is_available || availabilityMap[seat.id] === false}
+                            title={`Seat ${seat.seat_id} - ${
+                              !seat.is_available ? 'Permanently Occupied' : 
+                              availabilityMap[seat.id] === false ? 'Booked for Selected Dates' : 
+                              'Available'
+                            }`}
                           >
                             {seat.seat_number}
                           </button>
@@ -224,7 +331,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                 </div>
               ) : (
                 <div className="text-center py-4 text-muted-foreground">
-                  No seats available
+                  {checkingAvailability ? "Checking availability..." : "No seats available for the selected dates"}
                 </div>
               )}
             </div>
@@ -287,9 +394,17 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
           <Card>
             <CardContent className="p-4">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Total Amount:</span>
-                <span className="text-lg font-bold">₹{calculateAmount().toLocaleString()}</span>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total Amount:</span>
+                  <span className="text-lg font-bold">₹{getCurrentAmount().toLocaleString()}</span>
+                </div>
+                {calculatedAmount && (
+                  <div className="text-sm text-muted-foreground">
+                    {calculatedAmount.days} day{calculatedAmount.days !== 1 ? 's' : ''} • 
+                    Calculated using {calculatedAmount.method} pricing
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -305,10 +420,10 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !selectedSeat} 
+              disabled={loading || !selectedSeat || checkingAvailability || !!availabilityError} 
               className="flex-1 min-h-[44px]"
             >
-              {loading ? "Booking..." : "Book Now"}
+              {loading ? "Booking..." : checkingAvailability ? "Checking..." : "Book Now"}
             </Button>
           </div>
         </form>
