@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { ResponsiveTable } from '@/components/ResponsiveTable';
 import { UserModal } from '@/components/admin/UserModal';
 import { EnhancedUserDetailModal } from '@/components/admin/EnhancedUserDetailModal';
+import { MerchantDetailModal } from '@/components/admin/MerchantDetailModal';
 import { 
   User, Mail, Phone, Search, Eye, Calendar, Shield, 
   Plus, Edit, Trash2, Users, GraduationCap, Store, 
@@ -42,15 +43,11 @@ export const AdvancedUserManagement = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
-  // Enhanced user data with mock additional info
+  // Enhanced user data (remove demo data, use real data)
   const enhancedUsers: ExtendedUserProfile[] = useMemo(() => {
     return users.map(user => ({
       ...user,
-      bookingsCount: Math.floor(Math.random() * 20),
-      totalSpent: Math.floor(Math.random() * 50000),
-      studyHallsCount: user.role === 'merchant' ? Math.floor(Math.random() * 5) + 1 : 0,
-      lastActivity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      verificationStatus: ['verified', 'pending', 'rejected'][Math.floor(Math.random() * 3)] as any
+      verificationStatus: 'verified' as any // Default to verified for now
     }));
   }, [users]);
 
@@ -244,7 +241,7 @@ export const AdvancedUserManagement = () => {
             {user.verificationStatus || 'pending'}
           </Badge>
           <div className="text-xs text-muted-foreground">
-            Last active: {user.lastActivity ? new Date(user.lastActivity).toLocaleDateString() : 'N/A'}
+            Joined: {new Date(user.created_at).toLocaleDateString()}
           </div>
         </div>
       )
@@ -255,16 +252,10 @@ export const AdvancedUserManagement = () => {
       render: (_: any, user: ExtendedUserProfile) => (
         <div className="text-sm space-y-1">
           {user.role === 'student' && (
-            <>
-              <div>Bookings: {user.bookingsCount}</div>
-              <div className="text-green-600">₹{user.totalSpent?.toLocaleString()}</div>
-            </>
+            <div className="text-muted-foreground">Student Account</div>
           )}
           {user.role === 'merchant' && (
-            <>
-              <div>Halls: {user.studyHallsCount}</div>
-              <div className="text-blue-600">Revenue: ₹{user.totalSpent?.toLocaleString()}</div>
-            </>
+            <div className="text-muted-foreground">Merchant Account</div>
           )}
           {!['student', 'merchant'].includes(user.role) && (
             <div className="text-muted-foreground">Admin Access</div>
@@ -576,11 +567,17 @@ export const AdvancedUserManagement = () => {
         isEdit={!!editingUser}
       />
 
-      {selectedUser && (
-        <EnhancedUserDetailModal
-          user={selectedUser}
+      {selectedUser?.role === 'merchant' ? (
+        <MerchantDetailModal
           open={userDetailOpen}
           onOpenChange={setUserDetailOpen}
+          merchant={selectedUser}
+        />
+      ) : (
+        <EnhancedUserDetailModal
+          open={userDetailOpen}
+          onOpenChange={setUserDetailOpen}
+          user={selectedUser}
         />
       )}
 

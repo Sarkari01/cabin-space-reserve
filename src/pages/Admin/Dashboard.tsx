@@ -1063,7 +1063,6 @@ const AdminDashboard = () => {
         open={merchantDetailOpen}
         onOpenChange={setMerchantDetailOpen}
         merchant={selectedMerchant}
-        studyHalls={studyHalls}
       />
 
       <MerchantEditModal
