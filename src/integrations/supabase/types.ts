@@ -1063,27 +1063,33 @@ export type Database = {
       settlement_transactions: {
         Row: {
           booking_id: string
+          booking_number: number | null
           created_at: string
           id: string
           settlement_id: string
           transaction_amount: number
           transaction_id: string
+          transaction_number: number | null
         }
         Insert: {
           booking_id: string
+          booking_number?: number | null
           created_at?: string
           id?: string
           settlement_id: string
           transaction_amount: number
           transaction_id: string
+          transaction_number?: number | null
         }
         Update: {
           booking_id?: string
+          booking_number?: number | null
           created_at?: string
           id?: string
           settlement_id?: string
           transaction_amount?: number
           transaction_id?: string
+          transaction_number?: number | null
         }
         Relationships: [
           {

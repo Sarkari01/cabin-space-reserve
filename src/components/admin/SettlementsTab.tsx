@@ -273,38 +273,46 @@ export function SettlementsTab() {
                   </div>
 
                   <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12"></TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Study Hall</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Booking Period</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                     <Table>
+                       <TableHeader>
+                         <TableRow>
+                           <TableHead className="w-12"></TableHead>
+                           <TableHead>Transaction ID</TableHead>
+                           <TableHead>Booking ID</TableHead>
+                           <TableHead>Date</TableHead>
+                           <TableHead>Study Hall</TableHead>
+                           <TableHead>Customer</TableHead>
+                           <TableHead>Booking Period</TableHead>
+                           <TableHead className="text-right">Amount</TableHead>
+                         </TableRow>
+                       </TableHeader>
                       <TableBody>
-                        {eligibleTransactions.map((transaction) => (
-                          <TableRow key={transaction.transaction_id}>
-                            <TableCell>
-                              <input
-                                type="checkbox"
-                                checked={selectedTransactions.includes(transaction.transaction_id)}
-                                onChange={() => handleTransactionSelect(transaction.transaction_id)}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(transaction.transaction_created_at), "MMM d, yyyy")}
-                            </TableCell>
-                            <TableCell>{transaction.study_hall_name}</TableCell>
-                            <TableCell>{transaction.user_email}</TableCell>
-                            <TableCell>
-                              {format(new Date(transaction.booking_start_date), "MMM d")} - {format(new Date(transaction.booking_end_date), "MMM d")}
-                            </TableCell>
-                            <TableCell className="text-right">₹{transaction.amount.toFixed(2)}</TableCell>
-                          </TableRow>
-                        ))}
+                         {eligibleTransactions.map((transaction) => (
+                           <TableRow key={transaction.transaction_id}>
+                             <TableCell>
+                               <input
+                                 type="checkbox"
+                                 checked={selectedTransactions.includes(transaction.transaction_id)}
+                                 onChange={() => handleTransactionSelect(transaction.transaction_id)}
+                               />
+                             </TableCell>
+                             <TableCell className="font-mono text-sm">
+                               #{transaction.transaction_number || 'N/A'}
+                             </TableCell>
+                             <TableCell className="font-mono text-sm">
+                               #{transaction.booking_number || 'N/A'}
+                             </TableCell>
+                             <TableCell>
+                               {format(new Date(transaction.transaction_created_at), "MMM d, yyyy")}
+                             </TableCell>
+                             <TableCell>{transaction.study_hall_name}</TableCell>
+                             <TableCell>{transaction.user_email}</TableCell>
+                             <TableCell>
+                               {format(new Date(transaction.booking_start_date), "MMM d")} - {format(new Date(transaction.booking_end_date), "MMM d")}
+                             </TableCell>
+                             <TableCell className="text-right">₹{transaction.amount.toFixed(2)}</TableCell>
+                           </TableRow>
+                         ))}
                       </TableBody>
                     </Table>
                   </div>

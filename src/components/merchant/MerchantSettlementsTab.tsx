@@ -321,28 +321,28 @@ export function MerchantSettlementsTab() {
               ) : settlementTransactions.length > 0 ? (
                 <div className="border rounded-lg">
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Transaction ID</TableHead>
-                        <TableHead>Booking ID</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {settlementTransactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell className="font-mono text-sm">
-                            {transaction.transaction_id.split("-")[0]}...
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {transaction.booking_id.split("-")[0]}...
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ₹{transaction.transaction_amount.toFixed(2)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
+                     <TableHeader>
+                       <TableRow>
+                         <TableHead>Transaction ID</TableHead>
+                         <TableHead>Booking ID</TableHead>
+                         <TableHead className="text-right">Amount</TableHead>
+                       </TableRow>
+                     </TableHeader>
+                     <TableBody>
+                       {settlementTransactions.map((transaction) => (
+                         <TableRow key={transaction.id}>
+                           <TableCell className="font-mono text-sm">
+                             #{transaction.transaction_number || 'N/A'}
+                           </TableCell>
+                           <TableCell className="font-mono text-sm">
+                             #{transaction.booking_number || 'N/A'}
+                           </TableCell>
+                           <TableCell className="text-right font-medium">
+                             ₹{transaction.transaction_amount.toFixed(2)}
+                           </TableCell>
+                         </TableRow>
+                       ))}
+                     </TableBody>
                   </Table>
                 </div>
               ) : (

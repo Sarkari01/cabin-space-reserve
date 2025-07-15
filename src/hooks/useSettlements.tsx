@@ -18,6 +18,8 @@ export interface SettlementTransaction {
   transaction_id: string;
   booking_id: string;
   transaction_amount: number;
+  transaction_number?: number;
+  booking_number?: number;
   created_at: string;
 }
 
@@ -30,6 +32,8 @@ export interface EligibleTransaction {
   booking_end_date: string;
   user_email: string;
   study_hall_name: string;
+  transaction_number?: number;
+  booking_number?: number;
 }
 
 export interface UnsettledSummary {
@@ -150,6 +154,8 @@ export function useSettlements() {
         transaction_id: t.transaction_id,
         booking_id: t.booking_id,
         transaction_amount: t.amount,
+        transaction_number: t.transaction_number,
+        booking_number: t.booking_number,
       }));
 
       const { error: transactionError } = await supabase
