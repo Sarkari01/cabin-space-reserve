@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { supabase } from '@/integrations/supabase/client';
+import { useSettlements } from '@/hooks/useSettlements';
 import { 
   User, Mail, Phone, Calendar, MapPin, CreditCard, 
   Building, Store, Shield, Activity, TrendingUp, 
@@ -78,6 +79,19 @@ interface Incharge {
   assigned_study_halls: any; // Json type from database
 }
 
+interface Settlement {
+  id: string;
+  settlement_number: number;
+  status: string;
+  total_booking_amount: number;
+  platform_fee_amount: number;
+  net_settlement_amount: number;
+  created_at: string;
+  payment_date?: string;
+  payment_method?: string;
+  payment_reference?: string;
+}
+
 interface MerchantDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -93,13 +107,24 @@ export function MerchantDetailModal({
   const [studyHalls, setStudyHalls] = useState<StudyHall[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [incharges, setIncharges] = useState<Incharge[]>([]);
+  const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  const { settlements: allSettlements } = useSettlements();
 
   useEffect(() => {
     if (merchant && open) {
       fetchMerchantDetails();
     }
   }, [merchant, open]);
+
+  useEffect(() => {
+    if (merchant && allSettlements.length > 0) {
+      // Filter settlements for this merchant when allSettlements updates
+      const merchantSettlements = allSettlements.filter(s => s.merchant_id === merchant.id);
+      setSettlements(merchantSettlements);
+    }
+  }, [merchant, allSettlements]);
 
   const fetchMerchantDetails = async () => {
     if (!merchant) return;
@@ -200,6 +225,7 @@ export function MerchantDetailModal({
   };
 
   const totalRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalSettlements = settlements.reduce((sum, s) => sum + s.net_settlement_amount, 0);
   const activeHalls = studyHalls.filter(h => h.status === 'active').length;
   const activeIncharges = incharges.filter(i => i.status === 'active').length;
 
@@ -342,6 +368,68 @@ export function MerchantDetailModal({
     }
   ];
 
+  const settlementColumns = [
+    {
+      title: 'Settlement',
+      key: 'settlement',
+      render: (_: any, settlement: Settlement) => (
+        <div>
+          <div className="font-medium">#{settlement.settlement_number}</div>
+          <div className="text-sm text-muted-foreground">
+            {formatDate(settlement.created_at)}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      render: (_: any, settlement: Settlement) => (
+        <Badge variant={settlement.status === 'completed' ? 'default' : settlement.status === 'pending' ? 'outline' : 'destructive'}>
+          {settlement.status}
+        </Badge>
+      )
+    },
+    {
+      title: 'Amounts',
+      key: 'amounts',
+      render: (_: any, settlement: Settlement) => (
+        <div className="text-sm">
+          <div className="font-medium">{formatCurrency(settlement.net_settlement_amount)}</div>
+          <div className="text-muted-foreground">
+            Gross: {formatCurrency(settlement.total_booking_amount)}
+          </div>
+          <div className="text-muted-foreground">
+            Fee: {formatCurrency(settlement.platform_fee_amount)}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: 'Payment Details',
+      key: 'payment',
+      render: (_: any, settlement: Settlement) => (
+        <div className="text-sm">
+          {settlement.payment_method && (
+            <Badge variant="outline" className="mb-1">
+              {settlement.payment_method}
+            </Badge>
+          )}
+          {settlement.payment_date && (
+            <div className="text-muted-foreground">
+              Paid: {formatDate(settlement.payment_date)}
+            </div>
+          )}
+          {settlement.payment_reference && (
+            <div className="text-xs text-muted-foreground font-mono">
+              Ref: {settlement.payment_reference}
+            </div>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -369,7 +457,7 @@ export function MerchantDetailModal({
         </DialogHeader>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-primary">{studyHalls.length}</div>
@@ -394,14 +482,22 @@ export function MerchantDetailModal({
               <div className="text-sm text-muted-foreground">Incharges</div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600">{settlements.length}</div>
+              <div className="text-sm text-muted-foreground">Settlements</div>
+              <div className="text-xs text-muted-foreground">{formatCurrency(totalSettlements)}</div>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="business">Business Info</TabsTrigger>
             <TabsTrigger value="halls">Study Halls</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="settlements">Settlements</TabsTrigger>
             <TabsTrigger value="incharges">Incharges</TabsTrigger>
           </TabsList>
 
@@ -633,6 +729,25 @@ export function MerchantDetailModal({
                   columns={inchargeColumns}
                   loading={loading}
                   emptyMessage="No incharges found"
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settlements">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Settlements ({settlements.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveTable
+                  data={settlements}
+                  columns={settlementColumns}
+                  loading={loading}
+                  emptyMessage="No settlements found"
                 />
               </CardContent>
             </Card>
