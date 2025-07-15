@@ -14,6 +14,11 @@ interface CreateInchargeData {
   permissions?: any;
 }
 
+interface CreateInchargeWithPasswordData extends CreateInchargeData {
+  password: string;
+  auth_method: 'password';
+}
+
 export const useIncharges = () => {
   const [incharges, setIncharges] = useState<Incharge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,6 +177,79 @@ export const useIncharges = () => {
     return updateIncharge(id, { status: 'suspended' });
   };
 
+  const createInchargeWithPassword = async (data: CreateInchargeWithPasswordData) => {
+    if (!user) return false;
+
+    try {
+      const { data: result, error } = await supabase.functions.invoke('manage-incharge-auth', {
+        body: {
+          action: 'create_with_password',
+          email: data.email,
+          password: data.password,
+          fullName: data.full_name,
+          mobile: data.mobile,
+          assignedStudyHalls: data.assigned_study_halls,
+          permissions: data.permissions
+        }
+      });
+
+      if (error) throw error;
+
+      await fetchIncharges();
+      toast({
+        title: "Success",
+        description: "Incharge created with password successfully",
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Error creating incharge with password:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create incharge with password",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const updateInchargePassword = async (inchargeId: string, newPassword: string) => {
+    if (!user) return false;
+
+    try {
+      // Get incharge email first
+      const incharge = incharges.find(i => i.id === inchargeId);
+      if (!incharge) {
+        throw new Error('Incharge not found');
+      }
+
+      const { data: result, error } = await supabase.functions.invoke('manage-incharge-auth', {
+        body: {
+          action: 'update_password',
+          inchargeId,
+          email: incharge.email,
+          password: newPassword
+        }
+      });
+
+      if (error) throw error;
+
+      await fetchIncharges();
+      toast({
+        title: "Success",
+        description: "Password updated successfully",
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Error updating incharge password:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (user && (userRole === 'merchant' || userRole === 'admin')) {
       fetchIncharges();
@@ -207,7 +285,9 @@ export const useIncharges = () => {
     loading,
     fetchIncharges,
     createIncharge,
+    createInchargeWithPassword,
     updateIncharge,
+    updateInchargePassword,
     deleteIncharge,
     activateIncharge,
     suspendIncharge

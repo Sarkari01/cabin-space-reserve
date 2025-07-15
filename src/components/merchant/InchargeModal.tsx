@@ -1,14 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -19,6 +15,8 @@ import {
 import { useIncharges } from '@/hooks/useIncharges';
 import { useStudyHalls } from '@/hooks/useStudyHalls';
 import { Tables } from '@/integrations/supabase/types';
+import { toast } from '@/hooks/use-toast';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
 type Incharge = Tables<'incharges'>;
 
@@ -37,15 +35,27 @@ interface FormData {
     view_bookings: boolean;
     manage_bookings: boolean;
     view_transactions: boolean;
-    export_data: boolean;
   };
   status: string;
+  auth_method: 'invitation' | 'password';
+  password: string;
+  confirm_password: string;
 }
 
-export const InchargeModal = ({ isOpen, onClose, incharge }: InchargeModalProps) => {
-  const { createIncharge, updateIncharge } = useIncharges();
+export const InchargeModal: React.FC<InchargeModalProps> = ({
+  isOpen,
+  onClose,
+  incharge
+}) => {
+  const { createIncharge, createInchargeWithPassword, updateIncharge, updateInchargePassword } = useIncharges();
   const { studyHalls } = useStudyHalls();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPasswordChangeDialog, setShowPasswordChangeDialog] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
   const [formData, setFormData] = useState<FormData>({
     email: '',
     full_name: '',
@@ -54,26 +64,53 @@ export const InchargeModal = ({ isOpen, onClose, incharge }: InchargeModalProps)
     permissions: {
       view_bookings: true,
       manage_bookings: true,
-      view_transactions: true,
-      export_data: false,
+      view_transactions: true
     },
-    status: 'active'
+    status: 'active',
+    auth_method: 'invitation',
+    password: '',
+    confirm_password: ''
   });
+
+  const validatePassword = (password: string) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    
+    if (password.length < minLength) {
+      return `Password must be at least ${minLength} characters long`;
+    }
+    if (!hasUpperCase) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!hasLowerCase) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!hasNumbers) {
+      return 'Password must contain at least one number';
+    }
+    return '';
+  };
 
   useEffect(() => {
     if (incharge) {
       setFormData({
-        email: incharge.email || '',
-        full_name: incharge.full_name || '',
-        mobile: incharge.mobile || '',
-        assigned_study_halls: Array.isArray(incharge.assigned_study_halls) ? incharge.assigned_study_halls as string[] : [],
+        email: incharge.email,
+        full_name: incharge.full_name,
+        mobile: incharge.mobile,
+        assigned_study_halls: Array.isArray(incharge.assigned_study_halls) 
+          ? (incharge.assigned_study_halls as string[])
+          : [],
         permissions: {
           view_bookings: (incharge.permissions as any)?.view_bookings ?? true,
           manage_bookings: (incharge.permissions as any)?.manage_bookings ?? true,
-          view_transactions: (incharge.permissions as any)?.view_transactions ?? true,
-          export_data: (incharge.permissions as any)?.export_data ?? false,
+          view_transactions: (incharge.permissions as any)?.view_transactions ?? true
         },
-        status: incharge.status || 'active'
+        status: incharge.status,
+        auth_method: (incharge as any).auth_method || 'invitation',
+        password: '',
+        confirm_password: ''
       });
     } else {
       setFormData({
@@ -84,10 +121,12 @@ export const InchargeModal = ({ isOpen, onClose, incharge }: InchargeModalProps)
         permissions: {
           view_bookings: true,
           manage_bookings: true,
-          view_transactions: true,
-          export_data: false,
+          view_transactions: true
         },
-        status: 'active'
+        status: 'active',
+        auth_method: 'invitation',
+        password: '',
+        confirm_password: ''
       });
     }
   }, [incharge, isOpen]);
@@ -97,8 +136,44 @@ export const InchargeModal = ({ isOpen, onClose, incharge }: InchargeModalProps)
     setLoading(true);
 
     try {
+      // Validate required fields
+      if (!formData.email || !formData.full_name || !formData.mobile) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate password if using password method
+      if (!incharge && formData.auth_method === 'password') {
+        const passwordError = validatePassword(formData.password);
+        if (passwordError) {
+          toast({
+            title: "Error",
+            description: passwordError,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (formData.password !== formData.confirm_password) {
+          toast({
+            title: "Error",
+            description: "Passwords do not match",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      let success = false;
+
       if (incharge) {
-        await updateIncharge(incharge.id, {
+        // Update existing incharge
+        success = await updateIncharge(incharge.id, {
+          email: formData.email,
           full_name: formData.full_name,
           mobile: formData.mobile,
           assigned_study_halls: formData.assigned_study_halls,
@@ -106,19 +181,65 @@ export const InchargeModal = ({ isOpen, onClose, incharge }: InchargeModalProps)
           status: formData.status
         });
       } else {
-        await createIncharge({
-          email: formData.email,
-          full_name: formData.full_name,
-          mobile: formData.mobile,
-          assigned_study_halls: formData.assigned_study_halls,
-          permissions: formData.permissions
-        });
+        // Create new incharge
+        if (formData.auth_method === 'password') {
+          success = await createInchargeWithPassword({
+            email: formData.email,
+            full_name: formData.full_name,
+            mobile: formData.mobile,
+            assigned_study_halls: formData.assigned_study_halls,
+            permissions: formData.permissions,
+            password: formData.password,
+            auth_method: 'password'
+          });
+        } else {
+          success = await createIncharge({
+            email: formData.email,
+            full_name: formData.full_name,
+            mobile: formData.mobile,
+            assigned_study_halls: formData.assigned_study_halls,
+            permissions: formData.permissions
+          });
+        }
       }
-      onClose();
+
+      if (success) {
+        onClose();
+      }
     } catch (error) {
-      console.error('Error saving incharge:', error);
+      console.error('Error submitting form:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!incharge) return;
+
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      toast({
+        title: "Error",
+        description: passwordError,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await updateInchargePassword(incharge.id, newPassword);
+    if (success) {
+      setShowPasswordChangeDialog(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
     }
   };
 
@@ -266,16 +387,109 @@ export const InchargeModal = ({ isOpen, onClose, incharge }: InchargeModalProps)
                 <Label htmlFor="view_transactions">View Transactions</Label>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="export_data"
-                  checked={formData.permissions.export_data}
-                  onCheckedChange={(checked) => handlePermissionToggle('export_data', checked as boolean)}
-                />
-                <Label htmlFor="export_data">Export Data</Label>
-              </div>
             </div>
           </div>
+
+          {/* Authentication Method (only for new incharge) */}
+          {!incharge && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Authentication Method</h3>
+              <RadioGroup
+                value={formData.auth_method}
+                onValueChange={(value: 'invitation' | 'password') => 
+                  setFormData(prev => ({ ...prev, auth_method: value }))
+                }
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="invitation" id="invitation" />
+                  <Label htmlFor="invitation" className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Send Email Invitation
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="password" id="password" />
+                  <Label htmlFor="password" className="flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Set Password Directly
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
+
+          {/* Password Fields (only for new incharge with password method) */}
+          {!incharge && formData.auth_method === 'password' && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="password">Password *</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Must be at least 8 characters with uppercase, lowercase, and numbers
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="confirm_password">Confirm Password *</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm_password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirm_password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, confirm_password: e.target.value }))}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Password Change Button (only for existing incharge) */}
+          {incharge && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPasswordChangeDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <Lock className="w-4 h-4" />
+                Change Password
+              </Button>
+              {(incharge as any).password_last_changed && (
+                <span className="text-sm text-muted-foreground">
+                  Last changed: {new Date((incharge as any).password_last_changed).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Form Actions */}
           <div className="flex justify-end space-x-3 pt-4 border-t">
@@ -288,6 +502,61 @@ export const InchargeModal = ({ isOpen, onClose, incharge }: InchargeModalProps)
           </div>
         </form>
       </DialogContent>
+
+      {/* Password Change Dialog */}
+      <Dialog open={showPasswordChangeDialog} onOpenChange={setShowPasswordChangeDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new_password">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="new_password"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="confirm_new_password">Confirm New Password</Label>
+              <Input
+                id="confirm_new_password"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowPasswordChangeDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handlePasswordChange}>
+                Update Password
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };

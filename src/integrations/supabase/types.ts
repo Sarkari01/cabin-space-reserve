@@ -604,6 +604,7 @@ export type Database = {
         Row: {
           account_activated: boolean
           assigned_study_halls: Json
+          auth_method: string | null
           created_at: string
           created_by: string
           email: string
@@ -613,6 +614,8 @@ export type Database = {
           invitation_token: string | null
           merchant_id: string
           mobile: string
+          password_last_changed: string | null
+          password_set_by_merchant: boolean | null
           permissions: Json
           status: string
           updated_at: string
@@ -620,6 +623,7 @@ export type Database = {
         Insert: {
           account_activated?: boolean
           assigned_study_halls?: Json
+          auth_method?: string | null
           created_at?: string
           created_by: string
           email: string
@@ -629,6 +633,8 @@ export type Database = {
           invitation_token?: string | null
           merchant_id: string
           mobile: string
+          password_last_changed?: string | null
+          password_set_by_merchant?: boolean | null
           permissions?: Json
           status?: string
           updated_at?: string
@@ -636,6 +642,7 @@ export type Database = {
         Update: {
           account_activated?: boolean
           assigned_study_halls?: Json
+          auth_method?: string | null
           created_at?: string
           created_by?: string
           email?: string
@@ -645,6 +652,8 @@ export type Database = {
           invitation_token?: string | null
           merchant_id?: string
           mobile?: string
+          password_last_changed?: string | null
+          password_set_by_merchant?: boolean | null
           permissions?: Json
           status?: string
           updated_at?: string
