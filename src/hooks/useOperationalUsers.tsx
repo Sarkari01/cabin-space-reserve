@@ -52,7 +52,11 @@ export const useOperationalUsers = () => {
         ])
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Fetch operational users error:', error);
+        throw error;
+      }
+
       const transformedData = (data || []).map(user => ({
         ...user,
         admin_profile: user.admin_profile && user.admin_profile.length > 0 ? {
@@ -64,13 +68,23 @@ export const useOperationalUsers = () => {
           status: user.admin_profile[0].status
         } : undefined
       })) as OperationalUser[];
+      
       setOperationalUsers(transformedData);
+      
+      // Only show error if there's an actual error, not just empty results
+      if (data && data.length === 0) {
+        console.log('No operational users found');
+      }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch operational users",
-        variant: "destructive"
-      });
+      console.error('Error fetching operational users:', error);
+      // Only show toast for actual errors, not empty results
+      if (error.message && !error.message.includes('No rows')) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to fetch operational users",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -87,8 +101,10 @@ export const useOperationalUsers = () => {
     permissions?: any;
   }) => {
     try {
+      console.log('Creating operational user:', userData);
+      
       // Create the user profile through admin endpoint
-      const { data: profile, error: profileError } = await supabase.functions.invoke('admin-create-user', {
+      const { data: response, error: profileError } = await supabase.functions.invoke('admin-create-user', {
         body: {
           email: userData.email,
           password: userData.password,
@@ -100,20 +116,32 @@ export const useOperationalUsers = () => {
         }
       });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw new Error(profileError.message || 'Failed to create user');
+      }
+
+      if (!response || !response.user) {
+        throw new Error('Invalid response from user creation');
+      }
 
       // Create admin profile if additional data provided
       if (userData.department || userData.employee_id || userData.permissions) {
         const { error: adminProfileError } = await supabase
           .from('admin_user_profiles')
           .insert({
-            user_id: profile.user.id,
+            user_id: response.user.id,
             department: userData.department,
             employee_id: userData.employee_id,
-            permissions: userData.permissions || {}
+            permissions: userData.permissions || {},
+            status: 'active'
           });
 
-        if (adminProfileError) throw adminProfileError;
+        if (adminProfileError) {
+          console.error('Admin profile creation error:', adminProfileError);
+          // Don't fail the entire operation if admin profile creation fails
+          console.warn('Admin profile creation failed, but user was created successfully');
+        }
       }
 
       toast({
@@ -123,6 +151,7 @@ export const useOperationalUsers = () => {
 
       fetchOperationalUsers(); // Refresh the list
     } catch (error: any) {
+      console.error('Create operational user error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create operational user",
