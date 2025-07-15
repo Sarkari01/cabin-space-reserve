@@ -301,7 +301,7 @@ const AdminDashboard = () => {
   // Calculate real trends from analytics data
   const calculateTrend = (current: number, previous: number) => {
     if (previous === 0) return 0;
-    return ((current - previous) / previous) * 100;
+    return Math.round(((current - previous) / previous) * 100 * 10) / 10; // Round to 1 decimal place
   };
 
   // Get previous month data for trends
