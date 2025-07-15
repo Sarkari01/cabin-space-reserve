@@ -4,7 +4,7 @@ import { geocodeAddress, reverseGeocode } from '@/utils/locationUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Loader2, Search } from 'lucide-react';
+import { MapPin, Loader2, Search, Crosshair, RotateCcw, ZoomIn, ZoomOut, Navigation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface LocationData {
@@ -36,6 +36,8 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(initialLocation || null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [mapCenter, setMapCenter] = useState<LocationData | null>(null);
 
   const initializeMap = useCallback(() => {
     if (!maps || !mapRef.current) return;
@@ -50,16 +52,33 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
+      zoomControl: false,
+      styles: [
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        }
+      ]
     });
 
     mapInstanceRef.current = map;
 
-    // Create marker
+    // Create custom marker with enhanced styling
     const marker = new maps.Marker({
       position: defaultCenter,
       map,
       draggable: true,
       title: 'Study Hall Location',
+      icon: {
+        path: maps.SymbolPath.CIRCLE,
+        scale: 12,
+        fillColor: '#ef4444',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 3,
+      },
+      animation: maps.Animation.DROP,
     });
 
     markerRef.current = marker;
@@ -124,6 +143,18 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
         }
       }
     });
+
+    // Handle map center change for crosshair
+    map.addListener('center_changed', () => {
+      const center = map.getCenter();
+      if (center) {
+        setMapCenter({
+          latitude: center.lat(),
+          longitude: center.lng(),
+          formattedAddress: '',
+        });
+      }
+    });
   }, [maps, currentLocation]);
 
   const updateLocation = (location: LocationData) => {
@@ -134,9 +165,105 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       const position = { lat: location.latitude, lng: location.longitude };
       mapInstanceRef.current.setCenter(position);
       markerRef.current.setPosition(position);
+      
+      // Add bounce animation
+      markerRef.current.setAnimation(maps!.Animation.BOUNCE);
+      setTimeout(() => {
+        markerRef.current?.setAnimation(null);
+      }, 1000);
     }
     
     onLocationSelect(location);
+  };
+
+  const handleMyLocation = () => {
+    setIsGettingLocation(true);
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          try {
+            const geocoder = new maps!.Geocoder();
+            const address = await reverseGeocode(latitude, longitude, geocoder);
+            
+            const newLocation: LocationData = {
+              latitude,
+              longitude,
+              formattedAddress: address || '',
+            };
+            
+            updateLocation(newLocation);
+          } catch (error) {
+            console.error('Error getting address:', error);
+          } finally {
+            setIsGettingLocation(false);
+          }
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          toast({
+            title: "Location access denied",
+            description: "Please enable location access to use this feature",
+            variant: "destructive",
+          });
+          setIsGettingLocation(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      toast({
+        title: "Location not supported",
+        description: "Your browser doesn't support geolocation",
+        variant: "destructive",
+      });
+      setIsGettingLocation(false);
+    }
+  };
+
+  const handleZoomIn = () => {
+    if (mapInstanceRef.current) {
+      const zoom = mapInstanceRef.current.getZoom() || 15;
+      mapInstanceRef.current.setZoom(zoom + 1);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (mapInstanceRef.current) {
+      const zoom = mapInstanceRef.current.getZoom() || 15;
+      mapInstanceRef.current.setZoom(Math.max(zoom - 1, 1));
+    }
+  };
+
+  const handleUseCrosshair = async () => {
+    if (mapCenter && maps) {
+      const geocoder = new maps.Geocoder();
+      try {
+        const address = await reverseGeocode(mapCenter.latitude, mapCenter.longitude, geocoder);
+        const newLocation: LocationData = {
+          latitude: mapCenter.latitude,
+          longitude: mapCenter.longitude,
+          formattedAddress: address || '',
+        };
+        updateLocation(newLocation);
+      } catch (error) {
+        console.error('Error getting address:', error);
+      }
+    }
+  };
+
+  const handleReset = () => {
+    setCurrentLocation(null);
+    setSearchValue('');
+    setMapCenter(null);
+    
+    if (mapInstanceRef.current && markerRef.current) {
+      const defaultCenter = { lat: 28.6139, lng: 77.2090 };
+      mapInstanceRef.current.setCenter(defaultCenter);
+      mapInstanceRef.current.setZoom(15);
+      markerRef.current.setPosition(defaultCenter);
+    }
   };
 
   const handleSearch = async () => {
@@ -233,25 +360,113 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             </Button>
           </div>
           
-          <div 
-            ref={mapRef} 
-            className="w-full h-64 rounded-lg border border-border"
-          />
-          
-          {currentLocation && (
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium">Selected Location:</p>
-              <p>{currentLocation.formattedAddress}</p>
-              <p className="text-xs">
-                Lat: {currentLocation.latitude.toFixed(6)}, 
-                Lng: {currentLocation.longitude.toFixed(6)}
-              </p>
+          <div className="relative">
+            <div 
+              ref={mapRef} 
+              className="w-full h-80 rounded-lg border border-border"
+            />
+            
+            {/* Crosshair overlay */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="relative">
+                <Crosshair className="h-8 w-8 text-primary opacity-80" />
+                <div className="absolute inset-0 h-8 w-8 rounded-full border-2 border-primary opacity-40 animate-pulse" />
+              </div>
             </div>
-          )}
+            
+            {/* Map controls */}
+            <div className="absolute top-2 right-2 flex flex-col gap-1">
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 bg-background/90 backdrop-blur-sm"
+                onClick={handleZoomIn}
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 bg-background/90 backdrop-blur-sm"
+                onClick={handleZoomOut}
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 bg-background/90 backdrop-blur-sm"
+                onClick={handleMyLocation}
+                disabled={isGettingLocation}
+              >
+                {isGettingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Navigation className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            
+            {/* Crosshair controls */}
+            <div className="absolute bottom-2 left-2 flex gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-background/90 backdrop-blur-sm text-xs"
+                onClick={handleUseCrosshair}
+              >
+                Use Center Point
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-background/90 backdrop-blur-sm text-xs"
+                onClick={handleReset}
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Reset
+              </Button>
+            </div>
+          </div>
           
-          <p className="text-xs text-muted-foreground">
-            Click on the map or drag the marker to select a location
-          </p>
+          {/* Location display */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {currentLocation && (
+              <div className="text-sm space-y-2">
+                <p className="font-medium text-foreground">📍 Selected Location:</p>
+                <p className="text-muted-foreground break-words">{currentLocation.formattedAddress}</p>
+                <div className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded">
+                  <p>Lat: {currentLocation.latitude.toFixed(8)}</p>
+                  <p>Lng: {currentLocation.longitude.toFixed(8)}</p>
+                </div>
+              </div>
+            )}
+            
+            {mapCenter && (
+              <div className="text-sm space-y-2">
+                <p className="font-medium text-foreground">🎯 Center Point:</p>
+                <p className="text-muted-foreground text-xs">Move map to position crosshair</p>
+                <div className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded">
+                  <p>Lat: {mapCenter.latitude.toFixed(8)}</p>
+                  <p>Lng: {mapCenter.longitude.toFixed(8)}</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <p>🖱️ Click map, drag marker, or use crosshair to select location</p>
+            {currentLocation && (
+              <Button
+                size="sm"
+                variant="default"
+                onClick={() => onLocationSelect(currentLocation)}
+                className="ml-2"
+              >
+                Confirm Location
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
