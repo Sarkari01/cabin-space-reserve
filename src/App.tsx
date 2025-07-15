@@ -10,6 +10,11 @@ import StudentDashboard from "./pages/Student/Dashboard";
 import MerchantDashboard from "./pages/Merchant/Dashboard";
 import AdminDashboard from "./pages/Admin/Dashboard";
 import InchargeDashboard from "./pages/Incharge/Dashboard";
+import TelemarketingDashboard from "./pages/TelemarketingDashboard";
+import PaymentsCallerDashboard from "./pages/PaymentsCallerDashboard";
+import CustomerCareDashboard from "./pages/CustomerCareDashboard";
+import SettlementManagerDashboard from "./pages/SettlementManagerDashboard";
+import GeneralAdminDashboard from "./pages/GeneralAdminDashboard";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { AuthProvider } from "./hooks/useAuth";
@@ -66,6 +71,56 @@ const App = () => (
                 <ProtectedRoute requiredRole="incharge">
                   <ErrorBoundary>
                     <InchargeDashboard />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/telemarketing/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="telemarketing_executive">
+                  <ErrorBoundary>
+                    <TelemarketingDashboard />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/payments-caller/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="pending_payments_caller">
+                  <ErrorBoundary>
+                    <PaymentsCallerDashboard />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/customer-care/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="customer_care_executive">
+                  <ErrorBoundary>
+                    <CustomerCareDashboard />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settlement-manager/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="settlement_manager">
+                  <ErrorBoundary>
+                    <SettlementManagerDashboard />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/general-admin/dashboard" 
+              element={
+                <ProtectedRoute requiredRole="general_administrator">
+                  <ErrorBoundary>
+                    <GeneralAdminDashboard />
                   </ErrorBoundary>
                 </ProtectedRoute>
               } 
