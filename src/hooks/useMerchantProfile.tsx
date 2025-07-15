@@ -37,7 +37,7 @@ export interface MerchantDocument {
 }
 
 export const useMerchantProfile = () => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [profile, setProfile] = useState<MerchantProfile | null>(null);
   const [documents, setDocuments] = useState<MerchantDocument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,17 +164,29 @@ export const useMerchantProfile = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchProfile();
+    if (!user) {
+      setLoading(false);
+      return;
     }
-  }, [user]);
+
+    // Only fetch profile for merchants
+    if (userRole === 'merchant') {
+      fetchProfile();
+    } else {
+      // For non-merchants, set loading to false immediately
+      setLoading(false);
+    }
+  }, [user, userRole]);
 
   useEffect(() => {
     if (profile) {
       fetchDocuments();
+    }
+    // Always set loading to false once we've attempted to fetch
+    if (userRole === 'merchant' && user) {
       setLoading(false);
     }
-  }, [profile]);
+  }, [profile, userRole, user]);
 
   return {
     profile,

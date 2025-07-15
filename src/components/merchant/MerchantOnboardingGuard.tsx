@@ -9,9 +9,16 @@ interface MerchantOnboardingGuardProps {
 
 export const MerchantOnboardingGuard = ({ children }: MerchantOnboardingGuardProps) => {
   const { userRole } = useAuth();
+
+  // Only apply guard to merchants - return children immediately for non-merchants
+  if (userRole !== 'merchant') {
+    return <>{children}</>;
+  }
+
+  // For merchants, use the hook to check onboarding status
   const { profile, loading } = useMerchantProfile();
 
-  // Show loading while fetching profile
+  // Show loading while fetching merchant profile
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -21,11 +28,6 @@ export const MerchantOnboardingGuard = ({ children }: MerchantOnboardingGuardPro
         </div>
       </div>
     );
-  }
-
-  // Only apply guard to merchants
-  if (userRole !== 'merchant') {
-    return <>{children}</>;
   }
 
   // If merchant hasn't completed onboarding, show the form
