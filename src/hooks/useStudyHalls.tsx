@@ -82,33 +82,56 @@ export const useStudyHalls = () => {
       }
       
       // Debug logging
-      console.log('Study halls data:', studyHallsData);
-      console.log('Incharges data:', inchargesData);
+      console.log('Raw study halls data:', studyHallsData);
+      console.log('Raw incharges data:', inchargesData);
       
       // Transform the data to include relevant incharges for each study hall
       const transformedData = (studyHallsData || []).map(hall => {
-        console.log(`Processing study hall: ${hall.name} (ID: ${hall.id})`);
+        console.log(`\n=== Processing study hall: ${hall.name} (ID: ${hall.id}) ===`);
         
         // Find incharges assigned to this specific study hall
         const assignedIncharges = (inchargesData || []).filter(incharge => {
-          console.log(`Checking incharge: ${incharge.full_name}`, {
-            assigned_study_halls: incharge.assigned_study_halls,
-            hall_id: hall.id,
-            type_check: typeof incharge.assigned_study_halls,
-            is_array: Array.isArray(incharge.assigned_study_halls)
-          });
+          console.log(`\nChecking incharge: ${incharge.full_name} (ID: ${incharge.id})`);
+          console.log('  - assigned_study_halls raw:', incharge.assigned_study_halls);
+          console.log('  - Type:', typeof incharge.assigned_study_halls);
+          console.log('  - Is Array:', Array.isArray(incharge.assigned_study_halls));
+          console.log('  - Target hall ID:', hall.id);
           
-          // Handle both string array and JSON array cases
-          if (incharge.assigned_study_halls && Array.isArray(incharge.assigned_study_halls)) {
-            const includes = (incharge.assigned_study_halls as string[]).includes(hall.id);
-            console.log(`Array includes check: ${includes}`);
-            return includes;
+          // Handle different data formats that might come from Supabase
+          let studyHallIds: string[] = [];
+          
+          if (incharge.assigned_study_halls) {
+            if (Array.isArray(incharge.assigned_study_halls)) {
+              // Already an array of strings
+              studyHallIds = incharge.assigned_study_halls as string[];
+            } else if (typeof incharge.assigned_study_halls === 'string') {
+              // JSON string that needs parsing
+              try {
+                const parsed = JSON.parse(incharge.assigned_study_halls);
+                studyHallIds = Array.isArray(parsed) ? parsed : [];
+              } catch (e) {
+                console.log('  - Failed to parse as JSON:', e);
+                studyHallIds = [];
+              }
+            } else if (typeof incharge.assigned_study_halls === 'object') {
+              // Could be an object or nested structure
+              console.log('  - Object type assigned_study_halls:', incharge.assigned_study_halls);
+              studyHallIds = [];
+            }
           }
           
-          return false;
+          console.log('  - Processed studyHallIds:', studyHallIds);
+          
+          const isAssigned = studyHallIds.includes(hall.id);
+          console.log('  - Is assigned to this hall:', isAssigned);
+          
+          return isAssigned;
         });
 
-        console.log(`Found ${assignedIncharges.length} incharges for ${hall.name}:`, assignedIncharges);
+        console.log(`\n✅ Found ${assignedIncharges.length} incharges for ${hall.name}`);
+        if (assignedIncharges.length > 0) {
+          console.log('   Assigned incharges:', assignedIncharges.map(i => i.full_name));
+        }
 
         return {
           ...hall,
@@ -117,7 +140,12 @@ export const useStudyHalls = () => {
         };
       }) as StudyHall[];
       
-      console.log('Final transformed data:', transformedData);
+      console.log('\n🏁 Final transformed data with incharges:', transformedData.map(h => ({
+        name: h.name,
+        id: h.id,
+        inchargeCount: h.incharges?.length || 0,
+        inchargeNames: h.incharges?.map(i => i.full_name) || []
+      })));
       
       setStudyHalls(transformedData);
     } catch (error: any) {
