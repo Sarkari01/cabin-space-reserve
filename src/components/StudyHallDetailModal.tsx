@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Users, Calendar, DollarSign, Grid, Eye, Heart } from "lucide-react";
 import { BookingModal } from "./BookingModal";
 import { useFavorites } from "@/hooks/useFavorites";
+import { StudyHallImageGallery } from "./StudyHallImageGallery";
 
 interface StudyHallData {
   id: string;
@@ -113,15 +114,7 @@ export function StudyHallDetailModal({
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
-              {studyHall.image_url && (
-                <div className="aspect-video w-full rounded-lg overflow-hidden">
-                  <img 
-                    src={studyHall.image_url} 
-                    alt={studyHall.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+              <StudyHallImageGallery studyHallId={studyHall.id} />
 
               <div className="grid md:grid-cols-2 gap-4">
                 <Card>

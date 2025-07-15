@@ -1219,6 +1219,56 @@ export type Database = {
           },
         ]
       }
+      study_hall_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          file_path: string
+          file_size: number
+          id: string
+          image_url: string
+          is_main: boolean
+          mime_type: string
+          study_hall_id: string
+          updated_at: string
+          uploaded_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          file_path: string
+          file_size: number
+          id?: string
+          image_url: string
+          is_main?: boolean
+          mime_type: string
+          study_hall_id: string
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          file_path?: string
+          file_size?: number
+          id?: string
+          image_url?: string
+          is_main?: boolean
+          mime_type?: string
+          study_hall_id?: string
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_hall_images_study_hall_id_fkey"
+            columns: ["study_hall_id"]
+            isOneToOne: false
+            referencedRelation: "study_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_halls: {
         Row: {
           amenities: Json | null
