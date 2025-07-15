@@ -188,6 +188,20 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     return calculatedAmount?.amount || 0;
   };
 
+  const getMerchantPriceForPeriod = () => {
+    if (!calculatedAmount || !studyHall) return 0;
+    
+    if (calculatedAmount.method === 'daily') {
+      return calculatedAmount.days * studyHall.daily_price;
+    } else if (calculatedAmount.method === 'weekly') {
+      return Math.ceil(calculatedAmount.days / 7) * studyHall.weekly_price;
+    } else if (calculatedAmount.method === 'monthly') {
+      return Math.ceil(calculatedAmount.days / 30) * studyHall.monthly_price;
+    }
+    
+    return 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -402,13 +416,13 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="daily">
-                  Daily - ₹{studyHall.daily_price - 100}
+                  Daily - ₹{studyHall.daily_price}
                 </SelectItem>
                 <SelectItem value="weekly">
-                  Weekly - ₹{studyHall.weekly_price - 100}
+                  Weekly - ₹{studyHall.weekly_price}
                 </SelectItem>
                 <SelectItem value="monthly">
-                  Monthly - ₹{studyHall.monthly_price - 100}
+                  Monthly - ₹{studyHall.monthly_price}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -446,11 +460,11 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                   <>
                      <div className="flex justify-between items-center text-sm">
                        <span>Original Price:</span>
-                       <span>₹{getCurrentAmount().toLocaleString()}</span>
+                       <span>₹{getMerchantPriceForPeriod()?.toLocaleString()}</span>
                      </div>
                      <div className="flex justify-between items-center text-sm text-green-600">
                        <span>Discount Applied:</span>
-                       <span>-₹{(getCurrentAmount() - (calculatedAmount.finalAmount || getCurrentAmount())).toLocaleString()}</span>
+                       <span>-₹{(getMerchantPriceForPeriod() - (calculatedAmount.finalAmount || getCurrentAmount())).toLocaleString()}</span>
                      </div>
                      <div className="border-t pt-2 flex justify-between items-center">
                        <span className="font-medium">Total Amount:</span>
