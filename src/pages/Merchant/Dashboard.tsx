@@ -24,6 +24,7 @@ import { ChatTab } from "@/components/ChatTab";
 import { MerchantTransactionsTab } from "@/components/merchant/MerchantTransactionsTab";
 import { MerchantSubscriptionTab } from "@/components/merchant/MerchantSubscriptionTab";
 import { MerchantSubscriptionTransactionsTab } from "@/components/merchant/MerchantSubscriptionTransactionsTab";
+import { MerchantSettlementsTab } from "@/components/merchant/MerchantSettlementsTab";
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
@@ -1487,6 +1488,10 @@ const MerchantDashboard = () => {
 
         {activeTab === "transactions" && (
           <MerchantTransactionsTab />
+        )}
+
+        {activeTab === "settlements" && (
+          <MerchantSettlementsTab />
         )}
 
         {activeTab === "analytics" && (
