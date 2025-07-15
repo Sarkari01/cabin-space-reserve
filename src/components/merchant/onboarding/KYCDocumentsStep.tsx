@@ -6,6 +6,15 @@ import { DocumentUpload } from "./DocumentUpload";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
+// Debounce utility function - moved outside component to prevent recreation
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  }) as T;
+}
+
 interface KYCDocumentsStepProps {
   profile: MerchantProfile | null;
   updateProfile: (updates: Partial<MerchantProfile>) => Promise<any>;
@@ -74,17 +83,52 @@ export const KYCDocumentsStep = ({ profile, updateProfile, onDataChange }: KYCDo
   }, [profile, onDataChange]);
 
   const handleDocumentUpload = async (file: File) => {
+    console.log('KYC Document Upload - Starting upload for file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      profileLoaded: !!profile
+    });
+
+    if (!profile) {
+      console.error('KYC Document Upload - Profile not loaded');
+      toast({
+        title: "Upload failed",
+        description: "Profile not loaded. Please wait and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await uploadDocument(file, 'kyc_document');
+      console.log('KYC Document Upload - Calling uploadDocument...');
+      const document = await uploadDocument(file, 'kyc_document');
+      console.log('KYC Document Upload - Success:', document);
+      
       toast({
         title: "Document uploaded successfully",
         description: "Your KYC document has been uploaded and saved.",
       });
     } catch (error) {
-      console.error('Error uploading document:', error);
+      console.error('KYC Document Upload - Error:', error);
+      
+      // More specific error messages
+      let errorMessage = "Failed to upload KYC document.";
+      if (error instanceof Error) {
+        if (error.message.includes('storage')) {
+          errorMessage = "Storage permission error. Please contact support.";
+        } else if (error.message.includes('size')) {
+          errorMessage = "File size too large. Please use a smaller file.";
+        } else if (error.message.includes('type')) {
+          errorMessage = "Invalid file type. Please use PDF, JPG, or PNG.";
+        } else {
+          errorMessage = `Upload failed: ${error.message}`;
+        }
+      }
+      
       toast({
         title: "Upload failed",
-        description: "Failed to upload KYC document.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -109,14 +153,6 @@ export const KYCDocumentsStep = ({ profile, updateProfile, onDataChange }: KYCDo
     return emailRegex.test(email.trim());
   };
 
-  // Debounce utility function
-  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
-    let timeout: NodeJS.Timeout;
-    return ((...args: any[]) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    }) as T;
-  }
 
   return (
     <div className="space-y-6">

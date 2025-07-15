@@ -121,40 +121,86 @@ export const useMerchantProfile = () => {
     file: File,
     documentType: string
   ): Promise<MerchantDocument> => {
-    if (!user || !profile) throw new Error('No user or profile');
+    console.log('uploadDocument: Starting upload process', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      documentType,
+      userExists: !!user,
+      profileExists: !!profile,
+      profileId: profile?.id
+    });
 
-    // Upload file to storage
-    const fileName = `${user.id}/${documentType}_${Date.now()}_${file.name}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('merchant-documents')
-      .upload(fileName, file);
+    if (!user || !profile) {
+      const error = 'User must be authenticated and profile must be loaded';
+      console.error('uploadDocument:', error, { user: !!user, profile: !!profile });
+      throw new Error(error);
+    }
 
-    if (uploadError) throw uploadError;
+    try {
+      // Upload file to storage
+      const fileName = `${user.id}/${documentType}_${Date.now()}_${file.name}`;
+      
+      console.log('uploadDocument: Uploading to storage with fileName:', fileName);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('merchant-documents')
+        .upload(fileName, file);
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('merchant-documents')
-      .getPublicUrl(fileName);
+      if (uploadError) {
+        console.error('uploadDocument: Storage upload error:', uploadError);
+        
+        // Provide more specific error messages
+        if (uploadError.message.includes('policy')) {
+          throw new Error('Storage permission denied. Please contact support.');
+        } else if (uploadError.message.includes('size')) {
+          throw new Error('File size exceeds the allowed limit.');
+        } else {
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+      }
 
-    // Save document record
-    const { data, error } = await supabase
-      .from('merchant_documents')
-      .insert({
-        merchant_profile_id: profile.id,
-        document_type: documentType,
-        file_url: publicUrl,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-      })
-      .select()
-      .single();
+      console.log('uploadDocument: Storage upload successful');
 
-    if (error) throw error;
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('merchant-documents')
+        .getPublicUrl(fileName);
 
-    setDocuments(prev => [...prev, data]);
-    return data;
+      console.log('uploadDocument: Generated public URL:', publicUrl);
+
+      // Save document record
+      const { data, error } = await supabase
+        .from('merchant_documents')
+        .insert({
+          merchant_profile_id: profile.id,
+          document_type: documentType,
+          file_url: publicUrl,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('uploadDocument: Database insert error:', error);
+        
+        // Clean up uploaded file if database insert fails
+        console.log('uploadDocument: Cleaning up uploaded file due to DB error');
+        await supabase.storage.from('merchant-documents').remove([fileName]);
+        
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      console.log('uploadDocument: Document record created successfully:', data);
+
+      setDocuments(prev => [...prev, data]);
+      return data;
+    } catch (error) {
+      console.error('uploadDocument: Upload process failed:', error);
+      throw error;
+    }
   };
 
   const completeOnboarding = async () => {

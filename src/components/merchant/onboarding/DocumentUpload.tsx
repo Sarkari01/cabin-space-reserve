@@ -24,8 +24,17 @@ export const DocumentUpload = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validateFile = (file: File): boolean => {
+    console.log('DocumentUpload - Validating file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      maxSize,
+      acceptedTypes
+    });
+
     // Check file size
     if (file.size > maxSize) {
+      console.error('DocumentUpload - File too large:', file.size, 'vs', maxSize);
       toast({
         title: "File too large",
         description: `File size should not exceed ${Math.round(maxSize / (1024 * 1024))}MB`,
@@ -34,31 +43,40 @@ export const DocumentUpload = ({
       return false;
     }
 
-    // Check file type
+    // Check file type with better logging
     const isValidType = acceptedTypes.some(type => {
       if (type.includes('*')) {
         const baseType = type.split('/')[0];
-        return file.type.startsWith(baseType);
+        const matches = file.type.startsWith(baseType);
+        console.log('DocumentUpload - Type check (wildcard):', { type, baseType, fileType: file.type, matches });
+        return matches;
       }
-      return file.type === type;
+      const matches = file.type === type;
+      console.log('DocumentUpload - Type check (exact):', { type, fileType: file.type, matches });
+      return matches;
     });
 
     if (!isValidType) {
+      console.error('DocumentUpload - Invalid file type:', file.type, 'not in', acceptedTypes);
       toast({
         title: "Invalid file type",
-        description: `Please upload files of type: ${acceptedTypes.join(', ')}`,
+        description: `Please upload files of type: ${acceptedTypes.join(', ')}. Your file type: ${file.type}`,
         variant: "destructive",
       });
       return false;
     }
 
+    console.log('DocumentUpload - File validation passed');
     return true;
   };
 
   const handleFiles = async (files: FileList) => {
     const fileArray = Array.from(files);
     
+    console.log('DocumentUpload - Processing files:', fileArray.map(f => ({ name: f.name, size: f.size, type: f.type })));
+    
     if (!multiple && fileArray.length > 1) {
+      console.warn('DocumentUpload - Multiple files not allowed');
       toast({
         title: "Multiple files not allowed",
         description: "Please upload only one file at a time",
@@ -68,13 +86,27 @@ export const DocumentUpload = ({
     }
 
     for (const file of fileArray) {
-      if (!validateFile(file)) return;
+      console.log('DocumentUpload - Processing file:', file.name);
+      
+      if (!validateFile(file)) {
+        console.error('DocumentUpload - File validation failed for:', file.name);
+        return;
+      }
 
       setUploading(true);
       try {
+        console.log('DocumentUpload - Starting upload for:', file.name);
         await onUpload(file);
+        console.log('DocumentUpload - Upload completed for:', file.name);
       } catch (error) {
-        console.error('Upload error:', error);
+        console.error('DocumentUpload - Upload error for', file.name, ':', error);
+        
+        // Show user-friendly error
+        toast({
+          title: "Upload failed",
+          description: error instanceof Error ? error.message : "Unknown error occurred",
+          variant: "destructive",
+        });
       } finally {
         setUploading(false);
       }
