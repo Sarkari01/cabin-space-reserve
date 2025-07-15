@@ -1529,6 +1529,10 @@ const MerchantDashboard = () => {
           </ErrorBoundary>
         )}
 
+        {activeTab === "incharges" && (
+          <InchargeManagementTab />
+        )}
+
         {activeTab === "analytics" && (
           <div className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
