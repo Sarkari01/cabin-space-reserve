@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_user_profiles: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          employee_id: string | null
+          hire_date: string | null
+          id: string
+          manager_id: string | null
+          permissions: Json | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          employee_id?: string | null
+          hire_date?: string | null
+          id?: string
+          manager_id?: string | null
+          permissions?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          employee_id?: string | null
+          hire_date?: string | null
+          id?: string
+          manager_id?: string | null
+          permissions?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_user_profiles_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_user_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banners: {
         Row: {
           created_at: string
@@ -185,6 +239,56 @@ export type Database = {
           withdrawal_processing_days?: number | null
         }
         Relationships: []
+      }
+      call_logs: {
+        Row: {
+          call_duration: number | null
+          call_outcome: string | null
+          call_purpose: string
+          call_status: string
+          caller_id: string
+          contact_id: string
+          contact_type: string
+          created_at: string | null
+          follow_up_date: string | null
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          call_duration?: number | null
+          call_outcome?: string | null
+          call_purpose: string
+          call_status: string
+          caller_id: string
+          contact_id: string
+          contact_type: string
+          created_at?: string | null
+          follow_up_date?: string | null
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          call_duration?: number | null
+          call_outcome?: string | null
+          call_purpose?: string
+          call_status?: string
+          caller_id?: string
+          contact_id?: string
+          contact_type?: string
+          created_at?: string | null
+          follow_up_date?: string | null
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_caller_id_fkey"
+            columns: ["caller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_conversations: {
         Row: {
@@ -1574,6 +1678,79 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "merchant_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string | null
+          description: string
+          id: string
+          merchant_id: string | null
+          priority: string | null
+          resolution: string | null
+          resolved_at: string | null
+          status: string | null
+          ticket_number: number | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          created_at?: string | null
+          description: string
+          id?: string
+          merchant_id?: string | null
+          priority?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          ticket_number?: number | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          merchant_id?: string | null
+          priority?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          ticket_number?: number | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
