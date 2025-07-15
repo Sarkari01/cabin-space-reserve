@@ -32,7 +32,7 @@ export const useSubscriptionLimits = () => {
 
       const { data, error: fetchError } = await supabase
         .rpc('get_merchant_subscription_limits', {
-          merchant_id: user.id
+          p_merchant_id: user.id
         });
 
       if (fetchError) {
@@ -61,12 +61,25 @@ export const useSubscriptionLimits = () => {
           canCreateStudyHall: false
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching subscription limits:', err);
-      setError('Failed to load subscription limits');
+      const errorMessage = err?.message || 'Failed to load subscription limits';
+      setError(errorMessage);
+      
+      // Set fallback limits for graceful degradation
+      setLimits({
+        maxStudyHalls: 1,
+        currentStudyHalls: 0,
+        isTrial: false,
+        trialExpiresAt: null,
+        planName: 'No Subscription',
+        status: 'inactive',
+        canCreateStudyHall: false
+      });
+      
       toast({
         title: "Error",
-        description: "Failed to load subscription limits",
+        description: `Failed to load subscription limits: ${errorMessage}`,
         variant: "destructive"
       });
     } finally {

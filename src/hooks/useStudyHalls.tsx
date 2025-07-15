@@ -85,7 +85,7 @@ export const useStudyHalls = () => {
     try {
       const { data: limitsData, error: limitsError } = await supabase
         .rpc('get_merchant_subscription_limits', {
-          merchant_id: user.id
+          p_merchant_id: user.id
         });
 
       if (limitsError) {
