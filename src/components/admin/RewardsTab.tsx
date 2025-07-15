@@ -105,7 +105,7 @@ export const RewardsTab = () => {
                   {allRewards.slice(0, 10).map((reward) => (
                     <div key={reward.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <p className="font-medium">User: {reward.user?.full_name || reward.user?.email || 'Anonymous'}</p>
+                        <p className="font-medium">User ID: {reward.user_id}</p>
                         <p className="text-sm text-muted-foreground">
                           Available: {reward.available_points} • Total: {reward.total_points}
                         </p>
