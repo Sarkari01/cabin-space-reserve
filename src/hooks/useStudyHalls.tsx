@@ -81,7 +81,50 @@ export const useStudyHalls = () => {
   const createStudyHall = async (studyHallData: Omit<StudyHall, 'id' | 'merchant_id' | 'created_at' | 'updated_at'>) => {
     if (!user) throw new Error('User not authenticated');
     
+    // Check subscription limits before creating
     try {
+      const { data: limitsData, error: limitsError } = await supabase
+        .rpc('get_merchant_subscription_limits', {
+          merchant_id: user.id
+        });
+
+      if (limitsError) {
+        console.error('Error checking subscription limits:', limitsError);
+        toast({
+          title: "Error",
+          description: "Failed to verify subscription limits",
+          variant: "destructive"
+        });
+        return { data: null, error: limitsError };
+      }
+
+      const limits = limitsData?.[0];
+      if (!limits?.can_create_study_hall) {
+        let message = '';
+        
+        if (limits?.is_trial && limits?.trial_expires_at) {
+          const expiryDate = new Date(limits.trial_expires_at);
+          if (expiryDate < new Date()) {
+            message = 'Your trial has expired. Please upgrade to continue creating study halls.';
+          } else {
+            message = `Trial users are limited to ${limits.max_study_halls} study hall${limits.max_study_halls === 1 ? '' : 's'}.`;
+          }
+        } else if (limits?.current_study_halls >= limits?.max_study_halls) {
+          message = `You've reached your limit of ${limits.max_study_halls} study hall${limits.max_study_halls === 1 ? '' : 's'}. Upgrade to Premium for unlimited study halls.`;
+        } else {
+          message = 'Please subscribe to a plan to create study halls.';
+        }
+
+        toast({
+          title: "Study Hall Limit Reached",
+          description: message,
+          variant: "destructive"
+        });
+        
+        return { data: null, error: { message } };
+      }
+
+      // Proceed with creation if limits check passes
       const { data, error } = await supabase
         .from('study_halls')
         .insert([{

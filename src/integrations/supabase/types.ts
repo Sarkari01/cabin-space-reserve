@@ -651,13 +651,18 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          is_trial: boolean | null
           last_payment_date: string | null
+          max_study_halls: number | null
           merchant_id: string
           next_payment_date: string | null
           payment_method: string | null
           plan_id: string
+          plan_type: string | null
           start_date: string
           status: string
+          trial_end_date: string | null
+          trial_start_date: string | null
           updated_at: string
         }
         Insert: {
@@ -665,13 +670,18 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_trial?: boolean | null
           last_payment_date?: string | null
+          max_study_halls?: number | null
           merchant_id: string
           next_payment_date?: string | null
           payment_method?: string | null
           plan_id: string
+          plan_type?: string | null
           start_date?: string
           status?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -679,13 +689,18 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_trial?: boolean | null
           last_payment_date?: string | null
+          max_study_halls?: number | null
           merchant_id?: string
           next_payment_date?: string | null
           payment_method?: string | null
           plan_id?: string
+          plan_type?: string | null
           start_date?: string
           status?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1639,6 +1654,18 @@ export type Database = {
           available_balance: number
         }[]
       }
+      get_merchant_subscription_limits: {
+        Args: { merchant_id: string }
+        Returns: {
+          max_study_halls: number
+          current_study_halls: number
+          is_trial: boolean
+          trial_expires_at: string
+          plan_name: string
+          status: string
+          can_create_study_hall: boolean
+        }[]
+      }
       get_unsettled_transactions_summary: {
         Args: { p_merchant_id: string }
         Returns: {
@@ -1649,6 +1676,10 @@ export type Database = {
       }
       is_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_trial_expired: {
+        Args: { subscription_id: string }
         Returns: boolean
       }
       progress_booking_statuses: {

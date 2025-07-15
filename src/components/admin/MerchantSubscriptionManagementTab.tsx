@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Eye, Edit, Ban, Crown, DollarSign, Users, TrendingUp, Calendar } from "lucide-react";
+import { Loader2, Search, Eye, Edit, Ban, Crown, DollarSign, Users, TrendingUp, Calendar, Clock } from "lucide-react";
+import { TrialManagementModal } from "./TrialManagementModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { safeFormatDate } from "@/lib/dateUtils";
@@ -34,6 +35,11 @@ interface MerchantSubscription {
   payment_method: string;
   last_payment_date: string | null;
   created_at: string;
+  is_trial?: boolean;
+  trial_start_date?: string | null;
+  trial_end_date?: string | null;
+  plan_type?: string;
+  max_study_halls?: number;
   merchant: {
     id: string;
     full_name: string;
@@ -71,6 +77,8 @@ export const MerchantSubscriptionManagementTab = () => {
   const [selectedSubscription, setSelectedSubscription] = useState<MerchantSubscription | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [trialModalOpen, setTrialModalOpen] = useState(false);
+  const [selectedMerchant, setSelectedMerchant] = useState<{id: string, name: string} | null>(null);
   const { toast } = useToast();
 
   const fetchSubscriptions = async () => {
@@ -328,6 +336,21 @@ export const MerchantSubscriptionManagementTab = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
+                    onClick={() => {
+                      setSelectedMerchant({
+                        id: subscription.merchant.id,
+                        name: subscription.merchant.full_name || subscription.merchant.email
+                      });
+                      setTrialModalOpen(true);
+                    }}
+                  >
+                    <Clock className="h-4 w-4 mr-1" />
+                    Trial
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
                     disabled={actionLoading}
                     onClick={() => handleUpdateSubscriptionStatus(
                       subscription.id, 
@@ -437,6 +460,20 @@ export const MerchantSubscriptionManagementTab = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Trial Management Modal */}
+      {selectedMerchant && (
+        <TrialManagementModal
+          open={trialModalOpen}
+          onOpenChange={setTrialModalOpen}
+          merchantId={selectedMerchant.id}
+          merchantName={selectedMerchant.name}
+          onTrialAssigned={() => {
+            fetchSubscriptions();
+            setSelectedMerchant(null);
+          }}
+        />
+      )}
     </div>
   );
 };
