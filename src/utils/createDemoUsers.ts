@@ -2,13 +2,24 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const createDemoUsers = async () => {
   try {
+    // Get brand settings for dynamic email domains
+    const { data: brandSettings } = await supabase
+      .from("business_settings")
+      .select("brand_name, website_url")
+      .maybeSingle();
+    
+    const brandName = brandSettings?.brand_name || "StudySpace";
+    const domain = brandSettings?.website_url ? 
+      new URL(brandSettings.website_url).hostname : 
+      "studyspace.com";
+
     // Create Admin User
     const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
-      email: 'admin@studyspace.com',
+      email: `admin@${domain}`,
       password: 'admin123',
       email_confirm: true,
       user_metadata: {
-        full_name: 'Admin User',
+        full_name: `${brandName} Admin`,
         role: 'admin'
       }
     });
@@ -21,7 +32,7 @@ export const createDemoUsers = async () => {
 
     // Create Merchant User
     const { data: merchantData, error: merchantError } = await supabase.auth.admin.createUser({
-      email: 'merchant@studyspace.com',
+      email: `merchant@${domain}`,
       password: 'merchant123',
       email_confirm: true,
       user_metadata: {
@@ -38,7 +49,7 @@ export const createDemoUsers = async () => {
 
     // Create Student User
     const { data: studentData, error: studentError } = await supabase.auth.admin.createUser({
-      email: 'student@studyspace.com',
+      email: `student@${domain}`,
       password: 'student123',
       email_confirm: true,
       user_metadata: {

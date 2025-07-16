@@ -51,6 +51,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 
 interface DashboardSidebarProps {
@@ -221,6 +222,7 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
   const location = useLocation();
   const { state, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const { brandSettings } = useBrandSettings();
 
   const handleLogout = async () => {
     try {
@@ -272,10 +274,20 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
         {/* Header */}
         <div className="p-3 sm:p-4 border-b">
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-lg flex-shrink-0"></div>
+            {brandSettings.logo_url ? (
+              <img 
+                src={brandSettings.logo_url} 
+                alt="Logo" 
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex-shrink-0 object-cover"
+              />
+            ) : (
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-lg flex-shrink-0"></div>
+            )}
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <h2 className="text-base sm:text-lg font-bold truncate">StudySpace</h2>
+                <h2 className="text-base sm:text-lg font-bold truncate">
+                  {brandSettings.brand_name || "StudySpace"}
+                </h2>
                 <p className="text-xs text-muted-foreground capitalize truncate">{userRole} Panel</p>
               </div>
             )}

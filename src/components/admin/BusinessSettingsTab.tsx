@@ -200,7 +200,7 @@ export const BusinessSettingsTab = () => {
                     id="brand-name"
                     value={formData.brand_name}
                     onChange={(e) => setFormData(prev => ({ ...prev, brand_name: e.target.value }))}
-                    placeholder="StudySpace Platform"
+                    placeholder={settings?.brand_name || "StudySpace Platform"}
                   />
                 </div>
 
@@ -211,7 +211,7 @@ export const BusinessSettingsTab = () => {
                     type="email"
                     value={formData.support_email}
                     onChange={(e) => setFormData(prev => ({ ...prev, support_email: e.target.value }))}
-                    placeholder="support@studyspace.com"
+                    placeholder={settings?.support_email || "support@studyspace.com"}
                     className={formData.support_email && !isValidEmail(formData.support_email) ? 'border-destructive' : ''}
                   />
                   {formData.support_email && !isValidEmail(formData.support_email) && (
@@ -240,7 +240,7 @@ export const BusinessSettingsTab = () => {
                     type="url"
                     value={formData.website_url}
                     onChange={(e) => setFormData(prev => ({ ...prev, website_url: e.target.value }))}
-                    placeholder="https://studyspace.com"
+                    placeholder={settings?.website_url || "https://studyspace.com"}
                     className={formData.website_url && !isValidUrl(formData.website_url) ? 'border-destructive' : ''}
                   />
                   {formData.website_url && !isValidUrl(formData.website_url) && (
