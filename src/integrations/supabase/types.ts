@@ -68,6 +68,30 @@ export type Database = {
           },
         ]
       }
+      api_keys_vault: {
+        Row: {
+          created_at: string | null
+          id: string
+          key_name: string
+          key_value_encrypted: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key_name: string
+          key_value_encrypted: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key_name?: string
+          key_value_encrypted?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           created_at: string

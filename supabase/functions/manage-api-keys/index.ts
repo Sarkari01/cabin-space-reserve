@@ -31,77 +31,136 @@ interface RequestBody {
   };
 }
 
-// Get secret from Supabase Management API
-async function getSupabaseSecret(secretName: string): Promise<string | null> {
+// Get secret from Supabase Management API with fallback to vault
+async function getSupabaseSecret(supabase: any, secretName: string): Promise<string | null> {
+  // Primary approach: Try Management API first
   try {
     const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'jseyxxsptcckjumjcljk';
     const managementUrl = `https://api.supabase.com/v1/projects/${projectId}/secrets`;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!serviceRoleKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY not found');
-      return null;
-    }
+    if (serviceRoleKey) {
+      const response = await fetch(managementUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    const response = await fetch(managementUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json'
+      if (response.ok) {
+        const secrets = await response.json();
+        const secret = secrets.find((s: any) => s.name === secretName);
+        if (secret?.value) {
+          return secret.value;
+        }
+      } else {
+        console.error(`Management API failed for ${secretName}: ${response.status} ${response.statusText}`);
       }
-    });
+    } else {
+      console.error('SUPABASE_SERVICE_ROLE_KEY not found for Management API');
+    }
+  } catch (error) {
+    console.error(`Management API error for ${secretName}:`, error);
+  }
+  
+  // Fallback approach: Get from vault
+  console.log(`Falling back to vault retrieval for ${secretName}`);
+  return await getAPIKeyFromVault(supabase, secretName);
+}
 
-    if (!response.ok) {
-      console.error(`Failed to fetch secrets: ${response.status} ${response.statusText}`);
+// Store API key in the database vault as a fallback
+async function storeAPIKeyInVault(supabase: any, keyName: string, keyValue: string): Promise<boolean> {
+  try {
+    console.log(`Storing API key in vault: ${keyName}`);
+    
+    // Simple Base64 encoding for basic obfuscation (not true encryption)
+    const encodedValue = btoa(keyValue);
+    
+    const { error } = await supabase
+      .from('api_keys_vault')
+      .upsert({
+        key_name: keyName,
+        key_value_encrypted: encodedValue,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error(`Failed to store ${keyName} in vault:`, error);
+      return false;
+    }
+
+    console.log(`Successfully stored ${keyName} in vault`);
+    return true;
+  } catch (error) {
+    console.error(`Error storing ${keyName} in vault:`, error);
+    return false;
+  }
+}
+
+// Get API key from vault
+async function getAPIKeyFromVault(supabase: any, keyName: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('api_keys_vault')
+      .select('key_value_encrypted')
+      .eq('key_name', keyName)
+      .single();
+
+    if (error || !data) {
       return null;
     }
 
-    const secrets = await response.json();
-    const secret = secrets.find((s: any) => s.name === secretName);
-    return secret?.value || null;
+    // Decode the stored value
+    return atob(data.key_value_encrypted);
   } catch (error) {
-    console.error(`Error getting secret ${secretName}:`, error);
+    console.error(`Error getting ${keyName} from vault:`, error);
     return null;
   }
 }
 
-// Set secret in Supabase Management API
-async function setSupabaseSecret(secretName: string, secretValue: string): Promise<boolean> {
+// Set secret in Supabase Management API with fallback to vault
+async function setSupabaseSecret(supabase: any, secretName: string, secretValue: string): Promise<boolean> {
+  console.log(`Attempting to store secret: ${secretName}`);
+  
+  // Primary approach: Try Supabase Management API first
   try {
     const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'jseyxxsptcckjumjcljk';
     const managementUrl = `https://api.supabase.com/v1/projects/${projectId}/secrets`;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!serviceRoleKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY not found');
-      return false;
+    if (serviceRoleKey) {
+      console.log(`Trying Management API for ${secretName}`);
+      const response = await fetch(managementUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify([{
+          name: secretName,
+          value: secretValue
+        }])
+      });
+
+      if (response.ok) {
+        console.log(`Successfully set secret via Management API: ${secretName}`);
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error(`Management API failed for ${secretName}: ${response.status} ${response.statusText}`);
+        console.error('Error response:', errorText);
+      }
+    } else {
+      console.error('SUPABASE_SERVICE_ROLE_KEY not found for Management API');
     }
-
-    const response = await fetch(managementUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify([{
-        name: secretName,
-        value: secretValue
-      }])
-    });
-
-    if (!response.ok) {
-      console.error(`Failed to set secret ${secretName}: ${response.status} ${response.statusText}`);
-      const errorText = await response.text();
-      console.error('Error response:', errorText);
-      return false;
-    }
-
-    console.log(`Successfully set secret: ${secretName}`);
-    return true;
   } catch (error) {
-    console.error(`Error setting secret ${secretName}:`, error);
-    return false;
+    console.error(`Management API error for ${secretName}:`, error);
   }
+  
+  // Fallback approach: Store in vault
+  console.log(`Falling back to vault storage for ${secretName}`);
+  return await storeAPIKeyInVault(supabase, secretName, secretValue);
 }
 
 serve(async (req) => {
@@ -151,27 +210,27 @@ serve(async (req) => {
       const previews: APIKeyResponse = {};
 
       // Get current secrets from Supabase secrets management
-      const googleMapsKey = await getSupabaseSecret('GOOGLE_MAPS_API_KEY');
+      const googleMapsKey = await getSupabaseSecret(supabase, 'GOOGLE_MAPS_API_KEY');
       if (googleMapsKey) {
         previews.google_maps_api_key_preview = maskAPIKey(googleMapsKey, 'AIza', 4);
       }
 
-      const razorpayKeyId = await getSupabaseSecret('RAZORPAY_KEY_ID');
+      const razorpayKeyId = await getSupabaseSecret(supabase, 'RAZORPAY_KEY_ID');
       if (razorpayKeyId) {
         previews.razorpay_key_id_preview = maskAPIKey(razorpayKeyId, 'rzp_', 4);
       }
 
-      const razorpaySecret = await getSupabaseSecret('RAZORPAY_KEY_SECRET');
+      const razorpaySecret = await getSupabaseSecret(supabase, 'RAZORPAY_KEY_SECRET');
       if (razorpaySecret) {
         previews.razorpay_key_secret_preview = maskAPIKey(razorpaySecret, '', 4);
       }
 
-      const ekqrKey = await getSupabaseSecret('EKQR_API_KEY');
+      const ekqrKey = await getSupabaseSecret(supabase, 'EKQR_API_KEY');
       if (ekqrKey) {
         previews.ekqr_api_key_preview = maskAPIKey(ekqrKey, '', 4);
       }
 
-      const geminiKey = await getSupabaseSecret('GEMINI_API_KEY');
+      const geminiKey = await getSupabaseSecret(supabase, 'GEMINI_API_KEY');
       if (geminiKey) {
         previews.gemini_api_key_preview = maskAPIKey(geminiKey, '', 4);
       }
@@ -215,7 +274,7 @@ serve(async (req) => {
           throw new Error('Google Maps API key is too short');
         }
         if (apiKeyData.google_maps_api_key) {
-          secretOperations.push(setSupabaseSecret('GOOGLE_MAPS_API_KEY', apiKeyData.google_maps_api_key));
+          secretOperations.push(setSupabaseSecret(supabase, 'GOOGLE_MAPS_API_KEY', apiKeyData.google_maps_api_key));
           previews.google_maps_api_key_preview = maskAPIKey(apiKeyData.google_maps_api_key, '', 4);
           updatedKeys.push('GOOGLE_MAPS_API_KEY');
         } else {
@@ -229,7 +288,7 @@ serve(async (req) => {
           throw new Error('Razorpay Key ID is too short');
         }
         if (apiKeyData.razorpay_key_id) {
-          secretOperations.push(setSupabaseSecret('RAZORPAY_KEY_ID', apiKeyData.razorpay_key_id));
+          secretOperations.push(setSupabaseSecret(supabase, 'RAZORPAY_KEY_ID', apiKeyData.razorpay_key_id));
           previews.razorpay_key_id_preview = maskAPIKey(apiKeyData.razorpay_key_id, '', 4);
           updatedKeys.push('RAZORPAY_KEY_ID');
         } else {
@@ -242,7 +301,7 @@ serve(async (req) => {
           throw new Error('Razorpay Secret is too short');
         }
         if (apiKeyData.razorpay_key_secret) {
-          secretOperations.push(setSupabaseSecret('RAZORPAY_KEY_SECRET', apiKeyData.razorpay_key_secret));
+          secretOperations.push(setSupabaseSecret(supabase, 'RAZORPAY_KEY_SECRET', apiKeyData.razorpay_key_secret));
           previews.razorpay_key_secret_preview = maskAPIKey(apiKeyData.razorpay_key_secret, '', 4);
           updatedKeys.push('RAZORPAY_KEY_SECRET');
         } else {
@@ -255,7 +314,7 @@ serve(async (req) => {
           throw new Error('EKQR API key is too short');
         }
         if (apiKeyData.ekqr_api_key) {
-          secretOperations.push(setSupabaseSecret('EKQR_API_KEY', apiKeyData.ekqr_api_key));
+          secretOperations.push(setSupabaseSecret(supabase, 'EKQR_API_KEY', apiKeyData.ekqr_api_key));
           previews.ekqr_api_key_preview = maskAPIKey(apiKeyData.ekqr_api_key, '', 4);
           updatedKeys.push('EKQR_API_KEY');
         } else {
@@ -270,7 +329,7 @@ serve(async (req) => {
         }
         if (apiKeyData.gemini_api_key) {
           console.log('Adding Gemini API key to secret operations');
-          secretOperations.push(setSupabaseSecret('GEMINI_API_KEY', apiKeyData.gemini_api_key));
+          secretOperations.push(setSupabaseSecret(supabase, 'GEMINI_API_KEY', apiKeyData.gemini_api_key));
           previews.gemini_api_key_preview = maskAPIKey(apiKeyData.gemini_api_key, '', 4);
           updatedKeys.push('GEMINI_API_KEY');
           console.log('Gemini API key preview created:', previews.gemini_api_key_preview);

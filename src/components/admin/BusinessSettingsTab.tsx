@@ -154,12 +154,12 @@ export const BusinessSettingsTab = () => {
           description: "All settings saved successfully",
         });
         
-        // Step 3: Refresh and validate configuration
-        setTimeout(async () => {
-          await validateGateways();
-          // Force refresh of business settings to get updated API key previews
-          window.location.reload();
-        }, 1000);
+      // Step 3: Refresh and validate configuration
+      setTimeout(async () => {
+        await validateGateways();
+        // Force refresh of business settings to get updated API key previews
+        window.location.reload();
+      }, 2000);
       } else {
         toast({
           title: "Business Settings Failed",
