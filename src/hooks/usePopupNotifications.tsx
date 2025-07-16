@@ -208,15 +208,16 @@ export function usePopupNotifications() {
     }, 0);
   }, []);
 
-  // Refetch notifications when userRole changes
+  // Reset shown notifications and refetch on every login
   useEffect(() => {
     if (user && userRole && !loading) {
-      console.log('[usePopupNotifications] User authenticated, refetching notifications');
+      console.log('[usePopupNotifications] User authenticated, clearing shown notifications and refetching');
+      setShownNotifications(new Set()); // Clear shown notifications on every login
       refetch();
     }
   }, [user, userRole, loading, refetch]);
 
-  // Reset on user change
+  // Reset on user logout
   useEffect(() => {
     if (!user) {
       console.log('[usePopupNotifications] User logged out, resetting state');
