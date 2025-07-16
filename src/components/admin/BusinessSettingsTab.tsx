@@ -33,6 +33,7 @@ export const BusinessSettingsTab = () => {
     website_url: '',
     tagline: '',
     business_address: '',
+    copyright_text: '',
     // Trial Plan Settings
     trial_plan_enabled: false,
     trial_duration_days: 14,
@@ -62,6 +63,7 @@ export const BusinessSettingsTab = () => {
         website_url: settings.website_url || '',
         tagline: settings.tagline || '',
         business_address: settings.business_address || '',
+        copyright_text: settings.copyright_text || '',
         // Trial Plan Settings
         trial_plan_enabled: settings.trial_plan_enabled || false,
         trial_duration_days: settings.trial_duration_days || 14,
@@ -311,6 +313,19 @@ export const BusinessSettingsTab = () => {
                     placeholder="Enter your business address..."
                     rows={3}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="copyright-text">Copyright Text</Label>
+                  <Input
+                    id="copyright-text"
+                    value={formData.copyright_text}
+                    onChange={(e) => setFormData(prev => ({ ...prev, copyright_text: e.target.value }))}
+                    placeholder={`© ${new Date().getFullYear()} ${formData.brand_name}. All rights reserved.`}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This will be displayed in the website footer and other appropriate locations.
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -10,6 +10,7 @@ interface BrandSettings {
   support_email: string | null;
   support_phone: string | null;
   business_address: string | null;
+  copyright_text: string | null;
 }
 
 export const useBrandSettings = () => {
@@ -22,6 +23,7 @@ export const useBrandSettings = () => {
     support_email: null,
     support_phone: null,
     business_address: null,
+    copyright_text: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +31,7 @@ export const useBrandSettings = () => {
     try {
       const { data, error } = await supabase
         .from("business_settings")
-        .select("brand_name, logo_url, favicon_url, tagline, website_url, support_email, support_phone, business_address")
+        .select("brand_name, logo_url, favicon_url, tagline, website_url, support_email, support_phone, business_address, copyright_text")
         .maybeSingle();
 
       if (error) {
@@ -47,6 +49,7 @@ export const useBrandSettings = () => {
           support_email: data.support_email,
           support_phone: data.support_phone,
           business_address: data.business_address,
+          copyright_text: data.copyright_text,
         });
       }
     } catch (error) {
@@ -115,6 +118,7 @@ export const useBrandSettings = () => {
             support_email: newData.support_email,
             support_phone: newData.support_phone,
             business_address: newData.business_address,
+            copyright_text: newData.copyright_text,
           };
           
           setBrandSettings(updatedSettings);

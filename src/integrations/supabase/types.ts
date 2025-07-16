@@ -185,6 +185,7 @@ export type Database = {
           auto_approval_threshold: number | null
           brand_name: string | null
           business_address: string | null
+          copyright_text: string | null
           created_at: string
           ekqr_api_key_preview: string | null
           ekqr_enabled: boolean
@@ -220,6 +221,7 @@ export type Database = {
           auto_approval_threshold?: number | null
           brand_name?: string | null
           business_address?: string | null
+          copyright_text?: string | null
           created_at?: string
           ekqr_api_key_preview?: string | null
           ekqr_enabled?: boolean
@@ -255,6 +257,7 @@ export type Database = {
           auto_approval_threshold?: number | null
           brand_name?: string | null
           business_address?: string | null
+          copyright_text?: string | null
           created_at?: string
           ekqr_api_key_preview?: string | null
           ekqr_enabled?: boolean

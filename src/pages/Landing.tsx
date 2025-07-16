@@ -108,7 +108,7 @@ const Landing = () => {
           </div>
           
           <div className="border-t pt-8 mt-8 text-center text-muted-foreground">
-            <p>&copy; 2024 {brandSettings.brand_name || "StudySpace Platform"}. All rights reserved.</p>
+            <p>{brandSettings.copyright_text || `© ${new Date().getFullYear()} ${brandSettings.brand_name || "StudySpace Platform"}. All rights reserved.`}</p>
           </div>
         </div>
       </footer>

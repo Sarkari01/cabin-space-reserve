@@ -24,6 +24,7 @@ export interface BusinessSettings {
   website_url?: string;
   tagline?: string;
   business_address?: string;
+  copyright_text?: string;
   // Trial Plan Settings
   trial_plan_enabled?: boolean;
   trial_duration_days?: number;
