@@ -289,7 +289,7 @@ const AdminDashboard = () => {
       title: 'Owner',
       render: (studyHall: any) => (
         <div className="text-sm">
-          {studyHall.owner?.full_name || 'Unknown'}
+          {studyHall.owner?.full_name || 'Unknown Owner'}
         </div>
       ),
       mobileHidden: true
@@ -370,8 +370,8 @@ const AdminDashboard = () => {
 
   // Filter study halls based on search
   const filteredStudyHalls = studyHalls.filter(studyHall =>
-    studyHall.name.toLowerCase().includes(studyHallSearchTerm.toLowerCase()) ||
-    studyHall.location.toLowerCase().includes(studyHallSearchTerm.toLowerCase()) ||
+    studyHall.name?.toLowerCase().includes(studyHallSearchTerm.toLowerCase()) ||
+    studyHall.location?.toLowerCase().includes(studyHallSearchTerm.toLowerCase()) ||
     (studyHall.owner?.full_name || '').toLowerCase().includes(studyHallSearchTerm.toLowerCase())
   );
 
