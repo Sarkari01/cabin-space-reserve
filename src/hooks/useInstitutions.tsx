@@ -34,7 +34,7 @@ export function useInstitutions() {
     total_news_posts: 0
   });
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
 
   // Fetch all institutions (admin only)
   const fetchInstitutions = async () => {
@@ -61,9 +61,13 @@ export function useInstitutions() {
 
   // Fetch current user's institution
   const fetchCurrentInstitution = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('fetchCurrentInstitution: No user available');
+      return;
+    }
     
     try {
+      console.log('fetchCurrentInstitution: Starting fetch for user:', user.id);
       setLoading(true);
       const { data, error } = await supabase
         .from('institutions')
@@ -71,7 +75,12 @@ export function useInstitutions() {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('fetchCurrentInstitution: Database error:', error);
+        throw error;
+      }
+      
+      console.log('fetchCurrentInstitution: Found institution:', data);
       setCurrentInstitution(data);
     } catch (error: any) {
       console.error('Error fetching current institution:', error);
@@ -209,13 +218,45 @@ export function useInstitutions() {
   };
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    console.log('useInstitutions useEffect triggered:', { 
+      user: !!user, 
+      userRole, 
+      authLoading 
+    });
+
+    // Don't do anything if auth is still loading
+    if (authLoading) {
+      console.log('useInstitutions: Auth still loading, waiting...');
+      return;
+    }
+
+    // Don't do anything if user is not available
+    if (!user) {
+      console.log('useInstitutions: No user available, setting loading to false');
+      setLoading(false);
+      return;
+    }
+
+    // Wait for userRole to be available
+    if (!userRole) {
+      console.log('useInstitutions: User role not yet available, waiting...');
+      return;
+    }
+
+    console.log('useInstitutions: Processing user with role:', userRole);
+
+    if (userRole === 'admin') {
+      console.log('useInstitutions: Fetching data for admin user');
       fetchInstitutions();
       fetchStats();
-    } else if (user?.role === 'institution') {
+    } else if (userRole === 'institution') {
+      console.log('useInstitutions: Fetching current institution for institution user');
       fetchCurrentInstitution();
+    } else {
+      console.log('useInstitutions: User role not admin or institution, setting loading to false');
+      setLoading(false);
     }
-  }, [user]);
+  }, [user, userRole, authLoading]);
 
   return {
     institutions,

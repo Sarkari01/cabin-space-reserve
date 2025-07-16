@@ -63,8 +63,15 @@ export default function InstitutionDashboard() {
   };
 
   const renderTabContent = () => {
+    console.log('renderTabContent: Current state:', { 
+      institutionLoading, 
+      currentInstitution: !!currentInstitution,
+      userRole: user?.role,
+      activeTab 
+    });
+
     // Show loading state if institution is being loaded
-    if (institutionLoading && !currentInstitution) {
+    if (institutionLoading) {
       return (
         <Card>
           <CardContent className="p-6">
@@ -77,8 +84,8 @@ export default function InstitutionDashboard() {
       );
     }
 
-    // Show error state if no institution found
-    if (!institutionLoading && !currentInstitution) {
+    // Show error state if no institution found and not loading
+    if (!currentInstitution) {
       return (
         <Card>
           <CardContent className="p-6">
