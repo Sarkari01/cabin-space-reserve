@@ -163,6 +163,183 @@ export const AdminReportsTab: React.FC = () => {
             )
           }
         ];
+      case 'transactions':
+        return [
+          {
+            key: 'transaction_number',
+            title: 'Transaction ID',
+            render: (value: any) => (
+              <span className="font-mono text-sm">
+                {value ? `T${value}` : 'Pending'}
+              </span>
+            )
+          },
+          {
+            key: 'booking',
+            title: 'Booking',
+            render: (value: any) => (
+              <div>
+                <div className="font-medium">
+                  {value?.booking_number ? `B${value.booking_number}` : 'N/A'}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {value?.user?.full_name || 'N/A'}
+                </div>
+              </div>
+            )
+          },
+          {
+            key: 'amount',
+            title: 'Amount',
+            render: (value: number) => formatCurrency(value || 0)
+          },
+          {
+            key: 'payment_method',
+            title: 'Payment Method',
+            render: (value: string) => (
+              <Badge variant="outline">
+                {value?.toUpperCase() || 'N/A'}
+              </Badge>
+            )
+          },
+          {
+            key: 'status',
+            title: 'Status',
+            render: (value: string) => (
+              <Badge variant={value === 'completed' ? 'default' : value === 'failed' ? 'destructive' : 'secondary'}>
+                {value}
+              </Badge>
+            )
+          }
+        ];
+      case 'settlements':
+        return [
+          {
+            key: 'settlement_number',
+            title: 'Settlement ID',
+            render: (value: any) => (
+              <span className="font-mono text-sm">
+                {value ? `S${value}` : 'N/A'}
+              </span>
+            )
+          },
+          {
+            key: 'merchant',
+            title: 'Merchant',
+            render: (value: any) => (
+              <div>
+                <div className="font-medium">{value?.full_name || 'N/A'}</div>
+                <div className="text-sm text-muted-foreground">{value?.email || 'N/A'}</div>
+              </div>
+            )
+          },
+          {
+            key: 'total_booking_amount',
+            title: 'Gross Amount',
+            render: (value: number) => formatCurrency(value || 0)
+          },
+          {
+            key: 'net_settlement_amount',
+            title: 'Net Amount',
+            render: (value: number) => formatCurrency(value || 0)
+          },
+          {
+            key: 'status',
+            title: 'Status',
+            render: (value: string) => (
+              <Badge variant={value === 'paid' ? 'default' : value === 'rejected' ? 'destructive' : 'secondary'}>
+                {value}
+              </Badge>
+            )
+          }
+        ];
+      case 'studyhalls':
+        return [
+          {
+            key: 'name',
+            title: 'Study Hall',
+            render: (value: string, row: any) => (
+              <div>
+                <div className="font-medium">{value || 'N/A'}</div>
+                <div className="text-sm text-muted-foreground">{row?.location || 'N/A'}</div>
+              </div>
+            )
+          },
+          {
+            key: 'merchant',
+            title: 'Owner',
+            render: (value: any) => (
+              <div>
+                <div className="font-medium">{value?.full_name || 'N/A'}</div>
+                <div className="text-sm text-muted-foreground">{value?.email || 'N/A'}</div>
+              </div>
+            )
+          },
+          {
+            key: 'total_seats',
+            title: 'Capacity',
+            render: (value: number) => (
+              <span className="font-medium">{value || 0} seats</span>
+            )
+          },
+          {
+            key: 'daily_price',
+            title: 'Daily Price',
+            render: (value: number) => formatCurrency(value || 0)
+          },
+          {
+            key: 'status',
+            title: 'Status',
+            render: (value: string) => (
+              <Badge variant={value === 'active' ? 'default' : value === 'inactive' ? 'destructive' : 'secondary'}>
+                {value}
+              </Badge>
+            )
+          }
+        ];
+      case 'subscriptions':
+        return [
+          {
+            key: 'merchant',
+            title: 'Merchant',
+            render: (value: any) => (
+              <div>
+                <div className="font-medium">{value?.full_name || 'N/A'}</div>
+                <div className="text-sm text-muted-foreground">{value?.email || 'N/A'}</div>
+              </div>
+            )
+          },
+          {
+            key: 'plan',
+            title: 'Plan',
+            render: (value: any, row: any) => (
+              <div>
+                <div className="font-medium">{value?.name || 'N/A'}</div>
+                <div className="text-sm text-muted-foreground">
+                  {formatCurrency(value?.price || 0)}
+                </div>
+              </div>
+            )
+          },
+          {
+            key: 'is_trial',
+            title: 'Trial',
+            render: (value: boolean) => (
+              <Badge variant={value ? 'secondary' : 'outline'}>
+                {value ? 'Trial' : 'Paid'}
+              </Badge>
+            )
+          },
+          {
+            key: 'status',
+            title: 'Status',
+            render: (value: string) => (
+              <Badge variant={value === 'active' ? 'default' : value === 'expired' ? 'destructive' : 'secondary'}>
+                {value}
+              </Badge>
+            )
+          }
+        ];
       default:
         return [];
     }
