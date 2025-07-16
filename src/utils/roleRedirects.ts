@@ -8,6 +8,8 @@ export const getRoleBasedDashboard = (role: string | null): string => {
       return '/student/dashboard';
     case 'incharge':
       return '/incharge/dashboard';
+    case 'institution':
+      return '/institution/dashboard';
     case 'telemarketing_executive':
       return '/telemarketing/dashboard';
     case 'pending_payments_caller':

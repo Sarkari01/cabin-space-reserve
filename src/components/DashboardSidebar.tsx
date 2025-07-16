@@ -36,6 +36,8 @@ import {
   Activity,
   Star,
   Bell,
+  Plus,
+  School,
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,7 +57,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 
 interface DashboardSidebarProps {
-  userRole: "student" | "merchant" | "admin" | "incharge" | "telemarketing_executive" | "pending_payments_caller" | "customer_care_executive" | "settlement_manager" | "general_administrator";
+  userRole: "student" | "merchant" | "admin" | "incharge" | "institution" | "telemarketing_executive" | "pending_payments_caller" | "customer_care_executive" | "settlement_manager" | "general_administrator";
   userName: string;
   children: React.ReactNode;
   onTabChange?: (tab: string) => void;
@@ -156,6 +158,12 @@ const sidebarItems = {
     { title: "Activity Logs", url: "/incharge/dashboard", icon: BookOpen, tab: "activity" },
     { title: "Profile Settings", url: "/incharge/dashboard", icon: Settings, tab: "profile" },
   ],
+  institution: [
+    { title: "Dashboard", url: "/institution/dashboard", icon: Home, tab: "overview" },
+    { title: "Post News", url: "/institution/dashboard", icon: Plus, tab: "post-news" },
+    { title: "My News", url: "/institution/dashboard", icon: Newspaper, tab: "my-news" },
+    { title: "Profile", url: "/institution/dashboard", icon: Settings, tab: "profile" },
+  ],
   telemarketing_executive: {
     primary: [
       { title: "Dashboard", url: "/telemarketing/dashboard", icon: Home, tab: "overview" },
@@ -214,7 +222,7 @@ const sidebarItems = {
 };
 
 function AppSidebar({ userRole, userName, onTabChange, activeTab }: { 
-  userRole: "student" | "merchant" | "admin" | "incharge" | "telemarketing_executive" | "pending_payments_caller" | "customer_care_executive" | "settlement_manager" | "general_administrator"; 
+  userRole: "student" | "merchant" | "admin" | "incharge" | "institution" | "telemarketing_executive" | "pending_payments_caller" | "customer_care_executive" | "settlement_manager" | "general_administrator"; 
   userName: string;
   onTabChange?: (tab: string) => void;
   activeTab?: string;

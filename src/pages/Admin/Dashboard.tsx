@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3, Phone, Headphones, Banknote, AlertCircle, ToggleLeft, ToggleRight } from "lucide-react";
+import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3, Phone, Headphones, Banknote, AlertCircle, ToggleLeft, ToggleRight, School } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
@@ -51,6 +51,7 @@ import { useCallLogs } from "@/hooks/useCallLogs";
 import { useSupportTickets } from "@/hooks/useSupportTickets";
 import { AdminReviewsTab } from "@/components/admin/AdminReviewsTab";
 import { StudyHallModal } from "@/components/StudyHallModal";
+import { InstitutionsTab } from "@/components/admin/InstitutionsTab";
 
 
 const AdminDashboard = () => {
