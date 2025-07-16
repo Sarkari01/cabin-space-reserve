@@ -48,21 +48,6 @@ export const AdminHeader = ({ userName, onSearch }: AdminHeaderProps) => {
         {/* Left Section - Sidebar Toggle & Brand */}
         <div className="flex items-center gap-4">
           <SidebarTrigger className="lg:hidden" />
-          <div className="hidden lg:flex items-center gap-3">
-            {brandSettings.logo_url && (
-              <img 
-                src={brandSettings.logo_url} 
-                alt="Logo" 
-                className="w-8 h-8 rounded-lg object-cover"
-              />
-            )}
-            <div>
-              <h1 className="text-lg font-semibold">
-                {brandSettings.brand_name || "StudySpace"}
-              </h1>
-              <p className="text-xs text-muted-foreground">Admin Dashboard</p>
-            </div>
-          </div>
         </div>
 
         {/* Center Section - Search */}
