@@ -124,10 +124,14 @@ export function NewsTab({ userRole }: NewsTabProps) {
                      {/* Creator Information */}
                      {(newsItem.creator || newsItem.institution) && (
                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 rounded-md p-2">
-                         {newsItem.created_by_type === 'institution' && newsItem.institution ? (
+                         {/* Prioritize institution information when available */}
+                         {newsItem.institution ? (
                            <>
                              <Building2 className="w-4 h-4" />
                              <span>Posted by {newsItem.institution.name}</span>
+                             {newsItem.created_by_type === 'admin' && (
+                               <Badge variant="outline" className="text-xs">via Admin</Badge>
+                             )}
                              {newsItem.institution.email && (
                                <div className="flex items-center gap-1 ml-2">
                                  <Mail className="w-3 h-3" />
