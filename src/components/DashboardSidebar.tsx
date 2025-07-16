@@ -57,6 +57,24 @@ import { Button } from "@/components/ui/button";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminFooter } from "@/components/admin/AdminFooter";
+import { MerchantHeader } from "@/components/merchant/MerchantHeader";
+import { MerchantFooter } from "@/components/merchant/MerchantFooter";
+import { StudentHeader } from "@/components/student/StudentHeader";
+import { StudentFooter } from "@/components/student/StudentFooter";
+import { InchargeHeader } from "@/components/incharge/InchargeHeader";
+import { InchargeFooter } from "@/components/incharge/InchargeFooter";
+import { InstitutionHeader } from "@/components/institution/InstitutionHeader";
+import { InstitutionFooter } from "@/components/institution/InstitutionFooter";
+import { TelemarketingHeader } from "@/components/telemarketing/TelemarketingHeader";
+import { TelemarketingFooter } from "@/components/telemarketing/TelemarketingFooter";
+import { CustomerCareHeader } from "@/components/customer-care/CustomerCareHeader";
+import { CustomerCareFooter } from "@/components/customer-care/CustomerCareFooter";
+import { GeneralAdminHeader } from "@/components/general-admin/GeneralAdminHeader";
+import { GeneralAdminFooter } from "@/components/general-admin/GeneralAdminFooter";
+import { PaymentsCallerHeader } from "@/components/payments-caller/PaymentsCallerHeader";
+import { PaymentsCallerFooter } from "@/components/payments-caller/PaymentsCallerFooter";
+import { SettlementManagerHeader } from "@/components/settlement-manager/SettlementManagerHeader";
+import { SettlementManagerFooter } from "@/components/settlement-manager/SettlementManagerFooter";
 
 
 interface DashboardSidebarProps {
@@ -746,21 +764,75 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
   );
 }
 
-export function DashboardSidebar({ userRole, userName, children, onTabChange, activeTab, onSearch, showHeader = false, showFooter = false }: DashboardSidebarProps) {
+export function DashboardSidebar({ userRole, userName, children, onTabChange, activeTab, onSearch, showHeader = true, showFooter = true }: DashboardSidebarProps) {
+  // Function to get the appropriate header component based on user role
+  const getHeaderComponent = () => {
+    const headerProps = { onSearch };
+    
+    switch (userRole) {
+      case 'admin':
+        return <AdminHeader userName={userName} onSearch={onSearch} />;
+      case 'merchant':
+        return <MerchantHeader {...headerProps} />;
+      case 'student':
+        return <StudentHeader {...headerProps} />;
+      case 'incharge':
+        return <InchargeHeader {...headerProps} />;
+      case 'institution':
+        return <InstitutionHeader {...headerProps} />;
+      case 'telemarketing_executive':
+        return <TelemarketingHeader {...headerProps} />;
+      case 'customer_care_executive':
+        return <CustomerCareHeader {...headerProps} />;
+      case 'general_administrator':
+        return <GeneralAdminHeader {...headerProps} />;
+      case 'pending_payments_caller':
+        return <PaymentsCallerHeader {...headerProps} />;
+      case 'settlement_manager':
+        return <SettlementManagerHeader {...headerProps} />;
+      default:
+        return <AdminHeader userName={userName} onSearch={onSearch} />;
+    }
+  };
+
+  // Function to get the appropriate footer component based on user role
+  const getFooterComponent = () => {
+    switch (userRole) {
+      case 'admin':
+        return <AdminFooter />;
+      case 'merchant':
+        return <MerchantFooter />;
+      case 'student':
+        return <StudentFooter />;
+      case 'incharge':
+        return <InchargeFooter />;
+      case 'institution':
+        return <InstitutionFooter />;
+      case 'telemarketing_executive':
+        return <TelemarketingFooter />;
+      case 'customer_care_executive':
+        return <CustomerCareFooter />;
+      case 'general_administrator':
+        return <GeneralAdminFooter />;
+      case 'pending_payments_caller':
+        return <PaymentsCallerFooter />;
+      case 'settlement_manager':
+        return <SettlementManagerFooter />;
+      default:
+        return <AdminFooter />;
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar userRole={userRole} userName={userName} onTabChange={onTabChange} activeTab={activeTab} />
         <div className="flex-1 flex flex-col">
-          {showHeader && (
-            <AdminHeader userName={userName} onSearch={onSearch} />
-          )}
+          {showHeader && getHeaderComponent()}
           <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
             {children}
           </main>
-          {showFooter && (
-            <AdminFooter />
-          )}
+          {showFooter && getFooterComponent()}
         </div>
       </div>
     </SidebarProvider>
