@@ -40,7 +40,10 @@ export function usePopupNotifications() {
 
   // Get user role for targeting
   const getUserRole = useCallback(() => {
-    if (!userRole) return 'student';
+    if (!userRole) {
+      console.log('[usePopupNotifications] No userRole available, defaulting to student');
+      return 'student';
+    }
     console.log('[usePopupNotifications] User role mapping:', { userRole, mapped: userRole });
     return userRole;
   }, [userRole]);
@@ -54,7 +57,7 @@ export function usePopupNotifications() {
         return [];
       }
 
-      console.log('[usePopupNotifications] Fetching notifications');
+      console.log('[usePopupNotifications] Fetching notifications with role:', { userRole, userId: user.id });
       isProcessingNotifications = true;
 
       try {
@@ -118,7 +121,7 @@ export function usePopupNotifications() {
         isProcessingNotifications = false;
       }
     },
-    enabled: !!user && !loading,
+    enabled: !!user && !!userRole && !loading,
     staleTime: 60000, // 1 minute
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -231,17 +234,26 @@ export function usePopupNotifications() {
     }, 0);
   }, []);
 
-  // Trigger login notifications on user authentication
+  // Trigger login notifications on user authentication - wait for role
   useEffect(() => {
-    if (user && !loading && !hasTriggeredLogin) {
-      console.log('[usePopupNotifications] Triggering login notifications for user:', user.id);
+    if (user && userRole && !loading && !hasTriggeredLogin) {
+      console.log('[usePopupNotifications] Triggering login notifications for user:', user.id, 'role:', userRole);
       setHasTriggeredLogin(true);
     }
-  }, [user, loading, hasTriggeredLogin]);
+  }, [user, userRole, loading, hasTriggeredLogin]);
+
+  // Invalidate and refetch notifications when userRole changes
+  useEffect(() => {
+    if (user && userRole && !loading) {
+      console.log('[usePopupNotifications] Role changed, refetching notifications:', { userRole });
+      refetch();
+    }
+  }, [user, userRole, loading, refetch]);
 
   // Reset on user change
   useEffect(() => {
     if (!user) {
+      console.log('[usePopupNotifications] User logged out, resetting state');
       setHasTriggeredLogin(false);
       setShownNotifications(new Set());
       // Clear session storage for this user
