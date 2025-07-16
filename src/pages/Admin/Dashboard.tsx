@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3, Phone, Headphones, Banknote, AlertCircle } from "lucide-react";
+import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, Shield, Calendar, BarChart3, Phone, Headphones, Banknote, AlertCircle, ToggleLeft, ToggleRight } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
@@ -88,6 +88,7 @@ const AdminDashboard = () => {
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("view");
   const [selectedStudyHall, setSelectedStudyHall] = useState<any>(null);
+  const [studyHallSearchTerm, setStudyHallSearchTerm] = useState("");
 
   // Redirect to login if not authenticated or not admin
   useEffect(() => {
@@ -249,6 +250,130 @@ const AdminDashboard = () => {
       day: 'numeric'
     });
   };
+
+  // Study halls table configuration
+  const studyHallColumns = [
+    {
+      key: 'image_url',
+      title: 'Image',
+      render: (studyHall: any) => (
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted">
+          {studyHall.image_url ? (
+            <img 
+              src={studyHall.image_url} 
+              alt={studyHall.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Building className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+      ),
+      mobileHidden: true
+    },
+    {
+      key: 'name',
+      title: 'Name',
+      sortable: true,
+      render: (studyHall: any) => (
+        <div>
+          <div className="font-medium">{studyHall.name}</div>
+          <div className="text-sm text-muted-foreground">{studyHall.location}</div>
+        </div>
+      )
+    },
+    {
+      key: 'merchant',
+      title: 'Owner',
+      render: (studyHall: any) => (
+        <div className="text-sm">
+          {studyHall.owner?.full_name || 'Unknown'}
+        </div>
+      ),
+      mobileHidden: true
+    },
+    {
+      key: 'status',
+      title: 'Status',
+      sortable: true,
+      render: (studyHall: any) => (
+        <Badge variant={studyHall.status === 'active' ? 'default' : 'secondary'}>
+          {studyHall.status}
+        </Badge>
+      )
+    },
+    {
+      key: 'capacity',
+      title: 'Capacity',
+      render: (studyHall: any) => (
+        <div className="text-sm">
+          <div>{studyHall.total_seats} seats</div>
+          <div className="text-muted-foreground">{studyHall.rows} × {studyHall.seats_per_row}</div>
+        </div>
+      ),
+      mobileHidden: true
+    },
+    {
+      key: 'pricing',
+      title: 'Pricing',
+      render: (studyHall: any) => (
+        <div className="text-sm">
+          <div>₹{studyHall.daily_price}/day</div>
+          <div className="text-muted-foreground">₹{studyHall.monthly_price}/month</div>
+        </div>
+      ),
+      mobileHidden: true
+    },
+    {
+      key: 'created_at',
+      title: 'Created',
+      sortable: true,
+      render: (studyHall: any) => formatDate(studyHall.created_at),
+      mobileHidden: true
+    },
+    {
+      key: 'actions',
+      title: 'Actions',
+      render: (studyHall: any) => (
+        <div className="flex space-x-1">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleViewStudyHall(studyHall)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleEditStudyHall(studyHall)}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleUpdateStudyHallStatus(studyHall.id, studyHall.status)}
+          >
+            {studyHall.status === 'active' ? (
+              <ToggleLeft className="h-4 w-4" />
+            ) : (
+              <ToggleRight className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      )
+    }
+  ];
+
+  // Filter study halls based on search
+  const filteredStudyHalls = studyHalls.filter(studyHall =>
+    studyHall.name.toLowerCase().includes(studyHallSearchTerm.toLowerCase()) ||
+    studyHall.location.toLowerCase().includes(studyHallSearchTerm.toLowerCase()) ||
+    (studyHall.owner?.full_name || '').toLowerCase().includes(studyHallSearchTerm.toLowerCase())
+  );
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -661,76 +786,13 @@ const AdminDashboard = () => {
                 <h3 className="text-2xl font-semibold">Study Hall Management</h3>
               </div>
 
-              <div className="grid lg:grid-cols-2 gap-6">
-                {studyHalls.map((studyHall) => (
-                  <Card key={studyHall.id} className="hover:shadow-md transition-shadow">
-                    <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                      {studyHall.image_url ? (
-                        <img 
-                          src={studyHall.image_url} 
-                          alt={studyHall.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                          <span className="text-muted-foreground">{studyHall.name}</span>
-                        </div>
-                      )}
-                    </div>
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 className="text-lg font-semibold mb-1">{studyHall.name}</h4>
-                          <p className="text-sm text-muted-foreground">{studyHall.location}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Owner: {studyHall.owner?.full_name || studyHall.owner?.email || 'Unknown'}
-                          </p>
-                        </div>
-                        <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
-                          {studyHall.status}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Seats</p>
-                          <p className="font-semibold">{studyHall.total_seats}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Rows</p>
-                          <p className="font-semibold">{studyHall.rows}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Daily Rate</p>
-                          <p className="font-semibold">₹{studyHall.daily_price}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Monthly Rate</p>
-                          <p className="font-semibold">₹{studyHall.monthly_price}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewStudyHall(studyHall)}>
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Layout
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditStudyHall(studyHall)}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button 
-                          variant={studyHall.status === "active" ? "destructive" : "default"} 
-                          size="sm"
-                          onClick={() => handleUpdateStudyHallStatus(studyHall.id, studyHall.status)}
-                        >
-                          {studyHall.status === "active" ? "Disable" : "Approve"}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <ResponsiveTable
+                data={studyHalls}
+                columns={studyHallColumns}
+                loading={loading}
+                searchPlaceholder="Search study halls by name, location, or owner..."
+                emptyMessage="No study halls found"
+              />
             </div>
           )}
 
