@@ -1047,6 +1047,8 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          created_by: string | null
+          created_by_type: Database["public"]["Enums"]["creator_type"] | null
           id: string
           image_url: string | null
           institution_id: string | null
@@ -1060,6 +1062,8 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          created_by?: string | null
+          created_by_type?: Database["public"]["Enums"]["creator_type"] | null
           id?: string
           image_url?: string | null
           institution_id?: string | null
@@ -1073,6 +1077,8 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          created_by?: string | null
+          created_by_type?: Database["public"]["Enums"]["creator_type"] | null
           id?: string
           image_url?: string | null
           institution_id?: string | null
@@ -1084,6 +1090,13 @@ export type Database = {
           visible_to?: Database["public"]["Enums"]["news_visibility"]
         }
         Relationships: [
+          {
+            foreignKeyName: "news_posts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "news_posts_institution_id_fkey"
             columns: ["institution_id"]
@@ -2402,6 +2415,7 @@ export type Database = {
       banner_status: "active" | "inactive"
       banner_target_audience: "user" | "merchant" | "both"
       booking_period: "daily" | "weekly" | "monthly"
+      creator_type: "admin" | "institution" | "telemarketing_executive"
       news_visibility: "user" | "merchant" | "both"
       review_status: "approved" | "pending" | "hidden"
       user_role:
@@ -2545,6 +2559,7 @@ export const Constants = {
       banner_status: ["active", "inactive"],
       banner_target_audience: ["user", "merchant", "both"],
       booking_period: ["daily", "weekly", "monthly"],
+      creator_type: ["admin", "institution", "telemarketing_executive"],
       news_visibility: ["user", "merchant", "both"],
       review_status: ["approved", "pending", "hidden"],
       user_role: [

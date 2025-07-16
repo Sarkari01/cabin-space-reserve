@@ -5,16 +5,46 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { NewsModal } from "@/components/NewsModal";
 import { useNews } from "@/hooks/useNews";
-import { Edit, Trash2, Plus, Eye, EyeOff } from "lucide-react";
+import { Edit, Trash2, Plus, Eye, EyeOff, User, Mail, Building2 } from "lucide-react";
 import { safeFormatDate } from "@/lib/dateUtils";
 
 interface NewsTabProps {
   userRole: "student" | "merchant" | "admin";
 }
 
+interface NewsItemWithCreator {
+  id: string;
+  title: string;
+  content: string;
+  status: string;
+  visible_to: string;
+  created_at: string;
+  updated_at: string;
+  image_url?: string;
+  video_url?: string;
+  created_by?: string;
+  created_by_type?: 'admin' | 'institution' | 'telemarketing_executive';
+  institution_id?: string;
+  scheduled_at?: string;
+  creator?: {
+    id: string;
+    full_name?: string;
+    email: string;
+    role: string;
+  };
+  institution?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
 export function NewsTab({ userRole }: NewsTabProps) {
   const { news, loading, deleteNews, updateNews } = useNews();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  // Cast news items to include creator information
+  const newsWithCreators = news as NewsItemWithCreator[];
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -62,7 +92,7 @@ export function NewsTab({ userRole }: NewsTabProps) {
       </div>
 
       <div className="space-y-4">
-        {news.length === 0 ? (
+        {newsWithCreators.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
               <p className="text-muted-foreground">No news posts found.</p>
@@ -72,24 +102,63 @@ export function NewsTab({ userRole }: NewsTabProps) {
             </CardContent>
           </Card>
         ) : (
-          news.map((newsItem) => (
+          newsWithCreators.map((newsItem) => (
             <Card key={newsItem.id} className={newsItem.status === "inactive" ? "opacity-60" : ""}>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
                     <CardTitle className="text-lg">{newsItem.title}</CardTitle>
-                    <div className="flex gap-2 flex-wrap">
-                      <Badge variant={newsItem.status === "active" ? "default" : "secondary"}>
-                        {newsItem.status}
-                      </Badge>
-                      <Badge variant="outline">
-                        {newsItem.visible_to === "both" ? "All Users" : 
-                         newsItem.visible_to === "user" ? "Students" : "Merchants"}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {safeFormatDate(newsItem.created_at, "MMM dd, yyyy")}
-                      </span>
-                    </div>
+                     <div className="flex gap-2 flex-wrap">
+                       <Badge variant={newsItem.status === "active" ? "default" : "secondary"}>
+                         {newsItem.status}
+                       </Badge>
+                       <Badge variant="outline">
+                         {newsItem.visible_to === "both" ? "All Users" : 
+                          newsItem.visible_to === "user" ? "Students" : "Merchants"}
+                       </Badge>
+                       <span className="text-sm text-muted-foreground">
+                         {safeFormatDate(newsItem.created_at, "MMM dd, yyyy")}
+                       </span>
+                     </div>
+                     
+                     {/* Creator Information */}
+                     {(newsItem.creator || newsItem.institution) && (
+                       <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 rounded-md p-2">
+                         {newsItem.created_by_type === 'institution' && newsItem.institution ? (
+                           <>
+                             <Building2 className="w-4 h-4" />
+                             <span>Posted by {newsItem.institution.name}</span>
+                             {newsItem.institution.email && (
+                               <div className="flex items-center gap-1 ml-2">
+                                 <Mail className="w-3 h-3" />
+                                 <span className="text-xs">{newsItem.institution.email}</span>
+                               </div>
+                             )}
+                           </>
+                         ) : newsItem.creator ? (
+                           <>
+                             <User className="w-4 h-4" />
+                             <span>Posted by {newsItem.creator.full_name || newsItem.creator.email}</span>
+                             <Badge variant="outline" className="text-xs">
+                               {newsItem.created_by_type === 'admin' ? 'Admin' :
+                                newsItem.created_by_type === 'telemarketing_executive' ? 'Staff' : 
+                                newsItem.created_by_type}
+                             </Badge>
+                             {newsItem.creator.email && (
+                               <div className="flex items-center gap-1 ml-2">
+                                 <Mail className="w-3 h-3" />
+                                 <span className="text-xs">{newsItem.creator.email}</span>
+                               </div>
+                             )}
+                           </>
+                         ) : (
+                           <>
+                             <User className="w-4 h-4" />
+                             <span>Posted by System</span>
+                           </>
+                         )}
+                       </div>
+                     )}
                   </div>
                   {userRole === "admin" && (
                     <div className="flex gap-2">
@@ -104,11 +173,11 @@ export function NewsTab({ userRole }: NewsTabProps) {
                           <Eye className="w-4 h-4" />
                         )}
                       </Button>
-                      <NewsModal
-                        news={newsItem}
-                        isEdit
-                        trigger={<Button variant="outline" size="sm"><Edit className="w-4 h-4" /></Button>}
-                      />
+                       <NewsModal
+                         news={newsItem as any}
+                         isEdit
+                         trigger={<Button variant="outline" size="sm"><Edit className="w-4 h-4" /></Button>}
+                       />
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" size="sm">

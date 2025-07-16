@@ -17,7 +17,20 @@ export function useNews() {
       setLoading(true);
       const { data, error } = await supabase
         .from("news_posts")
-        .select("*")
+        .select(`
+          *,
+          creator:created_by (
+            id,
+            full_name,
+            email,
+            role
+          ),
+          institution:institution_id (
+            id,
+            name,
+            email
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -39,7 +52,20 @@ export function useNews() {
       setLoading(true);
       const { data, error } = await supabase
         .from("news_posts")
-        .select("*")
+        .select(`
+          *,
+          creator:created_by (
+            id,
+            full_name,
+            email,
+            role
+          ),
+          institution:institution_id (
+            id,
+            name,
+            email
+          )
+        `)
         .eq("institution_id", institutionId)
         .order("created_at", { ascending: false });
 
