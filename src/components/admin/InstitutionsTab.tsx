@@ -6,10 +6,8 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { 
   School, 
-  Plus, 
   Search, 
   Eye, 
   Edit, 
@@ -19,52 +17,28 @@ import {
   UserPlus
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { InstitutionModal } from "./InstitutionModal";
-import { InstitutionDetailModal } from "./InstitutionDetailModal";
-import { useQuery } from "@tanstack/react-query";
+
+// Temporary interface until migration is run
+interface Institution {
+  id: string;
+  name: string;
+  email: string;
+  mobile?: string;
+  status: 'active' | 'inactive';
+  logo_url?: string;
+  auth_user_id?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export const InstitutionsTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedInstitution, setSelectedInstitution] = useState<any>(null);
-  const [institutionModalOpen, setInstitutionModalOpen] = useState(false);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const { toast } = useToast();
 
-  // Fetch institutions
-  const { data: institutions = [], isLoading, refetch } = useQuery({
-    queryKey: ["institutions"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("institutions")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  // Fetch institution news counts
-  const { data: newsCounts = {} } = useQuery({
-    queryKey: ["institution-news-counts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("news_posts")
-        .select("institution_id")
-        .not("institution_id", "is", null);
-      
-      if (error) throw error;
-      
-      const counts: Record<string, number> = {};
-      data.forEach(news => {
-        if (news.institution_id) {
-          counts[news.institution_id] = (counts[news.institution_id] || 0) + 1;
-        }
-      });
-      return counts;
-    }
-  });
+  // Temporary placeholder data until migration is run
+  const institutions: Institution[] = [];
+  const newsCounts: Record<string, number> = {};
+  const isLoading = false;
 
   const filteredInstitutions = institutions.filter(institution =>
     institution.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,46 +46,35 @@ export const InstitutionsTab = () => {
   );
 
   const handleCreateInstitution = () => {
-    setSelectedInstitution(null);
-    setModalMode("create");
-    setInstitutionModalOpen(true);
+    toast({
+      title: "Migration Required",
+      description: "Please run the database migration first to enable institution management.",
+      variant: "destructive",
+    });
   };
 
-  const handleEditInstitution = (institution: any) => {
-    setSelectedInstitution(institution);
-    setModalMode("edit");
-    setInstitutionModalOpen(true);
+  const handleEditInstitution = (institution: Institution) => {
+    toast({
+      title: "Migration Required", 
+      description: "Please run the database migration first to enable institution management.",
+      variant: "destructive",
+    });
   };
 
-  const handleViewInstitution = (institution: any) => {
-    setSelectedInstitution(institution);
-    setDetailModalOpen(true);
+  const handleViewInstitution = (institution: Institution) => {
+    toast({
+      title: "Migration Required",
+      description: "Please run the database migration first to enable institution management.", 
+      variant: "destructive",
+    });
   };
 
   const handleToggleStatus = async (institutionId: string, currentStatus: string) => {
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
-    
-    try {
-      const { error } = await supabase
-        .from("institutions")
-        .update({ status: newStatus })
-        .eq("id", institutionId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Institution ${newStatus === "active" ? "activated" : "deactivated"} successfully`,
-      });
-      
-      refetch();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update institution status",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Migration Required",
+      description: "Please run the database migration first to enable institution management.",
+      variant: "destructive",
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -129,7 +92,7 @@ export const InstitutionsTab = () => {
     {
       key: "name",
       title: "Institution",
-      render: (value: any, institution: any) => (
+      render: (value: any, institution: Institution) => (
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
             {institution.logo_url ? (
@@ -152,7 +115,7 @@ export const InstitutionsTab = () => {
     {
       key: "mobile",
       title: "Contact",
-      render: (value: any, institution: any) => (
+      render: (value: any, institution: Institution) => (
         <div className="text-sm">{institution.mobile || "Not provided"}</div>
       ),
       mobileHidden: true
@@ -160,7 +123,7 @@ export const InstitutionsTab = () => {
     {
       key: "news_count",
       title: "News Posts",
-      render: (value: any, institution: any) => (
+      render: (value: any, institution: Institution) => (
         <div className="flex items-center space-x-1">
           <Newspaper className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">{newsCounts[institution.id] || 0}</span>
@@ -170,7 +133,7 @@ export const InstitutionsTab = () => {
     {
       key: "status",
       title: "Status",
-      render: (value: any, institution: any) => (
+      render: (value: any, institution: Institution) => (
         <Badge className={`${getStatusColor(institution.status)} text-xs`}>
           {institution.status}
         </Badge>
@@ -179,7 +142,7 @@ export const InstitutionsTab = () => {
     {
       key: "created_at",
       title: "Created",
-      render: (value: any, institution: any) => (
+      render: (value: any, institution: Institution) => (
         <div className="text-sm">
           {new Date(institution.created_at).toLocaleDateString()}
         </div>
@@ -189,7 +152,7 @@ export const InstitutionsTab = () => {
     {
       key: "actions",
       title: "Actions",
-      render: (value: any, institution: any) => (
+      render: (value: any, institution: Institution) => (
         <div className="flex space-x-1">
           <Button
             variant="ghost"
@@ -250,6 +213,21 @@ export const InstitutionsTab = () => {
           { label: "Institution Management", active: true }
         ]}
       />
+
+      {/* Migration Notice */}
+      <Card className="border-warning bg-warning/5">
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-2">
+            <School className="h-5 w-5 text-warning" />
+            <div>
+              <p className="font-medium text-warning">Database Migration Required</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Please run the database migration to enable institution management functionality.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -327,32 +305,10 @@ export const InstitutionsTab = () => {
             data={filteredInstitutions}
             columns={tableColumns}
             loading={isLoading}
-            emptyMessage="No institutions found"
+            emptyMessage="Run the database migration to enable institution management"
           />
         </CardContent>
       </Card>
-
-      {/* Institution Modal */}
-      <InstitutionModal
-        institution={selectedInstitution}
-        open={institutionModalOpen}
-        onOpenChange={setInstitutionModalOpen}
-        mode={modalMode}
-        onSuccess={() => {
-          refetch();
-          setInstitutionModalOpen(false);
-        }}
-      />
-
-      {/* Institution Detail Modal */}
-      {selectedInstitution && (
-        <InstitutionDetailModal
-          institution={selectedInstitution}
-          open={detailModalOpen}
-          onOpenChange={setDetailModalOpen}
-          newsCount={newsCounts[selectedInstitution.id] || 0}
-        />
-      )}
     </div>
   );
 };
