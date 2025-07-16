@@ -41,9 +41,8 @@ export function usePopupNotifications() {
   // Get user role for targeting
   const getUserRole = useCallback(() => {
     if (!userRole) return 'student';
-    return userRole === 'student' ? 'students' : 
-           userRole === 'merchant' ? 'merchants' : 
-           userRole;
+    console.log('[usePopupNotifications] User role mapping:', { userRole, mapped: userRole });
+    return userRole;
   }, [userRole]);
 
   // Simplified query without real-time subscription to prevent cascade
@@ -87,7 +86,7 @@ export function usePopupNotifications() {
               .select('id, title, message, image_url, button_text, button_url, priority, created_at, duration_seconds')
               .eq('popup_enabled', true)
               .eq('trigger_event', 'login')
-              .in('target_audience', ['all_users', userRoleForQuery])
+              .in('target_audience', ['all_users', userRoleForQuery, userRoleForQuery + 's'])
               .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
               .or(`schedule_time.is.null,schedule_time.lte.${new Date().toISOString()}`)
               .order('priority', { ascending: false });
