@@ -53,6 +53,7 @@ interface PopupNotification {
   trigger_event: string;
   created_at: string;
   updated_at: string;
+  active: boolean;
 }
 
 const targetAudienceOptions = [
@@ -123,7 +124,7 @@ export function PopupNotificationsTab() {
         expires_at: data.expires_at || null,
         duration_seconds: data.duration_seconds,
         trigger_event: data.trigger_event,
-        user_id: user?.id, // This will be overridden by the backend for system notifications
+        user_id: 'system', // System notifications for all users
         type: 'popup',
       });
 
@@ -201,6 +202,29 @@ export function PopupNotificationsTab() {
     },
   });
 
+  // Toggle active status mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ active })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['popup-notifications'] });
+      toast({ title: 'Notification status updated successfully' });
+    },
+    onError: (error) => {
+      toast({ 
+        title: 'Error updating notification status', 
+        description: error.message,
+        variant: 'destructive' 
+      });
+    },
+  });
+
   const onSubmit = (data: PopupNotificationForm) => {
     createNotificationMutation.mutate({
       ...data,
@@ -212,16 +236,23 @@ export function PopupNotificationsTab() {
     deleteNotificationMutation.mutate(id);
   };
 
+  const handleToggleActive = (id: string, currentActive: boolean) => {
+    toggleActiveMutation.mutate({ id, active: !currentActive });
+  };
+
   const getStatusBadge = (notification: PopupNotification) => {
     const now = new Date();
     const scheduleTime = notification.schedule_time ? new Date(notification.schedule_time) : null;
     const expiresAt = notification.expires_at ? new Date(notification.expires_at) : null;
 
+    if (!notification.active) {
+      return <Badge variant="secondary">Inactive</Badge>;
+    }
     if (expiresAt && expiresAt < now) {
       return <Badge variant="destructive">Expired</Badge>;
     }
     if (scheduleTime && scheduleTime > now) {
-      return <Badge variant="secondary">Scheduled</Badge>;
+      return <Badge variant="outline">Scheduled</Badge>;
     }
     return <Badge variant="default">Active</Badge>;
   };
@@ -332,6 +363,22 @@ export function PopupNotificationsTab() {
             }}>
               <Edit className="w-4 h-4 mr-2" />
               Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleToggleActive(notification.id, notification.active)}
+              disabled={toggleActiveMutation.isPending}
+            >
+              {notification.active ? (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Deactivate
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Activate
+                </>
+              )}
             </DropdownMenuItem>
             <AlertDialog>
               <AlertDialogTrigger asChild>

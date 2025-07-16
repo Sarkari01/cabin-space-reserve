@@ -1008,6 +1008,7 @@ export type Database = {
       notifications: {
         Row: {
           action_url: string | null
+          active: boolean | null
           button_text: string | null
           button_url: string | null
           click_count: number | null
@@ -1031,6 +1032,7 @@ export type Database = {
         }
         Insert: {
           action_url?: string | null
+          active?: boolean | null
           button_text?: string | null
           button_url?: string | null
           click_count?: number | null
@@ -1054,6 +1056,7 @@ export type Database = {
         }
         Update: {
           action_url?: string | null
+          active?: boolean | null
           button_text?: string | null
           button_url?: string | null
           click_count?: number | null
