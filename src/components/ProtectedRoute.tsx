@@ -60,7 +60,7 @@ const ProtectedRoute = ({
       navigate(dashboard, { replace: true });
       return;
     }
-  }, [user, userRole, loading, maintenanceLoading, maintenanceStatus.enabled, navigate, requiredRole, allowMultipleRoles]);
+  }, [user, userRole, loading, maintenanceLoading, maintenanceStatus.targetRoles, navigate, requiredRole, allowMultipleRoles]);
 
   // Show loading spinner while checking authentication and maintenance status
   if (loading || maintenanceLoading || !user || !userRole) {
