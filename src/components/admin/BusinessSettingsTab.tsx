@@ -7,12 +7,13 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandAssetUpload } from "@/components/BrandAssetUpload";
-import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard } from "lucide-react";
+import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift } from "lucide-react";
 
 export const BusinessSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
@@ -29,12 +30,18 @@ export const BusinessSettingsTab = () => {
     support_phone: '',
     website_url: '',
     tagline: '',
+    // Trial Plan Settings
+    trial_plan_enabled: false,
+    trial_duration_days: 14,
+    trial_plan_name: 'Free Trial',
+    trial_max_study_halls: 1,
   });
   const [saving, setSaving] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState<Record<string, string>>({});
   const [validating, setValidating] = useState(false);
   const [brandSectionOpen, setBrandSectionOpen] = useState(true);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
+  const [trialSectionOpen, setTrialSectionOpen] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -50,6 +57,11 @@ export const BusinessSettingsTab = () => {
         support_phone: settings.support_phone || '',
         website_url: settings.website_url || '',
         tagline: settings.tagline || '',
+        // Trial Plan Settings
+        trial_plan_enabled: settings.trial_plan_enabled || false,
+        trial_duration_days: settings.trial_duration_days || 14,
+        trial_plan_name: settings.trial_plan_name || 'Free Trial',
+        trial_max_study_halls: settings.trial_max_study_halls || 1,
       });
     }
   }, [settings]);
@@ -373,6 +385,101 @@ export const BusinessSettingsTab = () => {
           </CardHeader>
         </Card>
           </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Separator />
+
+      {/* Trial Plan Section */}
+      <Collapsible open={trialSectionOpen} onOpenChange={setTrialSectionOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+            <div className="flex items-center gap-2">
+              <Gift className="h-5 w-5" />
+              <span className="text-lg font-medium">Free Trial Plans</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 transition-transform ${trialSectionOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle className="text-base">Trial Plan Configuration</CardTitle>
+                <CardDescription>
+                  Configure free trial plans for new merchants. Merchants can use trial plans once before upgrading to paid plans.
+                </CardDescription>
+              </div>
+              <Switch
+                checked={formData.trial_plan_enabled}
+                onCheckedChange={(checked) =>
+                  setFormData(prev => ({ ...prev, trial_plan_enabled: checked }))
+                }
+              />
+            </CardHeader>
+            {formData.trial_plan_enabled && (
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="trial-plan-name">Trial Plan Name</Label>
+                    <Input
+                      id="trial-plan-name"
+                      value={formData.trial_plan_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, trial_plan_name: e.target.value }))}
+                      placeholder="Free Trial"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="trial-duration">Trial Duration</Label>
+                    <Select
+                      value={formData.trial_duration_days.toString()}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, trial_duration_days: parseInt(value) }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">7 Days</SelectItem>
+                        <SelectItem value="14">14 Days</SelectItem>
+                        <SelectItem value="30">30 Days (1 Month)</SelectItem>
+                        <SelectItem value="60">60 Days (2 Months)</SelectItem>
+                        <SelectItem value="90">90 Days (3 Months)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="trial-max-study-halls">Maximum Study Halls During Trial</Label>
+                  <Input
+                    id="trial-max-study-halls"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formData.trial_max_study_halls}
+                    onChange={(e) => setFormData(prev => ({ ...prev, trial_max_study_halls: parseInt(e.target.value) || 1 }))}
+                    placeholder="1"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Number of study halls merchants can create during their trial period
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-medium text-blue-900 mb-2">Trial Plan Features</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Free for {formData.trial_duration_days} days</li>
+                    <li>• Maximum {formData.trial_max_study_halls} study hall{formData.trial_max_study_halls > 1 ? 's' : ''}</li>
+                    <li>• One-time use per merchant</li>
+                    <li>• Basic booking management</li>
+                    <li>• Email support</li>
+                    <li>• Automatic conversion prompts before expiry</li>
+                  </ul>
+                </div>
+              </CardContent>
+            )}
+          </Card>
         </CollapsibleContent>
       </Collapsible>
 

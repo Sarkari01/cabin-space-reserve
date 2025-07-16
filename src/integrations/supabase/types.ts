@@ -203,6 +203,10 @@ export type Database = {
           support_email: string | null
           support_phone: string | null
           tagline: string | null
+          trial_duration_days: number | null
+          trial_max_study_halls: number | null
+          trial_plan_enabled: boolean | null
+          trial_plan_name: string | null
           updated_at: string
           website_url: string | null
           withdrawal_processing_days: number | null
@@ -229,6 +233,10 @@ export type Database = {
           support_email?: string | null
           support_phone?: string | null
           tagline?: string | null
+          trial_duration_days?: number | null
+          trial_max_study_halls?: number | null
+          trial_plan_enabled?: boolean | null
+          trial_plan_name?: string | null
           updated_at?: string
           website_url?: string | null
           withdrawal_processing_days?: number | null
@@ -255,6 +263,10 @@ export type Database = {
           support_email?: string | null
           support_phone?: string | null
           tagline?: string | null
+          trial_duration_days?: number | null
+          trial_max_study_halls?: number | null
+          trial_plan_enabled?: boolean | null
+          trial_plan_name?: string | null
           updated_at?: string
           website_url?: string | null
           withdrawal_processing_days?: number | null
@@ -2186,6 +2198,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_trial_subscription: {
+        Args: { p_merchant_id: string }
+        Returns: Json
+      }
       audit_and_fix_study_hall_seats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2359,6 +2375,15 @@ export type Database = {
           merchant_id: string
         }[]
       }
+      get_trial_plan_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          enabled: boolean
+          duration_days: number
+          plan_name: string
+          max_study_halls: number
+        }[]
+      }
       get_unsettled_transactions_summary: {
         Args: { p_merchant_id: string }
         Returns: {
@@ -2366,6 +2391,10 @@ export type Database = {
           total_amount: number
           oldest_transaction_date: string
         }[]
+      }
+      has_merchant_used_trial: {
+        Args: { p_merchant_id: string }
+        Returns: boolean
       }
       is_admin: {
         Args: Record<PropertyKey, never>

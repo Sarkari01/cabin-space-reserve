@@ -14,6 +14,10 @@ export interface MerchantSubscription {
   payment_method: string;
   last_payment_date: string | null;
   next_payment_date: string | null;
+  is_trial?: boolean;
+  trial_start_date?: string | null;
+  trial_end_date?: string | null;
+  max_study_halls?: number | null;
   created_at: string;
   updated_at: string;
   plan: {

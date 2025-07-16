@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useMerchantSubscriptions } from "@/hooks/useMerchantSubscriptions";
 import { useSubscriptionPlans } from "@/hooks/useSubscriptionPlans";
+import { useTrialPlan } from "@/hooks/useTrialPlan";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Crown, Star, Zap, Check, X, Calendar, CreditCard, Settings } from "lucide-react";
+import { Loader2, Crown, Star, Zap, Check, X, Calendar, CreditCard, Settings, Gift } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { safeFormatDate } from "@/lib/dateUtils";
 import {
@@ -20,6 +21,7 @@ import { Progress } from "@/components/ui/progress";
 export const MerchantSubscriptionTab = () => {
   const { subscription, loading, createSubscription, cancelSubscription } = useMerchantSubscriptions();
   const { plans, loading: plansLoading } = useSubscriptionPlans();
+  const { trialSettings, isTrialEligible, activating, activateTrialPlan } = useTrialPlan();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -73,6 +75,10 @@ export const MerchantSubscriptionTab = () => {
     }
   };
 
+  const getTrialIcon = () => {
+    return <Gift className="h-5 w-5 text-green-500" />;
+  };
+
   const calculateDaysRemaining = (endDate: string) => {
     const end = new Date(endDate);
     const now = new Date();
@@ -100,20 +106,25 @@ export const MerchantSubscriptionTab = () => {
 
       {/* Current Subscription Status */}
       {subscription && subscription.status === "active" ? (
-        <Card className="border-2 border-primary/20">
+        <Card className={`border-2 ${subscription.is_trial ? 'border-green-200 bg-green-50' : 'border-primary/20'}`}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                {getPlanIcon(subscription.plan.name)}
+                {subscription.is_trial ? getTrialIcon() : getPlanIcon(subscription.plan.name)}
                 <div>
-                  <CardTitle className="text-xl">{subscription.plan.name} Plan</CardTitle>
-                  <CardDescription>
-                    ₹{subscription.plan.price.toLocaleString()}/{subscription.plan.duration}
+                  <CardTitle className={`text-xl ${subscription.is_trial ? 'text-green-800' : ''}`}>
+                    {subscription.is_trial ? trialSettings?.plan_name || 'Free Trial' : subscription.plan.name + ' Plan'}
+                  </CardTitle>
+                  <CardDescription className={subscription.is_trial ? 'text-green-600' : ''}>
+                    {subscription.is_trial ? 
+                      `Free Trial - ${calculateDaysRemaining(subscription.trial_end_date || subscription.end_date || '')} days remaining` :
+                      `₹${subscription.plan.price.toLocaleString()}/${subscription.plan.duration}`
+                    }
                   </CardDescription>
                 </div>
               </div>
-              <Badge variant="default">
-                {subscription.status}
+              <Badge variant={subscription.is_trial ? "secondary" : "default"} className={subscription.is_trial ? "bg-green-100 text-green-800 border-green-200" : ""}>
+                {subscription.is_trial ? "Trial Active" : subscription.status}
               </Badge>
             </div>
           </CardHeader>
@@ -317,6 +328,64 @@ export const MerchantSubscriptionTab = () => {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Free Trial Plan */}
+          {isTrialEligible && trialSettings && (
+            <Card className="border-2 border-green-200 bg-green-50">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Gift className="h-6 w-6 text-green-600" />
+                    <div>
+                      <CardTitle className="text-lg text-green-800">{trialSettings.plan_name}</CardTitle>
+                      <CardDescription className="text-green-600">
+                        Free for {trialSettings.duration_days} days
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                    Limited Time
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <ul className="text-sm text-green-700 space-y-1">
+                    <li>• Maximum {trialSettings.max_study_halls} study hall{trialSettings.max_study_halls > 1 ? 's' : ''}</li>
+                    <li>• Basic booking management</li>
+                    <li>• Email support</li>
+                    <li>• {trialSettings.duration_days} days trial period</li>
+                    <li>• One-time offer per merchant</li>
+                    <li>• No payment required</li>
+                  </ul>
+                  
+                  <div className="bg-green-100 p-3 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-800 font-medium">
+                      🎯 Perfect way to get started! Try our platform risk-free.
+                    </p>
+                  </div>
+
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={activateTrialPlan}
+                    disabled={activating}
+                  >
+                    {activating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Activating Trial...
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="h-4 w-4 mr-2" />
+                        Start Free Trial
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Available Plans */}
           <div className="grid md:grid-cols-3 gap-4">
