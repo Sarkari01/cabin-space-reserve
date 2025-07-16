@@ -55,3 +55,15 @@ export const useFAQCategories = () => {
     },
   });
 };
+
+export const useFAQ = (targetAudience: string = 'all') => {
+  const categoriesQuery = useFAQCategories();
+  const itemsQuery = useFAQItems(targetAudience);
+
+  return {
+    categories: categoriesQuery.data || [],
+    items: itemsQuery.data || [],
+    loading: categoriesQuery.isLoading || itemsQuery.isLoading,
+    error: categoriesQuery.error || itemsQuery.error
+  };
+};

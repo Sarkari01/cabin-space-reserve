@@ -10,7 +10,7 @@ import { useContactForm } from "@/hooks/useContactForm";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 export const ContactSection = () => {
-  const { submitForm, isSubmitting } = useContactForm();
+  const mutation = useContactForm();
   const { brandSettings } = useBrandSettings();
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -33,19 +33,19 @@ export const ContactSection = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const success = await submitForm(formData);
-    
-    if (success) {
-      setIsSubmitted(true);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        subject: "",
-        message: "",
-        priority: "normal"
-      });
-    }
+    mutation.mutate(formData, {
+      onSuccess: () => {
+        setIsSubmitted(true);
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          subject: "",
+          message: "",
+          priority: "normal"
+        });
+      }
+    });
   };
 
   const contactInfo = [
@@ -203,10 +203,10 @@ export const ContactSection = () => {
 
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={mutation.isPending}
                   className="w-full bg-gradient-to-r from-primary to-primary-glow hover:shadow-lg disabled:opacity-50"
                 >
-                  {isSubmitting ? (
+                  {mutation.isPending ? (
                     <div className="flex items-center space-x-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       <span>Sending...</span>
