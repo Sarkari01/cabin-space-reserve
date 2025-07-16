@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, MessageSquare, FileText, BarChart3, Sparkles, Copy, Download } from "lucide-react";
+import { Brain, MessageSquare, FileText, BarChart3, Sparkles, Copy, Download, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useGeminiAI } from "@/hooks/useGeminiAI";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { useToast } from "@/hooks/use-toast";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 export const AIAssistantTab = () => {
   const { 
@@ -21,12 +22,29 @@ export const AIAssistantTab = () => {
     generateMarketingContent 
   } = useGeminiAI();
   const { toast } = useToast();
+  const { settings } = useBusinessSettings();
   
   const [activeTask, setActiveTask] = useState<string>("");
   const [generatedContent, setGeneratedContent] = useState<string>("");
   const [inputText, setInputText] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("");
   const [chatHistory, setChatHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
+
+  // Check AI configuration status
+  const isGeminiEnabled = settings?.gemini_enabled ?? false;
+  const hasGeminiKey = settings?.gemini_api_key_preview !== null;
+  const isFullyConfigured = isGeminiEnabled && hasGeminiKey;
+  
+  const getConfigurationStatus = () => {
+    if (isFullyConfigured) {
+      return { icon: CheckCircle, text: "AI Ready", color: "text-green-600", bg: "bg-green-50" };
+    } else if (!hasGeminiKey) {
+      return { icon: XCircle, text: "API Key Required", color: "text-red-600", bg: "bg-red-50" };
+    } else if (!isGeminiEnabled) {
+      return { icon: AlertCircle, text: "AI Disabled", color: "text-yellow-600", bg: "bg-yellow-50" };
+    }
+    return { icon: XCircle, text: "Not Configured", color: "text-gray-600", bg: "bg-gray-50" };
+  };
 
   const handlePolicyGeneration = async () => {
     if (!inputText || !selectedType) return;
@@ -94,13 +112,54 @@ export const AIAssistantTab = () => {
     }
   };
 
+  const configStatus = getConfigurationStatus();
+  
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Brain className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">AI Assistant</h2>
-        <Badge variant="secondary">Powered by Gemini</Badge>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Brain className="h-6 w-6 text-primary" />
+          <h2 className="text-2xl font-bold">AI Assistant</h2>
+          <Badge variant="secondary">Powered by Gemini</Badge>
+        </div>
+        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${configStatus.bg}`}>
+          <configStatus.icon className={`h-4 w-4 ${configStatus.color}`} />
+          <span className={`text-sm font-medium ${configStatus.color}`}>
+            {configStatus.text}
+          </span>
+        </div>
       </div>
+
+      {!isFullyConfigured && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div className="space-y-2">
+                <h3 className="font-medium text-amber-800">AI Assistant Setup Required</h3>
+                <div className="text-sm text-amber-700 space-y-1">
+                  {!hasGeminiKey && (
+                    <p>• Please add your Gemini API key in <strong>Business Settings → API Keys</strong></p>
+                  )}
+                  {!isGeminiEnabled && (
+                    <p>• Please enable Gemini AI in <strong>Business Settings → Payment Gateways</strong></p>
+                  )}
+                </div>
+                <div className="pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => window.location.hash = '#business-settings'}
+                    className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                  >
+                    Go to Business Settings
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="policy" className="w-full">
         <TabsList className="grid w-full grid-cols-4">

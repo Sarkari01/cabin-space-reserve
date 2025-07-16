@@ -6,37 +6,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to get secret from Supabase
+// Function to get secret from Supabase Management API
 async function getSupabaseSecret(secretName: string): Promise<string | null> {
   try {
-    const projectRef = Deno.env.get('SUPABASE_PROJECT_REF');
+    const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'jseyxxsptcckjumjcljk';
+    const managementUrl = `https://api.supabase.com/v1/projects/${projectId}/secrets`;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!projectRef || !serviceRoleKey) {
-      console.error('Missing Supabase environment variables');
+    if (!serviceRoleKey) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY not found');
       return null;
     }
 
-    const response = await fetch(
-      `https://${projectRef}.supabase.co/rest/v1/rpc/get_secret`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'Content-Type': 'application/json',
-          'apikey': serviceRoleKey,
-        },
-        body: JSON.stringify({ secret_name: secretName }),
+    const response = await fetch(managementUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json'
       }
-    );
+    });
 
     if (!response.ok) {
-      console.error(`Failed to get secret ${secretName}:`, response.status);
+      console.error(`Failed to fetch secrets: ${response.status} ${response.statusText}`);
       return null;
     }
 
-    const data = await response.json();
-    return data || null;
+    const secrets = await response.json();
+    const secret = secrets.find((s: any) => s.name === secretName);
+    return secret?.value || null;
   } catch (error) {
     console.error(`Error getting secret ${secretName}:`, error);
     return null;
@@ -56,9 +53,30 @@ serve(async (req) => {
       throw new Error('Prompt is required');
     }
 
+    // Check if Gemini AI is enabled in business settings first
+    const supabaseUrl = 'https://jseyxxsptcckjumjcljk.supabase.co';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseKey) {
+      throw new Error('Supabase service key not found');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Check business settings
+    const { data: settings } = await supabase
+      .from('business_settings')
+      .select('gemini_enabled')
+      .limit(1)
+      .single();
+
+    if (!settings?.gemini_enabled) {
+      throw new Error('Gemini AI is not enabled. Please enable it in Business Settings.');
+    }
+
     const geminiApiKey = await getSupabaseSecret('GEMINI_API_KEY');
     if (!geminiApiKey) {
-      throw new Error('Gemini API key not configured');
+      throw new Error('Gemini API key not configured. Please add your Gemini API key in Business Settings → API Keys.');
     }
 
     console.log(`Processing ${type} request with Gemini AI`);
