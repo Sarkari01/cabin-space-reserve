@@ -36,6 +36,7 @@ import { CouponsTab as MerchantCouponsTab } from "@/components/merchant/CouponsT
 import { SubscriptionStatusCard } from "@/components/SubscriptionStatusCard";
 import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
 import { InchargeManagementTab } from "@/components/merchant/InchargeManagementTab";
+import { MerchantReviewsTab } from "@/components/merchant/MerchantReviewsTab";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
@@ -376,6 +377,11 @@ const MerchantDashboard = () => {
         {/* Coupons Tab */}
         {activeTab === "coupons" && (
           <MerchantCouponsTab />
+        )}
+
+        {/* Reviews Tab */}
+        {activeTab === "reviews" && (
+          <MerchantReviewsTab />
         )}
 
         {/* Main Content based on active tab */}

@@ -34,6 +34,7 @@ import {
   Briefcase,
   PieChart,
   Activity,
+  Star,
 } from "lucide-react";
 import {
   Sidebar,
@@ -87,6 +88,7 @@ const sidebarItems = {
     ],
     growth: [
       { title: "Coupons & Promotions", url: "/merchant/dashboard", icon: Ticket, tab: "coupons" },
+      { title: "Reviews", url: "/merchant/dashboard", icon: Star, tab: "reviews" },
       { title: "Users", url: "/merchant/dashboard", icon: Users, tab: "users" },
       { title: "Analytics", url: "/merchant/dashboard", icon: BarChart3, tab: "analytics" },
     ],
@@ -127,6 +129,7 @@ const sidebarItems = {
     ],
     marketing: [
       { title: "Coupons", url: "/admin/dashboard", icon: Ticket, tab: "coupons" },
+      { title: "Reviews", url: "/admin/dashboard", icon: Star, tab: "reviews" },
       { title: "Banners", url: "/admin/dashboard", icon: BookOpen, tab: "banners" },
       { title: "News", url: "/admin/dashboard", icon: Newspaper, tab: "news" },
       { title: "Rewards Settings", url: "/admin/dashboard", icon: Settings, tab: "rewards-settings" },
