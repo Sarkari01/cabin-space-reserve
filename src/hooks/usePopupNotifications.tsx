@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -23,38 +23,69 @@ interface PopupUserInteraction {
 }
 
 export function usePopupNotifications() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { user, userRole, loading } = useAuth();
   const [shownNotifications, setShownNotifications] = useState<Set<string>>(new Set());
+  const [hasTriggeredLogin, setHasTriggeredLogin] = useState(false);
 
   // Get user role for targeting
   const getUserRole = useCallback(() => {
-    if (!user) return 'student';
-    // You might want to get this from a profile or user context
-    return 'student'; // Default fallback
-  }, [user]);
+    if (!userRole) return 'student';
+    return userRole === 'student' ? 'students' : 
+           userRole === 'merchant' ? 'merchants' : 
+           userRole;
+  }, [userRole]);
 
-  // Fetch active popup notifications for the current user
+  // Fetch active popup notifications for the current user (both general and login)
   const { data: notifications = [], refetch } = useQuery({
-    queryKey: ['popup-notifications', user?.id],
+    queryKey: ['popup-notifications', user?.id, userRole, hasTriggeredLogin],
     queryFn: async () => {
       if (!user) return [];
 
-      const userRole = getUserRole();
+      const userRoleForQuery = getUserRole();
       
-      const { data, error } = await supabase.rpc('get_active_popup_notifications', {
+      // Get both general notifications and login notifications
+      const generalQuery = supabase.rpc('get_active_popup_notifications', {
         p_user_id: user.id,
-        p_user_role: userRole
+        p_user_role: userRoleForQuery
       });
+      
+      // Get login notifications only if login was triggered
+      let loginNotifications: PopupNotification[] = [];
+      if (hasTriggeredLogin) {
+        const { data: loginData, error: loginError } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('popup_enabled', true)
+          .eq('trigger_event', 'login')
+          .in('target_audience', ['all_users', userRoleForQuery])
+          .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+          .or(`schedule_time.is.null,schedule_time.lte.${new Date().toISOString()}`)
+          .order('priority', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching popup notifications:', error);
-        return [];
+        if (!loginError && loginData) {
+          loginNotifications = loginData.filter(notification => {
+            const sessionKey = `login-notification-${notification.id}-${user.id}`;
+            return !sessionStorage.getItem(sessionKey);
+          });
+        }
       }
 
-      return data as PopupNotification[];
+      const { data: generalData, error: generalError } = await generalQuery;
+
+      if (generalError) {
+        console.error('Error fetching popup notifications:', generalError);
+        return loginNotifications;
+      }
+
+      // Combine and deduplicate notifications
+      const allNotifications = [...(generalData || []), ...loginNotifications];
+      const uniqueNotifications = allNotifications.filter((notification, index, array) => 
+        array.findIndex(n => n.id === notification.id) === index
+      );
+
+      return uniqueNotifications as PopupNotification[];
     },
-    enabled: !!user,
+    enabled: !!user && !loading,
     refetchInterval: 30000, // Refetch every 30 seconds for new notifications
   });
 
@@ -121,6 +152,12 @@ export function usePopupNotifications() {
             .eq('id', notificationId);
         }
       }
+      
+      // Mark login notifications in session storage
+      if (action === 'shown' || action === 'dismissed') {
+        const sessionKey = `login-notification-${notificationId}-${user.id}`;
+        sessionStorage.setItem(sessionKey, 'true');
+      }
     },
     onError: (error) => {
       console.error('Error tracking notification interaction:', error);
@@ -156,7 +193,11 @@ export function usePopupNotifications() {
     });
     
     // Refetch to get updated list
-    setTimeout(() => refetch(), 1000);
+    // Use shorter delay and avoid unnecessary refetch if possible
+    setTimeout(() => {
+      console.log('[POPUP] Refetching after dismiss');
+      refetch();
+    }, 500);
   }, [trackInteractionMutation, refetch]);
 
   // Handle notification clicked
@@ -194,6 +235,22 @@ export function usePopupNotifications() {
       supabase.removeChannel(channel);
     };
   }, [user, refetch]);
+
+  // Trigger login notifications on user authentication
+  useEffect(() => {
+    if (user && !loading && !hasTriggeredLogin) {
+      console.log('[POPUP] Triggering login notifications for user:', user.id);
+      setHasTriggeredLogin(true);
+    }
+  }, [user, loading, hasTriggeredLogin]);
+
+  // Reset on user change
+  useEffect(() => {
+    if (!user) {
+      setHasTriggeredLogin(false);
+      setShownNotifications(new Set());
+    }
+  }, [user]);
 
   // Filter out notifications that have been dismissed or shown
   const pendingNotifications = notifications.filter(
