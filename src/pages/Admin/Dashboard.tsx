@@ -53,6 +53,7 @@ import { AdminReviewsTab } from "@/components/admin/AdminReviewsTab";
 import { StudyHallModal } from "@/components/StudyHallModal";
 import { InstitutionsTab } from "@/components/admin/InstitutionsTab";
 import { AdminReportsTab } from "@/components/reports/AdminReportsTab";
+import { AllMerchantsTab } from "@/components/admin/AllMerchantsTab";
 
 
 const AdminDashboard = () => {
@@ -924,6 +925,9 @@ const AdminDashboard = () => {
 
           {/* Merchant Subscriptions Tab */}
           {activeTab === "merchant-subscriptions" && <MerchantSubscriptionManagementTab />}
+
+          {/* All Merchants Tab */}
+          {activeTab === "all-merchants" && <AllMerchantsTab />}
 
           {/* EKQR Recovery Tab */}
           {activeTab === "ekqr-recovery" && <EKQRRecoveryTab />}

@@ -116,6 +116,7 @@ const sidebarItems = {
     ],
     businessMgmt: [
       { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
+      { title: "All Merchants", url: "/admin/dashboard", icon: Users, tab: "all-merchants" },
       { title: "Merchant Verification", url: "/admin/dashboard", icon: ShieldCheck, tab: "merchantverification" },
       { title: "Incharges", url: "/admin/dashboard", icon: UserPlus, tab: "incharges" },
       { title: "Settlements", url: "/admin/dashboard", icon: ArrowUpDown, tab: "settlements" },
