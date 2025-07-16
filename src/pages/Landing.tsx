@@ -6,7 +6,10 @@ import LandingNavigation from "@/components/landing/LandingNavigation";
 import HeroSection from "@/components/landing/HeroSection";
 import AboutSection from "@/components/landing/AboutSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import PricingSection from "@/components/landing/PricingSection";
+import FAQSection from "@/components/landing/FAQSection";
+import NewsletterSection from "@/components/landing/NewsletterSection";
 import ContactSection from "@/components/landing/ContactSection";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { usePolicyPages } from "@/hooks/usePolicyPages";
@@ -48,7 +51,10 @@ const Landing = () => {
       <HeroSection />
       <AboutSection />
       <FeaturesSection />
+      <TestimonialsSection />
       <PricingSection />
+      <FAQSection />
+      <NewsletterSection />
       <ContactSection />
       
       {/* Footer */}
