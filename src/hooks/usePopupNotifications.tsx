@@ -23,42 +23,31 @@ interface PopupUserInteraction {
   clicked_at?: string;
 }
 
-// Global state to prevent concurrent processing
-let isProcessingNotifications = false;
-
 export function usePopupNotifications() {
   const { user, userRole, loading } = useAuth();
   const [shownNotifications, setShownNotifications] = useState<Set<string>>(new Set());
-  const [hasTriggeredLogin, setHasTriggeredLogin] = useState(false);
 
   console.log('[usePopupNotifications] Hook state:', { 
     userId: user?.id, 
     userRole,
-    hasTriggeredLogin,
     shownCount: shownNotifications.size 
   });
 
   // Get user role for targeting
   const getUserRole = useCallback(() => {
-    if (!userRole) {
-      console.log('[usePopupNotifications] No userRole available, defaulting to student');
-      return 'student';
-    }
-    console.log('[usePopupNotifications] User role mapping:', { userRole, mapped: userRole });
-    return userRole;
+    return userRole || 'student';
   }, [userRole]);
 
-  // Simplified query without real-time subscription to prevent cascade
+  // Simplified query for general notifications
   const { data: notifications = [], refetch } = useQuery({
     queryKey: ['popup-notifications', user?.id, userRole],
     queryFn: async () => {
-      if (!user || isProcessingNotifications) {
-        console.log('[usePopupNotifications] Skipping query - no user or processing');
+      if (!user) {
+        console.log('[usePopupNotifications] No user, skipping query');
         return [];
       }
 
-      console.log('[usePopupNotifications] Fetching notifications with role:', { userRole, userId: user.id });
-      isProcessingNotifications = true;
+      console.log('[usePopupNotifications] Fetching notifications for user:', user.id, 'role:', userRole);
 
       try {
         const userRoleForQuery = getUserRole();
@@ -74,60 +63,22 @@ export function usePopupNotifications() {
           return [];
         }
 
-        let allNotifications: PopupNotification[] = generalData || [];
+        const allNotifications: PopupNotification[] = generalData || [];
 
-        // Get login notifications if triggered and not already shown this session
-        if (hasTriggeredLogin) {
-          const loginSessionKey = `login-notifications-${user.id}`;
-          const hasShownLoginNotifications = sessionStorage.getItem(loginSessionKey);
-          
-          if (!hasShownLoginNotifications) {
-            console.log('[usePopupNotifications] Fetching login notifications');
-            
-            const { data: loginData, error: loginError } = await supabase
-              .from('notifications')
-              .select('id, title, message, image_url, button_text, button_url, priority, created_at, duration_seconds')
-              .eq('popup_enabled', true)
-              .eq('trigger_event', 'login')
-              .in('target_audience', ['all_users', userRoleForQuery, userRoleForQuery + 's'])
-              .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-              .or(`schedule_time.is.null,schedule_time.lte.${new Date().toISOString()}`)
-              .order('priority', { ascending: false });
-
-            if (!loginError && loginData) {
-              // Filter out already dismissed login notifications
-              const filteredLoginNotifications = loginData.filter(notification => {
-                // Check if dismissed
-                const dismissedKey = `dismissed-login-${notification.id}-${user.id}`;
-                return !sessionStorage.getItem(dismissedKey);
-              });
-              
-              allNotifications = [...allNotifications, ...filteredLoginNotifications];
-              
-              // Mark that we've fetched login notifications this session
-              sessionStorage.setItem(loginSessionKey, 'true');
-            }
-          }
-        }
-
-        // Deduplicate
-        const uniqueNotifications = allNotifications.filter((notification, index, array) => 
-          array.findIndex(n => n.id === notification.id) === index
-        );
-
-        console.log('[usePopupNotifications] Returning notifications:', uniqueNotifications);
-        return uniqueNotifications;
-      } finally {
-        isProcessingNotifications = false;
+        console.log('[usePopupNotifications] Fetched notifications:', allNotifications.length);
+        return allNotifications;
+      } catch (error) {
+        console.error('[usePopupNotifications] Query error:', error);
+        return [];
       }
     },
-    enabled: !!user && !!userRole && !loading,
-    staleTime: 60000, // 1 minute
+    enabled: !!user && !loading,
+    staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
 
-  // Simplified mutation without stats updates to prevent cascading
+  // Simplified mutation for tracking interactions
   const trackInteractionMutation = useMutation({
     mutationFn: async ({
       notificationId,
@@ -171,12 +122,6 @@ export function usePopupNotifications() {
           if (insertError) {
             console.error('[usePopupNotifications] Insert error:', insertError);
           }
-        }
-        
-        // Store dismissal in session storage for login notifications
-        if (action === 'dismissed') {
-          const dismissedKey = `dismissed-login-${notificationId}-${user.id}`;
-          sessionStorage.setItem(dismissedKey, 'true');
         }
       } catch (error) {
         console.error('[usePopupNotifications] Interaction tracking error:', error);
@@ -234,18 +179,10 @@ export function usePopupNotifications() {
     }, 0);
   }, []);
 
-  // Trigger login notifications on user authentication - wait for role
-  useEffect(() => {
-    if (user && userRole && !loading && !hasTriggeredLogin) {
-      console.log('[usePopupNotifications] Triggering login notifications for user:', user.id, 'role:', userRole);
-      setHasTriggeredLogin(true);
-    }
-  }, [user, userRole, loading, hasTriggeredLogin]);
-
-  // Invalidate and refetch notifications when userRole changes
+  // Refetch notifications when userRole changes
   useEffect(() => {
     if (user && userRole && !loading) {
-      console.log('[usePopupNotifications] Role changed, refetching notifications:', { userRole });
+      console.log('[usePopupNotifications] User authenticated, refetching notifications');
       refetch();
     }
   }, [user, userRole, loading, refetch]);
@@ -254,13 +191,7 @@ export function usePopupNotifications() {
   useEffect(() => {
     if (!user) {
       console.log('[usePopupNotifications] User logged out, resetting state');
-      setHasTriggeredLogin(false);
       setShownNotifications(new Set());
-      // Clear session storage for this user
-      const keys = Object.keys(sessionStorage).filter(key => 
-        key.includes('login-notification') || key.includes('dismissed-login')
-      );
-      keys.forEach(key => sessionStorage.removeItem(key));
     }
   }, [user]);
 

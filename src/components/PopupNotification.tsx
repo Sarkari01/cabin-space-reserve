@@ -159,62 +159,54 @@ export function PopupNotificationManager({
 }: PopupNotificationManagerProps) {
   const [currentNotificationIndex, setCurrentNotificationIndex] = useState(0);
   const [isShowing, setIsShowing] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processedIds] = useState<Set<string>>(new Set());
 
-  // Memoized handlers to prevent re-renders
-  const memoizedOnNotificationShown = useCallback(onNotificationShown, []);
-  const memoizedOnNotificationClicked = useCallback(onNotificationClicked, []);
-  const memoizedOnNotificationDismissed = useCallback(onNotificationDismissed, []);
+  console.log('[PopupNotificationManager] State:', { 
+    totalNotifications: notifications.length, 
+    currentIndex: currentNotificationIndex, 
+    isShowing 
+  });
 
-  // Show notifications one at a time with proper guards
+  // Reset index when notifications change
   useEffect(() => {
-    if (isProcessing || notifications.length === 0 || currentNotificationIndex >= notifications.length || isShowing) {
+    console.log('[PopupNotificationManager] Notifications changed, resetting index');
+    setCurrentNotificationIndex(0);
+    setIsShowing(false);
+  }, [notifications.length]);
+
+  // Show the current notification
+  useEffect(() => {
+    if (notifications.length === 0 || currentNotificationIndex >= notifications.length || isShowing) {
       return;
     }
 
     const currentNotification = notifications[currentNotificationIndex];
-    
-    if (!currentNotification || processedIds.has(currentNotification.id)) {
-      // Skip to next notification
-      setCurrentNotificationIndex(prev => prev + 1);
+    if (!currentNotification) {
       return;
     }
 
     console.log('[PopupNotificationManager] Showing notification:', currentNotification.id);
-    
-    setIsProcessing(true);
     setIsShowing(true);
-    processedIds.add(currentNotification.id);
-    
-    // Call the handler and immediately mark as processed to prevent loops
-    memoizedOnNotificationShown(currentNotification.id);
-    
-    // Brief timeout to prevent rapid state changes
-    setTimeout(() => {
-      setIsProcessing(false);
-    }, 100);
-  }, [notifications.length, currentNotificationIndex, isShowing, isProcessing, memoizedOnNotificationShown]);
+    onNotificationShown(currentNotification.id);
+  }, [notifications, currentNotificationIndex, isShowing, onNotificationShown]);
 
   const handleClose = useCallback(() => {
     const currentNotification = notifications[currentNotificationIndex];
     if (currentNotification) {
-      memoizedOnNotificationDismissed(currentNotification.id);
+      console.log('[PopupNotificationManager] Closing notification:', currentNotification.id);
+      onNotificationDismissed(currentNotification.id);
     }
     
-    // Batch state updates to prevent multiple re-renders
     setIsShowing(false);
-    setTimeout(() => {
-      setCurrentNotificationIndex(prev => prev + 1);
-    }, 50);
-  }, [notifications, currentNotificationIndex, memoizedOnNotificationDismissed]);
+    setCurrentNotificationIndex(prev => prev + 1);
+  }, [notifications, currentNotificationIndex, onNotificationDismissed]);
 
   const handleButtonClick = useCallback(() => {
     const currentNotification = notifications[currentNotificationIndex];
     if (currentNotification) {
-      memoizedOnNotificationClicked(currentNotification.id);
+      console.log('[PopupNotificationManager] Button clicked for notification:', currentNotification.id);
+      onNotificationClicked(currentNotification.id);
     }
-  }, [notifications, currentNotificationIndex, memoizedOnNotificationClicked]);
+  }, [notifications, currentNotificationIndex, onNotificationClicked]);
 
   if (!notifications.length || currentNotificationIndex >= notifications.length) {
     return null;
