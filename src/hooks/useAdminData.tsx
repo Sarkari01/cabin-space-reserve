@@ -17,7 +17,7 @@ export interface UserProfile {
   email: string;
   full_name: string | null;
   phone: string | null;
-  role: 'admin' | 'merchant' | 'student' | 'incharge' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator';
+  role: 'admin' | 'merchant' | 'student' | 'incharge' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator' | 'institution';
   created_at: string;
   updated_at: string;
 }
