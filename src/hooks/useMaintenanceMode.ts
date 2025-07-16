@@ -5,13 +5,15 @@ interface MaintenanceStatus {
   enabled: boolean;
   message: string;
   estimatedReturn: string | null;
+  targetRoles: string[] | null;
 }
 
 export const useMaintenanceMode = () => {
   const [maintenanceStatus, setMaintenanceStatus] = useState<MaintenanceStatus>({
     enabled: false,
     message: 'We are currently performing maintenance. Please check back later.',
-    estimatedReturn: null
+    estimatedReturn: null,
+    targetRoles: null
   });
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +21,7 @@ export const useMaintenanceMode = () => {
     try {
       const { data, error } = await supabase
         .from('business_settings')
-        .select('maintenance_mode_enabled, maintenance_message, maintenance_estimated_return')
+        .select('maintenance_mode_enabled, maintenance_message, maintenance_estimated_return, maintenance_target_roles')
         .maybeSingle();
 
       if (error) {
@@ -31,7 +33,8 @@ export const useMaintenanceMode = () => {
         setMaintenanceStatus({
           enabled: data.maintenance_mode_enabled || false,
           message: data.maintenance_message || 'We are currently performing maintenance. Please check back later.',
-          estimatedReturn: data.maintenance_estimated_return
+          estimatedReturn: data.maintenance_estimated_return,
+          targetRoles: data.maintenance_target_roles || null
         });
       }
     } catch (err) {
@@ -59,7 +62,8 @@ export const useMaintenanceMode = () => {
           setMaintenanceStatus({
             enabled: newData.maintenance_mode_enabled || false,
             message: newData.maintenance_message || 'We are currently performing maintenance. Please check back later.',
-            estimatedReturn: newData.maintenance_estimated_return
+            estimatedReturn: newData.maintenance_estimated_return,
+            targetRoles: newData.maintenance_target_roles || null
           });
         }
       )

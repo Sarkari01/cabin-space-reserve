@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +46,7 @@ export const BusinessSettingsTab = () => {
     maintenance_mode_enabled: false,
     maintenance_message: 'We are currently performing maintenance. Please check back later.',
     maintenance_estimated_return: '',
+    maintenance_target_roles: ['merchant', 'student', 'incharge', 'telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator', 'institution'],
   });
   const [saving, setSaving] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState<Record<string, string>>({});
@@ -89,6 +91,7 @@ export const BusinessSettingsTab = () => {
         maintenance_estimated_return: settings.maintenance_estimated_return 
           ? new Date(settings.maintenance_estimated_return).toISOString().slice(0, 16)
           : '',
+        maintenance_target_roles: settings.maintenance_target_roles || ['merchant', 'student', 'incharge', 'telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator', 'institution'],
       });
     }
   }, [settings]);
@@ -820,11 +823,79 @@ export const BusinessSettingsTab = () => {
                 </p>
               </div>
 
+              <div className="space-y-3">
+                <Label>Target User Roles</Label>
+                <p className="text-xs text-muted-foreground">
+                  Select which user roles will be affected by maintenance mode. Only these roles will see the maintenance screen.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: 'merchant', label: 'Merchants' },
+                    { value: 'student', label: 'Students' },
+                    { value: 'incharge', label: 'Incharges' },
+                    { value: 'institution', label: 'Institutions' },
+                    { value: 'telemarketing_executive', label: 'Telemarketing' },
+                    { value: 'pending_payments_caller', label: 'Payments Caller' },
+                    { value: 'customer_care_executive', label: 'Customer Care' },
+                    { value: 'settlement_manager', label: 'Settlement Manager' },
+                    { value: 'general_administrator', label: 'General Admin' }
+                  ].map((role) => (
+                    <div key={role.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`role-${role.value}`}
+                        checked={formData.maintenance_target_roles.includes(role.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              maintenance_target_roles: [...prev.maintenance_target_roles, role.value]
+                            }));
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              maintenance_target_roles: prev.maintenance_target_roles.filter(r => r !== role.value)
+                            }));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`role-${role.value}`} className="text-sm font-normal">
+                        {role.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      maintenance_target_roles: ['merchant', 'student', 'incharge', 'institution', 'telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator']
+                    }))}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      maintenance_target_roles: []
+                    }))}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <h4 className="font-medium text-blue-900 mb-2">Maintenance Mode Effects</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Only admin users can access the platform</li>
-                  <li>• All other users (Merchants, Students, etc.) see maintenance screen</li>
+                  <li>• Admin users can always access the platform</li>
+                  <li>• Selected user roles will see maintenance screen when enabled</li>
+                  <li>• Non-targeted roles can continue using the platform normally</li>
                   <li>• Custom maintenance message is displayed</li>
                   <li>• Estimated return time shown if configured</li>
                   <li>• Contact information displayed for urgent matters</li>

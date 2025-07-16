@@ -222,6 +222,7 @@ export type Database = {
           maintenance_estimated_return: string | null
           maintenance_message: string | null
           maintenance_mode_enabled: boolean | null
+          maintenance_target_roles: string[] | null
           min_redemption_points: number | null
           minimum_settlement_amount: number | null
           minimum_withdrawal_amount: number | null
@@ -263,6 +264,7 @@ export type Database = {
           maintenance_estimated_return?: string | null
           maintenance_message?: string | null
           maintenance_mode_enabled?: boolean | null
+          maintenance_target_roles?: string[] | null
           min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null
@@ -304,6 +306,7 @@ export type Database = {
           maintenance_estimated_return?: string | null
           maintenance_message?: string | null
           maintenance_mode_enabled?: boolean | null
+          maintenance_target_roles?: string[] | null
           min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null

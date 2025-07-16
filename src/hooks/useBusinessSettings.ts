@@ -36,6 +36,7 @@ interface BusinessSettings {
   maintenance_mode_enabled?: boolean;
   maintenance_message?: string;
   maintenance_estimated_return?: string;
+  maintenance_target_roles?: string[];
   // API Key previews
   google_maps_api_key_preview?: string;
   razorpay_key_id_preview?: string;
@@ -92,6 +93,7 @@ export const useBusinessSettings = () => {
           maintenance_mode_enabled: false,
           maintenance_message: 'We are currently performing maintenance. Please check back later.',
           maintenance_estimated_return: null,
+          maintenance_target_roles: ['merchant', 'student', 'incharge', 'telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator', 'institution'],
         };
 
         const { data: newData, error: createError } = await supabase

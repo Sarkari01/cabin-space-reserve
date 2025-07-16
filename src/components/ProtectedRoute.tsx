@@ -36,8 +36,14 @@ const ProtectedRoute = ({
 
     // Check maintenance mode - only admins can access during maintenance
     if (maintenanceStatus.enabled && userRole !== 'admin') {
-      navigate("/maintenance", { replace: true });
-      return;
+      // Check if user's role is targeted by maintenance mode
+      const targetRoles = maintenanceStatus.targetRoles;
+      const isTargetedRole = !targetRoles || targetRoles.length === 0 || targetRoles.includes(userRole);
+      
+      if (isTargetedRole) {
+        navigate("/maintenance", { replace: true });
+        return;
+      }
     }
 
     // Check role permissions
