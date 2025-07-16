@@ -28,12 +28,47 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
   
   const [saving, setSaving] = useState(false);
 
+  // Show loading state if institution is not loaded yet
+  if (!institutionId) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <span>Loading institution details...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Creating news post with institution ID:', institutionId);
+    
     if (!institutionId) {
       toast({
         title: "Error",
-        description: "Institution not found",
+        description: "Institution ID is missing. Please refresh the page and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Title is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      toast({
+        title: "Validation Error", 
+        description: "Content is required",
         variant: "destructive"
       });
       return;
@@ -41,30 +76,54 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
 
     try {
       setSaving(true);
-      await createNews({
-        ...formData,
+      
+      const newsData = {
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+        status: formData.status,
+        visible_to: formData.visible_to,
+        image_url: formData.image_url.trim() || null,
+        video_url: formData.video_url.trim() || null,
         institution_id: institutionId
-      });
+      };
       
-      toast({
-        title: "Success",
-        description: "News post created successfully",
-      });
+      console.log('News data being submitted:', newsData);
       
-      // Reset form
-      setFormData({
-        title: "",
-        content: "",
-        status: "active",
-        visible_to: "both",
-        image_url: "",
-        video_url: ""
-      });
-    } catch (error) {
+      const result = await createNews(newsData);
+      
+      if (result) {
+        toast({
+          title: "Success",
+          description: "News post created successfully",
+        });
+        
+        // Reset form only on success
+        setFormData({
+          title: "",
+          content: "",
+          status: "active",
+          visible_to: "both",
+          image_url: "",
+          video_url: ""
+        });
+      }
+    } catch (error: any) {
       console.error('Error creating news:', error);
+      
+      let errorMessage = "Failed to create news post";
+      
+      // Handle specific RLS errors
+      if (error?.message?.includes('row-level security')) {
+        errorMessage = "You don't have permission to create news posts for this institution";
+      } else if (error?.message?.includes('institution_id')) {
+        errorMessage = "Invalid institution. Please contact support.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create news post",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

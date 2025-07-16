@@ -63,6 +63,36 @@ export default function InstitutionDashboard() {
   };
 
   const renderTabContent = () => {
+    // Show loading state if institution is being loaded
+    if (institutionLoading && !currentInstitution) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <span>Loading institution data...</span>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // Show error state if no institution found
+    if (!institutionLoading && !currentInstitution) {
+      return (
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <p className="text-muted-foreground">No institution found for your account.</p>
+              <p className="text-sm text-muted-foreground">
+                Please contact support or create an institution profile first.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
     switch (activeTab) {
       case "create-news":
         return <InstitutionCreateNewsTab institutionId={currentInstitution?.id} />;
