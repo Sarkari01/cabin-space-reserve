@@ -1028,7 +1028,7 @@ export type Database = {
           trigger_event: string | null
           type: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           action_url?: string | null
@@ -1052,7 +1052,7 @@ export type Database = {
           trigger_event?: string | null
           type?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           action_url?: string | null
@@ -1076,7 +1076,7 @@ export type Database = {
           trigger_event?: string | null
           type?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

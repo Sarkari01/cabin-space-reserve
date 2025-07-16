@@ -124,7 +124,7 @@ export function PopupNotificationsTab() {
         expires_at: data.expires_at || null,
         duration_seconds: data.duration_seconds,
         trigger_event: data.trigger_event,
-        user_id: 'system', // System notifications for all users
+        user_id: null, // System notifications for all users
         type: 'popup',
       });
 
