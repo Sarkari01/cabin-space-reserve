@@ -130,7 +130,19 @@ export function PopupNotificationsTab() {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidate all popup notification related queries
       queryClient.invalidateQueries({ queryKey: ['popup-notifications'] });
+      
+      // Invalidate user-specific popup notification queries
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const queryKey = query.queryKey;
+          return Array.isArray(queryKey) && 
+                 queryKey.length >= 1 && 
+                 queryKey[0] === 'popup-notifications';
+        }
+      });
+      
       toast({ title: 'Popup notification created successfully' });
       setIsCreateModalOpen(false);
       form.reset();
@@ -155,9 +167,37 @@ export function PopupNotificationsTab() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
+      // Invalidate all popup notification related queries
       queryClient.invalidateQueries({ queryKey: ['popup-notifications'] });
+      
+      // Invalidate user-specific popup notification queries 
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const queryKey = query.queryKey;
+          return Array.isArray(queryKey) && 
+                 queryKey.length >= 1 && 
+                 queryKey[0] === 'popup-notifications';
+        }
+      });
+      
+      // Clear session storage for the deleted notification
+      const storageKeys = Object.keys(sessionStorage).filter(key => 
+        key.includes(`dismissed-login-${deletedId}`) || 
+        key.includes(`login-notifications`)
+      );
+      storageKeys.forEach(key => sessionStorage.removeItem(key));
+      
+      console.log('[PopupNotificationsTab] Deleted notification and cleared caches:', deletedId);
       toast({ title: 'Popup notification deleted successfully' });
+    },
+    onError: (error) => {
+      console.error('[PopupNotificationsTab] Delete error:', error);
+      toast({ 
+        title: 'Error deleting popup notification', 
+        description: error.message,
+        variant: 'destructive' 
+      });
     },
   });
 
