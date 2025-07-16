@@ -15,6 +15,14 @@ export interface BusinessSettings {
   points_per_referral?: number;
   points_profile_complete?: number;
   min_redemption_points?: number;
+  // Brand Identity Fields
+  logo_url?: string;
+  favicon_url?: string;
+  brand_name?: string;
+  support_email?: string;
+  support_phone?: string;
+  website_url?: string;
+  tagline?: string;
   created_at: string;
   updated_at: string;
 }
@@ -48,6 +56,7 @@ export const useBusinessSettings = () => {
             points_per_referral: 500,
             points_profile_complete: 100,
             min_redemption_points: 10,
+            brand_name: 'StudySpace Platform',
           })
           .select()
           .single();

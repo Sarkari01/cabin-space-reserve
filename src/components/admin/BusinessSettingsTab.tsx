@@ -6,10 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, RefreshCw } from "lucide-react";
+import { BrandAssetUpload } from "@/components/BrandAssetUpload";
+import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard } from "lucide-react";
 
 export const BusinessSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
@@ -18,10 +21,20 @@ export const BusinessSettingsTab = () => {
     ekqr_enabled: false,
     offline_enabled: true,
     razorpay_enabled: false,
+    // Brand Identity
+    logo_url: '',
+    favicon_url: '',
+    brand_name: 'StudySpace Platform',
+    support_email: '',
+    support_phone: '',
+    website_url: '',
+    tagline: '',
   });
   const [saving, setSaving] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState<Record<string, string>>({});
   const [validating, setValidating] = useState(false);
+  const [brandSectionOpen, setBrandSectionOpen] = useState(true);
+  const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -29,6 +42,14 @@ export const BusinessSettingsTab = () => {
         ekqr_enabled: settings.ekqr_enabled,
         offline_enabled: settings.offline_enabled,
         razorpay_enabled: settings.razorpay_enabled,
+        // Brand Identity
+        logo_url: settings.logo_url || '',
+        favicon_url: settings.favicon_url || '',
+        brand_name: settings.brand_name || 'StudySpace Platform',
+        support_email: settings.support_email || '',
+        support_phone: settings.support_phone || '',
+        website_url: settings.website_url || '',
+        tagline: settings.tagline || '',
       });
     }
   }, [settings]);
@@ -67,6 +88,24 @@ export const BusinessSettingsTab = () => {
     }
   };
 
+  // Validation functions
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const isValidPhone = (phone: string) => {
+    return /^[\+]?[\d\s\-\(\)]{10,}$/.test(phone);
+  };
+
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'configured':
@@ -90,29 +129,175 @@ export const BusinessSettingsTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium">Payment Gateway Settings</h3>
-          <p className="text-sm text-muted-foreground">
-            Configure your payment methods for study hall bookings
-          </p>
-        </div>
-        <Button 
-          onClick={validateGateways} 
-          variant="outline" 
-          size="sm"
-          disabled={validating}
-        >
-          {validating ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <RefreshCw className="h-4 w-4 mr-2" />
-          )}
-          Refresh Status
-        </Button>
+      <div>
+        <h3 className="text-lg font-medium">Business Settings</h3>
+        <p className="text-sm text-muted-foreground">
+          Configure your platform's brand identity and payment settings
+        </p>
       </div>
 
-      <div className="grid gap-6">
+      {/* Brand Identity Section */}
+      <Collapsible open={brandSectionOpen} onOpenChange={setBrandSectionOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              <span className="text-lg font-medium">Brand Identity</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 transition-transform ${brandSectionOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
+          <div className="grid gap-6">
+            {/* Logo Upload */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Platform Logo</CardTitle>
+                <CardDescription>
+                  Upload your platform logo. This will be displayed in the header and various locations.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BrandAssetUpload
+                  assetType="logo"
+                  currentAssetUrl={formData.logo_url}
+                  onAssetUploaded={(url) => setFormData(prev => ({ ...prev, logo_url: url }))}
+                  onAssetRemoved={() => setFormData(prev => ({ ...prev, logo_url: '' }))}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Favicon Upload */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Favicon</CardTitle>
+                <CardDescription>
+                  Upload your platform favicon. This will be displayed in browser tabs.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BrandAssetUpload
+                  assetType="favicon"
+                  currentAssetUrl={formData.favicon_url}
+                  onAssetUploaded={(url) => setFormData(prev => ({ ...prev, favicon_url: url }))}
+                  onAssetRemoved={() => setFormData(prev => ({ ...prev, favicon_url: '' }))}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Brand Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Brand Information</CardTitle>
+                <CardDescription>
+                  Configure your platform's basic brand information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="brand-name">Platform Name</Label>
+                  <Input
+                    id="brand-name"
+                    value={formData.brand_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, brand_name: e.target.value }))}
+                    placeholder="StudySpace Platform"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="support-email">Support Email</Label>
+                  <Input
+                    id="support-email"
+                    type="email"
+                    value={formData.support_email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, support_email: e.target.value }))}
+                    placeholder="support@studyspace.com"
+                    className={formData.support_email && !isValidEmail(formData.support_email) ? 'border-destructive' : ''}
+                  />
+                  {formData.support_email && !isValidEmail(formData.support_email) && (
+                    <p className="text-sm text-destructive">Please enter a valid email address</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="support-phone">Support Phone</Label>
+                  <Input
+                    id="support-phone"
+                    value={formData.support_phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, support_phone: e.target.value }))}
+                    placeholder="+1 (555) 123-4567"
+                    className={formData.support_phone && !isValidPhone(formData.support_phone) ? 'border-destructive' : ''}
+                  />
+                  {formData.support_phone && !isValidPhone(formData.support_phone) && (
+                    <p className="text-sm text-destructive">Please enter a valid phone number</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="website-url">Website URL (Optional)</Label>
+                  <Input
+                    id="website-url"
+                    type="url"
+                    value={formData.website_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, website_url: e.target.value }))}
+                    placeholder="https://studyspace.com"
+                    className={formData.website_url && !isValidUrl(formData.website_url) ? 'border-destructive' : ''}
+                  />
+                  {formData.website_url && !isValidUrl(formData.website_url) && (
+                    <p className="text-sm text-destructive">Please enter a valid URL</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tagline">Tagline (Optional)</Label>
+                  <Textarea
+                    id="tagline"
+                    value={formData.tagline}
+                    onChange={(e) => setFormData(prev => ({ ...prev, tagline: e.target.value }))}
+                    placeholder="Your study space awaits..."
+                    rows={2}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Separator />
+
+      {/* Payment Gateway Section */}
+      <Collapsible open={paymentSectionOpen} onOpenChange={setPaymentSectionOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              <span className="text-lg font-medium">Payment Gateways</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  validateGateways();
+                }} 
+                variant="outline" 
+                size="sm"
+                disabled={validating}
+              >
+                {validating ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Refresh Status
+              </Button>
+              <ChevronDown className={`h-4 w-4 transition-transform ${paymentSectionOpen ? 'rotate-180' : ''}`} />
+            </div>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
+
+          <div className="grid gap-6">
         {/* EKQR Payment Gateway */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -187,7 +372,9 @@ export const BusinessSettingsTab = () => {
             </div>
           </CardHeader>
         </Card>
-      </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 

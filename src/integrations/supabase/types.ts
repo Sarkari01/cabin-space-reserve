@@ -183,9 +183,12 @@ export type Database = {
       business_settings: {
         Row: {
           auto_approval_threshold: number | null
+          brand_name: string | null
           created_at: string
           ekqr_enabled: boolean
+          favicon_url: string | null
           id: string
+          logo_url: string | null
           min_redemption_points: number | null
           minimum_settlement_amount: number | null
           minimum_withdrawal_amount: number | null
@@ -197,14 +200,21 @@ export type Database = {
           razorpay_enabled: boolean
           rewards_conversion_rate: number | null
           rewards_enabled: boolean | null
+          support_email: string | null
+          support_phone: string | null
+          tagline: string | null
           updated_at: string
+          website_url: string | null
           withdrawal_processing_days: number | null
         }
         Insert: {
           auto_approval_threshold?: number | null
+          brand_name?: string | null
           created_at?: string
           ekqr_enabled?: boolean
+          favicon_url?: string | null
           id?: string
+          logo_url?: string | null
           min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null
@@ -216,14 +226,21 @@ export type Database = {
           razorpay_enabled?: boolean
           rewards_conversion_rate?: number | null
           rewards_enabled?: boolean | null
+          support_email?: string | null
+          support_phone?: string | null
+          tagline?: string | null
           updated_at?: string
+          website_url?: string | null
           withdrawal_processing_days?: number | null
         }
         Update: {
           auto_approval_threshold?: number | null
+          brand_name?: string | null
           created_at?: string
           ekqr_enabled?: boolean
+          favicon_url?: string | null
           id?: string
+          logo_url?: string | null
           min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null
@@ -235,7 +252,11 @@ export type Database = {
           razorpay_enabled?: boolean
           rewards_conversion_rate?: number | null
           rewards_enabled?: boolean | null
+          support_email?: string | null
+          support_phone?: string | null
+          tagline?: string | null
           updated_at?: string
+          website_url?: string | null
           withdrawal_processing_days?: number | null
         }
         Relationships: []
