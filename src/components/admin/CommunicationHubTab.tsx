@@ -116,7 +116,10 @@ export const CommunicationHubTab = () => {
 
   const handleCreateTemplate = async () => {
     try {
-      await createTemplate(templateForm);
+      await createTemplate({
+        ...templateForm,
+        variables: templateForm.variables.split(",").map(v => v.trim()).filter(v => v)
+      });
       setNewTemplateModalOpen(false);
       setTemplateForm({
         name: "",
@@ -441,7 +444,7 @@ export const CommunicationHubTab = () => {
             
             <div>
               <Label htmlFor="campaign-type">Type</Label>
-              <Select value={campaignForm.type} onValueChange={(value) => setCampaignForm({ ...campaignForm, type: value })}>
+              <Select value={campaignForm.type} onValueChange={(value: "email" | "sms" | "push" | "in_app") => setCampaignForm({ ...campaignForm, type: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -581,7 +584,7 @@ export const CommunicationHubTab = () => {
             
             <div>
               <Label htmlFor="priority">Priority</Label>
-              <Select value={messageForm.priority} onValueChange={(value) => setMessageForm({ ...messageForm, priority: value })}>
+              <Select value={messageForm.priority} onValueChange={(value: "low" | "normal" | "high" | "urgent") => setMessageForm({ ...messageForm, priority: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

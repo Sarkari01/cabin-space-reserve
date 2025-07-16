@@ -290,7 +290,7 @@ export const AdvancedTrialManagementTab = () => {
             
             <div>
               <Label htmlFor="trial-type">Trial Type</Label>
-              <Select value={trialForm.type} onValueChange={(value) => setTrialForm({ ...trialForm, type: value })}>
+              <Select value={trialForm.type} onValueChange={(value: "time_limited" | "feature_limited" | "usage_limited" | "hybrid") => setTrialForm({ ...trialForm, type: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

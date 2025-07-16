@@ -298,8 +298,16 @@ export const useCommunicationHub = () => {
     }
   };
 
-  const createTemplate = async (templateData: Partial<Template>) => {
+  const createTemplate = async (templateData: any) => {
     try {
+      let processedVariables: string[] = [];
+      
+      if (Array.isArray(templateData.variables)) {
+        processedVariables = templateData.variables;
+      } else if (typeof templateData.variables === 'string' && templateData.variables) {
+        processedVariables = templateData.variables.split(",").map((v: string) => v.trim()).filter((v: string) => v);
+      }
+      
       const newTemplate: Template = {
         id: Date.now().toString(),
         name: templateData.name || "",
@@ -307,7 +315,7 @@ export const useCommunicationHub = () => {
         category: templateData.category || "general",
         subject: templateData.subject || "",
         content: templateData.content || "",
-        variables: typeof templateData.variables === 'string' ? templateData.variables.split(",").map(v => v.trim()) : [],
+        variables: processedVariables,
         usage_count: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
