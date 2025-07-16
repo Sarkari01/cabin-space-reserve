@@ -9,10 +9,12 @@ import { BankDetailsStep } from "./onboarding/BankDetailsStep";
 import { KYCDocumentsStep } from "./onboarding/KYCDocumentsStep";
 import { CheckCircle, Building, CreditCard, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 export const MerchantOnboardingForm = () => {
   const { user } = useAuth();
   const { profile, updateProfile, completeOnboarding, refetch } = useMerchantProfile();
+  const { brandSettings } = useBrandSettings();
   const [currentStep, setCurrentStep] = useState(profile?.onboarding_step || 1);
   const [loading, setLoading] = useState(false);
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
@@ -127,7 +129,7 @@ export const MerchantOnboardingForm = () => {
             Complete Your Merchant Profile
           </h1>
           <p className="text-muted-foreground">
-            Please provide the required information to start using CabinSpace as a merchant
+            Please provide the required information to start using {brandSettings.brand_name || 'CabinSpace'} as a merchant
           </p>
         </div>
 
@@ -195,7 +197,7 @@ export const MerchantOnboardingForm = () => {
         </Card>
 
         <div className="text-center mt-6 text-sm text-muted-foreground">
-          <p>Need help? Contact our support team at support@cabinspace.com</p>
+          <p>Need help? Contact our support team at {brandSettings.support_email || 'support@cabinspace.com'}</p>
         </div>
       </div>
     </div>

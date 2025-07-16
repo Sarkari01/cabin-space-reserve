@@ -2,12 +2,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ClockIcon, CheckCircleIcon, AlertTriangleIcon } from "lucide-react";
 import { MerchantProfile } from "@/hooks/useMerchantProfile";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 interface MerchantUnderReviewProps {
   profile: MerchantProfile;
 }
 
 export const MerchantUnderReview = ({ profile }: MerchantUnderReviewProps) => {
+  const { brandSettings } = useBrandSettings();
+  
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'approved':
@@ -96,10 +99,10 @@ export const MerchantUnderReview = ({ profile }: MerchantUnderReviewProps) => {
               <p className="text-sm font-medium">
                 Contact us at{" "}
                 <a 
-                  href="mailto:support@cabinspace.com" 
+                  href={`mailto:${brandSettings.support_email || 'support@cabinspace.com'}`} 
                   className="text-primary hover:underline"
                 >
-                  support@cabinspace.com
+                  {brandSettings.support_email || 'support@cabinspace.com'}
                 </a>
               </p>
             </div>

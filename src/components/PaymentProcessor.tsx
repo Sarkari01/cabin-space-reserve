@@ -159,8 +159,8 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       // Prepare customer data with defaults
       const customerData = {
         customerName: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Customer',
-        customerEmail: user?.email || 'customer@example.com',
-        customerMobile: user?.user_metadata?.phone || '9999999999'
+        customerEmail: user?.email || settings?.support_email || 'customer@example.com',
+        customerMobile: user?.user_metadata?.phone || settings?.support_phone || '9999999999'
       };
 
       console.log('👤 EKQR: Customer data:', customerData);

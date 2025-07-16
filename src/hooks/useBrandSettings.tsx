@@ -74,9 +74,15 @@ export const useBrandSettings = () => {
   };
 
   const updateFavicon = (faviconUrl: string | null) => {
-    const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
-    if (link && faviconUrl) {
-      link.href = faviconUrl;
+    if (faviconUrl) {
+      let existingLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+      if (!existingLink) {
+        existingLink = document.createElement('link');
+        existingLink.rel = 'icon';
+        existingLink.type = 'image/x-icon';
+        document.head.appendChild(existingLink);
+      }
+      existingLink.href = faviconUrl;
     }
   };
 

@@ -211,7 +211,7 @@ export const BusinessSettingsTab = () => {
                     type="email"
                     value={formData.support_email}
                     onChange={(e) => setFormData(prev => ({ ...prev, support_email: e.target.value }))}
-                    placeholder={settings?.support_email || "support@studyspace.com"}
+                    placeholder={`support@${formData.brand_name?.toLowerCase().replace(/\s+/g, '') || 'studyspace'}.com`}
                     className={formData.support_email && !isValidEmail(formData.support_email) ? 'border-destructive' : ''}
                   />
                   {formData.support_email && !isValidEmail(formData.support_email) && (
@@ -225,7 +225,7 @@ export const BusinessSettingsTab = () => {
                     id="support-phone"
                     value={formData.support_phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, support_phone: e.target.value }))}
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="+91 XXXXX XXXXX"
                     className={formData.support_phone && !isValidPhone(formData.support_phone) ? 'border-destructive' : ''}
                   />
                   {formData.support_phone && !isValidPhone(formData.support_phone) && (
@@ -240,7 +240,7 @@ export const BusinessSettingsTab = () => {
                     type="url"
                     value={formData.website_url}
                     onChange={(e) => setFormData(prev => ({ ...prev, website_url: e.target.value }))}
-                    placeholder={settings?.website_url || "https://studyspace.com"}
+                    placeholder={`https://${formData.brand_name?.toLowerCase().replace(/\s+/g, '') || 'studyspace'}.com`}
                     className={formData.website_url && !isValidUrl(formData.website_url) ? 'border-destructive' : ''}
                   />
                   {formData.website_url && !isValidUrl(formData.website_url) && (
