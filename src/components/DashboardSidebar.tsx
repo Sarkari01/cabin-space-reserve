@@ -145,6 +145,7 @@ const sidebarItems = {
     ],
      analytics: [
        { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
+       { title: "Advanced Analytics", url: "/admin/dashboard", icon: TrendingUp, tab: "advanced-analytics" },
        { title: "Reports", url: "/admin/dashboard", icon: FileText, tab: "reports" },
      ],
     communication: [

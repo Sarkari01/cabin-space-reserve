@@ -1311,6 +1311,9 @@ const AdminDashboard = () => {
           {/* Trial Activation Logs Tab */}
           {activeTab === "trial-logs" && <TrialActivationLogsTab />}
 
+          {/* Advanced Analytics Tab */}
+          {activeTab === "advanced-analytics" && <AdvancedAnalyticsTab />}
+
           {/* Support Tickets Management Tab */}
           {activeTab === "support-tickets-management" && (
             <div className="space-y-6">
