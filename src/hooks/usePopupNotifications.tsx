@@ -129,8 +129,14 @@ export function usePopupNotifications() {
 
   // Handle notification shown - stable with proper dependencies
   const handleNotificationShown = useCallback((notificationId: string) => {
+    console.log('[POPUP] Showing notification:', notificationId);
+    
     setShownNotifications(prev => {
-      if (prev.has(notificationId)) return prev; // Prevent duplicate calls
+      if (prev.has(notificationId)) {
+        console.log('[POPUP] Already shown:', notificationId);
+        return prev; // Prevent duplicate calls
+      }
+      console.log('[POPUP] Adding to shown set:', notificationId);
       return new Set([...prev, notificationId]);
     });
     
@@ -142,6 +148,8 @@ export function usePopupNotifications() {
 
   // Handle notification dismissed
   const handleNotificationDismissed = useCallback((notificationId: string) => {
+    console.log('[POPUP] Dismissing notification:', notificationId);
+    
     trackInteractionMutation.mutate({
       notificationId,
       action: 'dismissed'
@@ -153,6 +161,8 @@ export function usePopupNotifications() {
 
   // Handle notification clicked
   const handleNotificationClicked = useCallback((notificationId: string) => {
+    console.log('[POPUP] Clicking notification:', notificationId);
+    
     trackInteractionMutation.mutate({
       notificationId,
       action: 'clicked'

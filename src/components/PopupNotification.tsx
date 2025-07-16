@@ -183,7 +183,7 @@ export function PopupNotificationManager({
         onNotificationShown(currentNotification.id);
       }
     }
-  }, [notifications, currentNotificationIndex, isShowing]);
+  }, [notifications, currentNotificationIndex, isShowing, onNotificationShown, shownIds]);
 
   const handleClose = () => {
     const currentNotification = notifications[currentNotificationIndex];

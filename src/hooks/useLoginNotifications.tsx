@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -137,35 +137,48 @@ export function useLoginNotifications(): LoginNotificationHook {
     }
   });
 
-  // Handle notification shown
-  const handleNotificationShown = (notificationId: string) => {
-    if (shownNotifications.has(notificationId)) return;
+  // Handle notification shown - with proper guard and useCallback
+  const handleNotificationShown = useCallback((notificationId: string) => {
+    console.log('[LOGIN] Showing notification:', notificationId);
     
-    setShownNotifications(prev => new Set([...prev, notificationId]));
+    // Prevent multiple calls for the same notification
+    setShownNotifications(prev => {
+      if (prev.has(notificationId)) {
+        console.log('[LOGIN] Already shown:', notificationId);
+        return prev;
+      }
+      console.log('[LOGIN] Adding to shown set:', notificationId);
+      return new Set([...prev, notificationId]);
+    });
+    
     trackInteractionMutation.mutate({
       notificationId,
       action: 'shown'
     });
-  };
+  }, [trackInteractionMutation]);
 
   // Handle notification dismissed
-  const handleNotificationDismissed = (notificationId: string) => {
+  const handleNotificationDismissed = useCallback((notificationId: string) => {
+    console.log('[LOGIN] Dismissing notification:', notificationId);
+    
     trackInteractionMutation.mutate({
       notificationId,
       action: 'dismissed'
     });
     
-    // Refetch to update the list
+    // Refetch to get updated list after a short delay
     setTimeout(() => refetch(), 1000);
-  };
+  }, [trackInteractionMutation, refetch]);
 
   // Handle notification clicked
-  const handleNotificationClicked = (notificationId: string) => {
+  const handleNotificationClicked = useCallback((notificationId: string) => {
+    console.log('[LOGIN] Clicking notification:', notificationId);
+    
     trackInteractionMutation.mutate({
       notificationId,
       action: 'clicked'
     });
-  };
+  }, [trackInteractionMutation]);
 
   // Trigger login notifications on user authentication
   useEffect(() => {
