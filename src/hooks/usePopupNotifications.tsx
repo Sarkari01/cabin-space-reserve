@@ -38,53 +38,74 @@ export function usePopupNotifications() {
     return userRole || 'student';
   }, [userRole]);
 
-  // Simplified query for general notifications
-  const { data: notifications = [], refetch } = useQuery({
+  // Query for notifications with enhanced debugging
+  const { data: notifications = [], isError, error, refetch } = useQuery({
     queryKey: ['popup-notifications', user?.id, userRole],
     queryFn: async () => {
+      console.log('[usePopupNotifications] Starting fetch with:', {
+        hasUser: !!user,
+        userId: user?.id,
+        userRole,
+        loading
+      });
+
       if (!user) {
         console.log('[usePopupNotifications] No user, skipping query');
         return [];
       }
 
-      console.log('[usePopupNotifications] Fetching notifications for user:', user.id, 'role:', userRole);
-
       try {
         const userRoleForQuery = getUserRole();
-        console.log('[usePopupNotifications] Query parameters: p_user_id=', user.id, 'p_user_role=', userRoleForQuery);
+        console.log('[usePopupNotifications] Calling RPC with:', {
+          p_user_id: user.id,
+          p_user_role: userRoleForQuery
+        });
         
-        // Get general notifications from RPC
+        // Get notifications from RPC
         const { data: generalData, error: generalError } = await supabase.rpc('get_active_popup_notifications', {
           p_user_id: user.id,
           p_user_role: userRoleForQuery
         });
 
         if (generalError) {
-          console.error('[usePopupNotifications] Error fetching notifications:', generalError);
-          return [];
+          console.error('[usePopupNotifications] RPC error:', generalError);
+          throw generalError;
         }
 
         const allNotifications: PopupNotification[] = generalData || [];
 
-        console.log('[usePopupNotifications] Fetched notifications:', allNotifications.length);
-        if (allNotifications.length) {
-          console.log('[usePopupNotifications] First notification details:', {
-            id: allNotifications[0].id,
-            title: allNotifications[0].title,
-            priority: allNotifications[0].priority
-          });
-        }
+        console.log('[usePopupNotifications] Query completed:', {
+          count: allNotifications.length,
+          notifications: allNotifications.map(n => ({
+            id: n.id,
+            title: n.title,
+            priority: n.priority
+          }))
+        });
+        
         return allNotifications;
       } catch (error) {
         console.error('[usePopupNotifications] Query error:', error);
-        return [];
+        throw error;
       }
     },
     enabled: !!user && !loading,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Always fetch fresh
+    gcTime: 0, // Don't cache
+    retry: false, // Show errors immediately
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
+
+  // Log query state
+  useEffect(() => {
+    console.log('[usePopupNotifications] Query state:', {
+      notificationCount: notifications.length,
+      isError,
+      error: error?.message,
+      enabled: !!user && !loading
+    });
+  }, [notifications.length, isError, error, user, loading]);
 
   // Simplified mutation for tracking interactions
   const trackInteractionMutation = useMutation({
@@ -214,6 +235,14 @@ export function usePopupNotifications() {
       return b.priority - a.priority;
     }
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  console.log('[usePopupNotifications] Final notifications:', {
+    total: notifications.length,
+    shown: shownNotifications.size,
+    pending: pendingNotifications.length,
+    sorted: sortedNotifications.length,
+    finalList: sortedNotifications.map(n => ({ id: n.id, title: n.title }))
   });
 
   return {

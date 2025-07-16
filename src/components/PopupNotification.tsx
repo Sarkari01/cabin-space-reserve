@@ -158,36 +158,36 @@ export function PopupNotificationManager({
   defaultDuration = 10
 }: PopupNotificationManagerProps) {
   const [currentNotificationIndex, setCurrentNotificationIndex] = useState(0);
-  const [isShowing, setIsShowing] = useState(false);
+  const [shownNotifications, setShownNotifications] = useState<Set<string>>(new Set());
 
   console.log('[PopupNotificationManager] State:', { 
     totalNotifications: notifications.length, 
-    currentIndex: currentNotificationIndex, 
-    isShowing 
+    currentIndex: currentNotificationIndex,
+    shownCount: shownNotifications.size
   });
 
-  // Reset index when notifications change
+  // Reset when notifications change
   useEffect(() => {
-    console.log('[PopupNotificationManager] Notifications changed, resetting index');
+    console.log('[PopupNotificationManager] Notifications changed, resetting');
     setCurrentNotificationIndex(0);
-    setIsShowing(false);
-  }, [notifications.length]);
+    setShownNotifications(new Set());
+  }, [notifications]);
 
-  // Show the current notification
+  // Mark current notification as shown when it becomes available
   useEffect(() => {
-    if (notifications.length === 0 || currentNotificationIndex >= notifications.length || isShowing) {
+    if (notifications.length === 0 || currentNotificationIndex >= notifications.length) {
       return;
     }
 
     const currentNotification = notifications[currentNotificationIndex];
-    if (!currentNotification) {
+    if (!currentNotification || shownNotifications.has(currentNotification.id)) {
       return;
     }
 
-    console.log('[PopupNotificationManager] Showing notification:', currentNotification.id);
-    setIsShowing(true);
+    console.log('[PopupNotificationManager] Marking notification as shown:', currentNotification.id);
+    setShownNotifications(prev => new Set([...prev, currentNotification.id]));
     onNotificationShown(currentNotification.id);
-  }, [notifications, currentNotificationIndex, isShowing, onNotificationShown]);
+  }, [notifications, currentNotificationIndex, shownNotifications, onNotificationShown]);
 
   const handleClose = useCallback(() => {
     const currentNotification = notifications[currentNotificationIndex];
@@ -196,7 +196,7 @@ export function PopupNotificationManager({
       onNotificationDismissed(currentNotification.id);
     }
     
-    setIsShowing(false);
+    // Move to next notification
     setCurrentNotificationIndex(prev => prev + 1);
   }, [notifications, currentNotificationIndex, onNotificationDismissed]);
 
@@ -213,6 +213,13 @@ export function PopupNotificationManager({
   }
 
   const currentNotification = notifications[currentNotificationIndex];
+  const shouldShow = currentNotification && shownNotifications.has(currentNotification.id);
+
+  console.log('[PopupNotificationManager] Render decision:', { 
+    hasNotification: !!currentNotification, 
+    isShown: shouldShow,
+    notificationId: currentNotification?.id 
+  });
 
   return (
     <PopupNotification
@@ -222,7 +229,7 @@ export function PopupNotificationManager({
       imageUrl={currentNotification.image_url}
       buttonText={currentNotification.button_text}
       buttonUrl={currentNotification.button_url}
-      isOpen={isShowing}
+      isOpen={shouldShow}
       onClose={handleClose}
       onButtonClick={handleButtonClick}
       autoClose={currentNotification.duration_seconds || defaultDuration}
