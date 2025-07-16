@@ -18,12 +18,14 @@ interface InstitutionNewsTabProps {
   institutionId?: string;
   mode?: "create" | "manage" | "recent";
   limit?: number;
+  onEditNews?: (newsItem: any) => void;
 }
 
 export function InstitutionNewsTab({ 
-  institutionId,
-  mode = "manage",
-  limit
+  institutionId, 
+  mode = "manage", 
+  limit,
+  onEditNews 
 }: InstitutionNewsTabProps) {
   const { news, loading, fetchInstitutionNews } = useNews();
   const { currentInstitution } = useInstitutions();
@@ -41,9 +43,14 @@ export function InstitutionNewsTab({
 
 
   const handleEditNews = (newsItem: any) => {
-    setSelectedNews(newsItem);
-    setModalMode("edit");
-    setShowModal(true);
+    if (onEditNews) {
+      onEditNews(newsItem);
+    } else {
+      // Fallback to modal for backward compatibility
+      setSelectedNews(newsItem);
+      setModalMode("edit");
+      setShowModal(true);
+    }
   };
 
   const getStatusColor = (status: string) => {

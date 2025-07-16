@@ -11,24 +11,32 @@ import { useInstitutions } from "@/hooks/useInstitutions";
 import { NewsMediaUpload } from "@/components/NewsMediaUpload";
 import { NewsPreviewModal } from "@/components/NewsPreviewModal";
 import { NewsScheduleModal } from "@/components/NewsScheduleModal";
-import { Plus, Save, Eye, Calendar } from "lucide-react";
+import { Plus, Save, Eye, Calendar, Edit, ArrowLeft } from "lucide-react";
 
 interface InstitutionCreateNewsTabProps {
   institutionId?: string;
+  newsItem?: any;
+  mode?: "create" | "edit";
+  onSuccess?: () => void;
 }
 
-export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNewsTabProps) {
-  const { createNews, loading } = useNews();
+export function InstitutionCreateNewsTab({ 
+  institutionId, 
+  newsItem, 
+  mode = "create",
+  onSuccess 
+}: InstitutionCreateNewsTabProps) {
+  const { createNews, updateNews, loading } = useNews();
   const { currentInstitution } = useInstitutions();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
-    title: "",
-    content: "",
-    status: "active" as const,
-    visible_to: "both" as const,
-    image_url: "",
-    video_url: ""
+    title: newsItem?.title || "",
+    content: newsItem?.content || "",
+    status: newsItem?.status || "active",
+    visible_to: newsItem?.visible_to || "both",
+    image_url: newsItem?.image_url || "",
+    video_url: newsItem?.video_url || ""
   });
   
   const [saving, setSaving] = useState(false);
@@ -52,7 +60,7 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
   const handleSubmit = async (e: React.FormEvent, publishNow: boolean = true) => {
     e.preventDefault();
     
-    console.log('Creating news post with institution ID:', institutionId);
+    console.log(`${mode === 'edit' ? 'Updating' : 'Creating'} news post with institution ID:`, institutionId);
     
     if (!institutionId) {
       toast({
@@ -96,23 +104,34 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
       
       console.log('News data being submitted:', newsData);
       
-      const result = await createNews(newsData);
+      let result;
+      if (mode === "edit" && newsItem) {
+        result = await updateNews(newsItem.id, newsData);
+      } else {
+        result = await createNews(newsData);
+      }
       
       if (result) {
         toast({
           title: "Success",
-          description: publishNow ? "News post published successfully" : "News post saved as draft",
+          description: mode === "edit" 
+            ? "News post updated successfully" 
+            : (publishNow ? "News post published successfully" : "News post saved as draft"),
         });
         
-        // Reset form only on success
-        setFormData({
-          title: "",
-          content: "",
-          status: "active",
-          visible_to: "both",
-          image_url: "",
-          video_url: ""
-        });
+        // Reset form only on create success, call onSuccess for edit
+        if (mode === "create") {
+          setFormData({
+            title: "",
+            content: "",
+            status: "active",
+            visible_to: "both",
+            image_url: "",
+            video_url: ""
+          });
+        } else if (onSuccess) {
+          onSuccess();
+        }
       }
     } catch (error: any) {
       console.error('Error creating news:', error);
@@ -121,7 +140,9 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
       
       // Handle specific RLS errors
       if (error?.message?.includes('row-level security')) {
-        errorMessage = "You don't have permission to create news posts for this institution";
+        errorMessage = mode === "edit" 
+          ? "You don't have permission to edit this news post"
+          : "You don't have permission to create news posts for this institution";
       } else if (error?.message?.includes('institution_id')) {
         errorMessage = "Invalid institution. Please contact support.";
       } else if (error?.message) {
@@ -206,10 +227,27 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Create News Post
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              {mode === "edit" ? (
+                <>
+                  <Edit className="h-5 w-5" />
+                  Edit News Post
+                </>
+              ) : (
+                <>
+                  <Plus className="h-5 w-5" />
+                  Create News Post
+                </>
+              )}
+            </CardTitle>
+            {mode === "edit" && onSuccess && (
+              <Button variant="outline" size="sm" onClick={onSuccess}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to News
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -283,7 +321,10 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    {formData.status === 'active' ? 'Publish' : 'Save Draft'}
+                    {mode === "edit" 
+                      ? "Update Post" 
+                      : (formData.status === 'active' ? 'Publish' : 'Save Draft')
+                    }
                   </>
                 )}
               </Button>
@@ -293,10 +334,18 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
                 Preview
               </Button>
               
-              <Button type="button" variant="outline" onClick={() => setShowSchedule(true)}>
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule
-              </Button>
+              {mode === "create" && (
+                <Button type="button" variant="outline" onClick={() => setShowSchedule(true)}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Schedule
+                </Button>
+              )}
+              
+              {mode === "edit" && onSuccess && (
+                <Button type="button" variant="secondary" onClick={onSuccess}>
+                  Cancel
+                </Button>
+              )}
             </div>
           </form>
         </CardContent>

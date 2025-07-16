@@ -20,6 +20,7 @@ import {
 
 export default function InstitutionDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [editingNews, setEditingNews] = useState<any>(null);
   const { user } = useAuth();
   const { currentInstitution, loading: institutionLoading } = useInstitutions();
   const { news, loading: newsLoading, fetchInstitutionNews } = useNews();
@@ -60,6 +61,24 @@ export default function InstitutionDashboard() {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+    // Clear editing state when switching tabs
+    if (tab !== "edit-news") {
+      setEditingNews(null);
+    }
+  };
+
+  const handleEditNews = (newsItem: any) => {
+    setEditingNews(newsItem);
+    setActiveTab("edit-news");
+  };
+
+  const handleEditSuccess = () => {
+    setEditingNews(null);
+    setActiveTab("news");
+    // Refresh news data
+    if (currentInstitution) {
+      fetchInstitutionNews(currentInstitution.id);
+    }
   };
 
   const renderTabContent = () => {
@@ -103,8 +122,17 @@ export default function InstitutionDashboard() {
     switch (activeTab) {
       case "create-news":
         return <InstitutionCreateNewsTab institutionId={currentInstitution?.id} />;
+      case "edit-news":
+        return (
+          <InstitutionCreateNewsTab 
+            institutionId={currentInstitution?.id} 
+            newsItem={editingNews}
+            mode="edit"
+            onSuccess={handleEditSuccess}
+          />
+        );
       case "news":
-        return <InstitutionNewsTab institutionId={currentInstitution?.id} mode="manage" />;
+        return <InstitutionNewsTab institutionId={currentInstitution?.id} mode="manage" onEditNews={handleEditNews} />;
       case "news-analytics":
         return <InstitutionAnalyticsTab institutionId={currentInstitution?.id} />;
       case "profile":
