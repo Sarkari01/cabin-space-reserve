@@ -54,7 +54,7 @@ export const APIKeysSection = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('manage-api-keys', {
-        method: 'GET'
+        body: { operation: 'get' }
       });
 
       if (error) throw error;
@@ -94,8 +94,10 @@ export const APIKeysSection = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('manage-api-keys', {
-        method: 'POST',
-        body: updates
+        body: { 
+          operation: 'save',
+          data: updates
+        }
       });
 
       if (error) throw error;
@@ -150,8 +152,10 @@ export const APIKeysSection = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('manage-api-keys', {
-        method: 'PUT',
-        body: { key_type: keyType, key_value: keyValue }
+        body: { 
+          operation: 'test',
+          test_config: { key_type: keyType, key_value: keyValue }
+        }
       });
 
       if (error) throw error;

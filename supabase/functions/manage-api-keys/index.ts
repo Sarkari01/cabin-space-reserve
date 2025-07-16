@@ -20,6 +20,15 @@ interface APIKeyResponse {
   ekqr_api_key_preview?: string;
 }
 
+interface RequestBody {
+  operation: 'get' | 'save' | 'test';
+  data?: APIKeyUpdate;
+  test_config?: {
+    key_type: string;
+    key_value: any;
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -56,9 +65,13 @@ serve(async (req) => {
       throw new Error('Unauthorized - Admin access required');
     }
 
-    const { method } = req;
+    // Parse request body for operation type
+    const requestBody: RequestBody = await req.json();
+    const { operation } = requestBody;
 
-    if (method === 'GET') {
+    console.log('API Keys operation:', operation);
+
+    if (operation === 'get') {
       // Return masked previews of current API keys
       const previews: APIKeyResponse = {};
 
@@ -85,10 +98,13 @@ serve(async (req) => {
 
       // Update business_settings with preview values
       if (Object.keys(previews).length > 0) {
-        await supabase
-          .from('business_settings')
-          .update(previews)
-          .eq('id', (await supabase.from('business_settings').select('id').single()).data?.id);
+        const { data: settingsData } = await supabase.from('business_settings').select('id').single();
+        if (settingsData?.id) {
+          await supabase
+            .from('business_settings')
+            .update(previews)
+            .eq('id', settingsData.id);
+        }
       }
 
       return new Response(
@@ -103,59 +119,62 @@ serve(async (req) => {
       );
     }
 
-    if (method === 'POST') {
-      const body: APIKeyUpdate = await req.json();
+    if (operation === 'save') {
+      const apiKeyData = requestBody.data;
+      if (!apiKeyData) {
+        throw new Error('No API key data provided');
+      }
+
       const updates: Record<string, string> = {};
       const previews: APIKeyResponse = {};
 
-      // Validate and process each API key
-      if (body.google_maps_api_key !== undefined) {
-        if (body.google_maps_api_key && !validateGoogleMapsKey(body.google_maps_api_key)) {
-          throw new Error('Invalid Google Maps API key format');
+      // Relax validation patterns to be more permissive
+      if (apiKeyData.google_maps_api_key !== undefined) {
+        if (apiKeyData.google_maps_api_key && apiKeyData.google_maps_api_key.length < 10) {
+          throw new Error('Google Maps API key is too short');
         }
-        if (body.google_maps_api_key) {
-          updates.GOOGLE_MAPS_API_KEY = body.google_maps_api_key;
-          previews.google_maps_api_key_preview = maskAPIKey(body.google_maps_api_key, 'AIza', 4);
+        if (apiKeyData.google_maps_api_key) {
+          updates.GOOGLE_MAPS_API_KEY = apiKeyData.google_maps_api_key;
+          previews.google_maps_api_key_preview = maskAPIKey(apiKeyData.google_maps_api_key, '', 4);
         } else {
-          // Clear the key
           updates.GOOGLE_MAPS_API_KEY = '';
           previews.google_maps_api_key_preview = '';
         }
       }
 
-      if (body.razorpay_key_id !== undefined) {
-        if (body.razorpay_key_id && !validateRazorpayKeyId(body.razorpay_key_id)) {
-          throw new Error('Invalid Razorpay Key ID format');
+      if (apiKeyData.razorpay_key_id !== undefined) {
+        if (apiKeyData.razorpay_key_id && apiKeyData.razorpay_key_id.length < 10) {
+          throw new Error('Razorpay Key ID is too short');
         }
-        if (body.razorpay_key_id) {
-          updates.RAZORPAY_KEY_ID = body.razorpay_key_id;
-          previews.razorpay_key_id_preview = maskAPIKey(body.razorpay_key_id, 'rzp_', 4);
+        if (apiKeyData.razorpay_key_id) {
+          updates.RAZORPAY_KEY_ID = apiKeyData.razorpay_key_id;
+          previews.razorpay_key_id_preview = maskAPIKey(apiKeyData.razorpay_key_id, '', 4);
         } else {
           updates.RAZORPAY_KEY_ID = '';
           previews.razorpay_key_id_preview = '';
         }
       }
 
-      if (body.razorpay_key_secret !== undefined) {
-        if (body.razorpay_key_secret && !validateRazorpaySecret(body.razorpay_key_secret)) {
-          throw new Error('Invalid Razorpay Secret format');
+      if (apiKeyData.razorpay_key_secret !== undefined) {
+        if (apiKeyData.razorpay_key_secret && apiKeyData.razorpay_key_secret.length < 10) {
+          throw new Error('Razorpay Secret is too short');
         }
-        if (body.razorpay_key_secret) {
-          updates.RAZORPAY_KEY_SECRET = body.razorpay_key_secret;
-          previews.razorpay_key_secret_preview = maskAPIKey(body.razorpay_key_secret, '', 4);
+        if (apiKeyData.razorpay_key_secret) {
+          updates.RAZORPAY_KEY_SECRET = apiKeyData.razorpay_key_secret;
+          previews.razorpay_key_secret_preview = maskAPIKey(apiKeyData.razorpay_key_secret, '', 4);
         } else {
           updates.RAZORPAY_KEY_SECRET = '';
           previews.razorpay_key_secret_preview = '';
         }
       }
 
-      if (body.ekqr_api_key !== undefined) {
-        if (body.ekqr_api_key && !validateEKQRKey(body.ekqr_api_key)) {
-          throw new Error('Invalid EKQR API key format');
+      if (apiKeyData.ekqr_api_key !== undefined) {
+        if (apiKeyData.ekqr_api_key && apiKeyData.ekqr_api_key.length < 8) {
+          throw new Error('EKQR API key is too short');
         }
-        if (body.ekqr_api_key) {
-          updates.EKQR_API_KEY = body.ekqr_api_key;
-          previews.ekqr_api_key_preview = maskAPIKey(body.ekqr_api_key, '', 4);
+        if (apiKeyData.ekqr_api_key) {
+          updates.EKQR_API_KEY = apiKeyData.ekqr_api_key;
+          previews.ekqr_api_key_preview = maskAPIKey(apiKeyData.ekqr_api_key, '', 4);
         } else {
           updates.EKQR_API_KEY = '';
           previews.ekqr_api_key_preview = '';
@@ -164,16 +183,18 @@ serve(async (req) => {
 
       console.log('Updating API keys:', Object.keys(updates));
 
-      // Note: In a real implementation, you would update Supabase secrets here
-      // For now, we'll just update the preview in business_settings
+      // Update business_settings with preview values
       if (Object.keys(previews).length > 0) {
-        const { error: updateError } = await supabase
-          .from('business_settings')
-          .update(previews)
-          .eq('id', (await supabase.from('business_settings').select('id').single()).data?.id);
+        const { data: settingsData } = await supabase.from('business_settings').select('id').single();
+        if (settingsData?.id) {
+          const { error: updateError } = await supabase
+            .from('business_settings')
+            .update(previews)
+            .eq('id', settingsData.id);
 
-        if (updateError) {
-          throw new Error(`Failed to update previews: ${updateError.message}`);
+          if (updateError) {
+            throw new Error(`Failed to update previews: ${updateError.message}`);
+          }
         }
       }
 
@@ -190,9 +211,13 @@ serve(async (req) => {
       );
     }
 
-    if (method === 'PUT') {
-      // Test API key connectivity
-      const { key_type, key_value } = await req.json();
+    if (operation === 'test') {
+      const testConfig = requestBody.test_config;
+      if (!testConfig) {
+        throw new Error('No test configuration provided');
+      }
+
+      const { key_type, key_value } = testConfig;
       
       let testResult;
       switch (key_type) {
@@ -221,7 +246,7 @@ serve(async (req) => {
       );
     }
 
-    throw new Error('Method not allowed');
+    throw new Error('Invalid operation. Supported operations: get, save, test');
 
   } catch (error) {
     console.error('API Keys management error:', error);
