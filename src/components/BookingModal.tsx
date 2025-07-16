@@ -183,12 +183,20 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     }
   }, [open, studyHall]);
 
-  // Lock body scroll when payment modal is open
+  // Lock body scroll and prevent interactions when payment modal is open
   useEffect(() => {
     if (showPayment) {
+      // Prevent body scroll and interactions
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      
       return () => {
-        document.body.style.overflow = 'auto';
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
       };
     }
   }, [showPayment]);
@@ -575,20 +583,40 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
         </DialogContent>
       </Dialog>
 
-      {/* Payment Modal - Separate overlay with higher z-index and body scroll lock */}
+      {/* Payment Modal */}
       {showPayment && bookingIntent && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+          onMouseDown={(e) => {
+            // Prevent background interactions with enhanced event handling
+            e.preventDefault();
+            e.stopPropagation();
+          }}
           onClick={(e) => {
             // Prevent background clicks from closing the modal
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onScroll={(e) => {
+            // Prevent scroll events on backdrop
+            e.preventDefault();
             e.stopPropagation();
           }}
         >
           <div 
-            className="bg-background w-full max-w-md rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="bg-background w-full max-w-md rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto pointer-events-auto touch-manipulation"
+            onMouseDown={(e) => {
+              // Prevent clicks on the modal content from bubbling up
+              e.stopPropagation();
+            }}
             onClick={(e) => {
               // Prevent clicks on the modal content from bubbling up
               e.stopPropagation();
+            }}
+            style={{ 
+              // Ensure proper layering and interaction
+              position: 'relative',
+              zIndex: 10000
             }}
           >
             <PaymentProcessor

@@ -814,53 +814,65 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
   }
 
   return (
-    <div className="w-full max-w-sm mx-auto space-y-4">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Complete Your Booking</CardTitle>
+    <div className="w-full max-w-sm mx-auto space-y-4 pointer-events-auto">
+      <Card className="pointer-events-auto">
+        <CardHeader className="pb-3 pointer-events-auto">
+          <CardTitle className="text-lg pointer-events-auto">Complete Your Booking</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">Booking Summary</h4>
-            <div className="text-sm space-y-1 bg-muted/30 p-3 rounded-lg">
-              <div className="flex justify-between">
-                <span>Amount:</span>
-                <span className="font-medium">₹{bookingIntent.total_amount}</span>
+        <CardContent className="space-y-4 pointer-events-auto">
+          <div className="space-y-2 pointer-events-auto">
+            <h4 className="font-medium pointer-events-auto">Booking Summary</h4>
+            <div className="text-sm space-y-1 bg-muted/30 p-3 rounded-lg pointer-events-auto">
+              <div className="flex justify-between pointer-events-auto">
+                <span className="pointer-events-auto">Amount:</span>
+                <span className="font-medium pointer-events-auto">₹{bookingIntent.total_amount}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Period:</span>
-                <span className="capitalize">{bookingIntent.booking_period}</span>
+              <div className="flex justify-between pointer-events-auto">
+                <span className="pointer-events-auto">Period:</span>
+                <span className="capitalize pointer-events-auto">{bookingIntent.booking_period}</span>
               </div>
-              <div className="flex justify-between flex-wrap">
-                <span>Duration:</span>
-                <span className="text-right">{bookingIntent.start_date} to {bookingIntent.end_date}</span>
+              <div className="flex justify-between flex-wrap pointer-events-auto">
+                <span className="pointer-events-auto">Duration:</span>
+                <span className="text-right pointer-events-auto">{bookingIntent.start_date} to {bookingIntent.end_date}</span>
               </div>
             </div>
           </div>
 
-          <PaymentMethodSelector
-            onMethodSelect={setSelectedMethod}
-            selectedMethod={selectedMethod}
-          />
+          <div className="pointer-events-auto">
+            <PaymentMethodSelector
+              onMethodSelect={setSelectedMethod}
+              selectedMethod={selectedMethod}
+            />
+          </div>
           
           {!selectedMethod && (
-            <div className="text-sm text-muted-foreground text-center p-2 bg-muted/20 rounded">
+            <div className="text-sm text-muted-foreground text-center p-2 bg-muted/20 rounded pointer-events-auto">
               Please select a payment method to continue
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 pointer-events-auto">
             <Button 
               variant="outline" 
-              onClick={onCancel} 
-              className="flex-1 min-h-[44px]"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onCancel();
+              }}
+              className="flex-1 min-h-[44px] pointer-events-auto touch-manipulation"
+              style={{ position: 'relative', zIndex: 10001 }}
             >
               Cancel
             </Button>
             <Button 
-              onClick={handlePayment} 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePayment();
+              }}
               disabled={!selectedMethod || processing}
-              className="flex-1 min-h-[44px]"
+              className="flex-1 min-h-[44px] pointer-events-auto touch-manipulation"
+              style={{ position: 'relative', zIndex: 10001 }}
             >
               {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {selectedMethod === "offline" ? "Reserve Seat" : selectedMethod === "razorpay" ? "Pay with Razorpay" : "Pay Now"}
