@@ -158,12 +158,25 @@ const sidebarItems = {
     { title: "Activity Logs", url: "/incharge/dashboard", icon: BookOpen, tab: "activity" },
     { title: "Profile Settings", url: "/incharge/dashboard", icon: Settings, tab: "profile" },
   ],
-  institution: [
-    { title: "Dashboard", url: "/institution/dashboard", icon: Home, tab: "overview" },
-    { title: "Post News", url: "/institution/dashboard", icon: Plus, tab: "post-news" },
-    { title: "My News", url: "/institution/dashboard", icon: Newspaper, tab: "my-news" },
-    { title: "Profile", url: "/institution/dashboard", icon: Settings, tab: "profile" },
-  ],
+  institution: {
+    overview: [
+      { title: "Dashboard", url: "/institution/dashboard", icon: Home, tab: "overview" },
+      { title: "Analytics", url: "/institution/dashboard", icon: BarChart3, tab: "analytics" }
+    ],
+    content: [
+      { title: "Create News", url: "/institution/dashboard", icon: Plus, tab: "create-news" },
+      { title: "My News", url: "/institution/dashboard", icon: Newspaper, tab: "news" },
+      { title: "News Analytics", url: "/institution/dashboard", icon: TrendingUp, tab: "news-analytics" }
+    ],
+    management: [
+      { title: "Profile Settings", url: "/institution/dashboard", icon: Settings, tab: "profile" },
+      { title: "Institution Info", url: "/institution/dashboard", icon: School, tab: "institution-info" }
+    ],
+    engagement: [
+      { title: "Community", url: "/institution/dashboard", icon: Heart, tab: "community" },
+      { title: "Notifications", url: "/institution/dashboard", icon: Bell, tab: "notifications" }
+    ]
+  },
   telemarketing_executive: {
     primary: [
       { title: "Dashboard", url: "/telemarketing/dashboard", icon: Home, tab: "overview" },
@@ -304,7 +317,7 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
 
 
         {/* Navigation - Check for grouped structure */}
-        {(userRole === "telemarketing_executive" || userRole === "admin" || userRole === "merchant") && typeof items === "object" && !Array.isArray(items) ? (
+        {(userRole === "telemarketing_executive" || userRole === "admin" || userRole === "merchant" || userRole === "institution") && typeof items === "object" && !Array.isArray(items) ? (
           <>
             {userRole === "telemarketing_executive" && (
               <>
@@ -597,6 +610,70 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
                   <SidebarGroupContent>
                     <SidebarMenu>
                       {'settings' in items && items.settings?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </>
+            )}
+
+            {userRole === "institution" && (
+              <>
+                {/* Overview & Analytics */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Home className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Overview</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'overview' in items && items.overview?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Content Management */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Content</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'content' in items && items.content?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Management */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Management</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'management' in items && items.management?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Engagement */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <Heart className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Engagement</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'engagement' in items && items.engagement?.map(renderMenuItem)}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
