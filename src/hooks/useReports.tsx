@@ -22,31 +22,41 @@ export const useReports = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  const fetchBookingsReport = async (filters: ReportFilter = {}) => {
+  const fetchBookingsReport = async (filters: ReportFilter = {}): Promise<ReportData[]> => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('bookings')
-        .select(`
-          *,
-          profiles!bookings_user_id_fkey(full_name, email),
-          study_halls!bookings_study_hall_id_fkey(name, location, merchant_id),
-          seats!bookings_seat_id_fkey(seat_id)
-        `);
+      console.log('Fetching bookings report with filters:', filters);
+      
+      // Start with base query
+      let query = supabase.from('bookings').select('*');
 
-      // Apply role-based filters
-      if (userRole === 'merchant') {
-        // Filter by study halls owned by merchant
-        const { data: merchantStudyHalls } = await supabase
+      // Apply role-based filters first
+      if (userRole === 'merchant' && user?.id) {
+        // Get merchant's study halls first
+        const { data: merchantStudyHalls, error: studyHallsError } = await supabase
           .from('study_halls')
           .select('id')
-          .eq('merchant_id', user?.id);
+          .eq('merchant_id', user.id);
         
-        if (merchantStudyHalls?.length) {
-          query = query.in('study_hall_id', merchantStudyHalls.map(sh => sh.id));
+        if (studyHallsError) {
+          console.error('Error fetching merchant study halls:', studyHallsError);
+          throw studyHallsError;
         }
-      } else if (userRole === 'student') {
-        query = query.eq('user_id', user?.id);
+        
+        if (merchantStudyHalls && merchantStudyHalls.length > 0) {
+          const studyHallIds = merchantStudyHalls.map(sh => sh.id);
+          query = query.in('study_hall_id', studyHallIds);
+        } else {
+          // Merchant has no study halls, return empty array
+          setLoading(false);
+          return [];
+        }
+      } else if (userRole === 'student' && user?.id) {
+        query = query.eq('user_id', user.id);
+      } else if (userRole !== 'admin') {
+        // Non-admin roles without proper user context
+        setLoading(false);
+        return [];
       }
 
       // Apply additional filters
@@ -70,13 +80,33 @@ export const useReports = () => {
         throw error;
       }
 
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Fetch related data separately
+      const userIds = [...new Set(data.map(b => b.user_id))];
+      const studyHallIds = [...new Set(data.map(b => b.study_hall_id))];
+      const seatIds = [...new Set(data.map(b => b.seat_id))];
+
+      const [usersRes, studyHallsRes, seatsRes] = await Promise.all([
+        supabase.from('profiles').select('id, full_name, email').in('id', userIds),
+        supabase.from('study_halls').select('id, name, location, merchant_id').in('id', studyHallIds),
+        supabase.from('seats').select('id, seat_id').in('id', seatIds)
+      ]);
+
+      // Create lookup maps
+      const usersMap = new Map(usersRes.data?.map(u => [u.id, u]) || []);
+      const studyHallsMap = new Map(studyHallsRes.data?.map(sh => [sh.id, sh]) || []);
+      const seatsMap = new Map(seatsRes.data?.map(s => [s.id, s]) || []);
+
       // Transform data to match expected structure
-      const transformedData = data?.map(booking => ({
+      const transformedData = data.map(booking => ({
         ...booking,
-        user: booking.profiles,
-        study_hall: booking.study_halls,
-        seat: booking.seats
-      })) || [];
+        user: usersMap.get(booking.user_id) || { full_name: 'Unknown', email: 'N/A' },
+        study_hall: studyHallsMap.get(booking.study_hall_id) || { name: 'Unknown', location: 'N/A' },
+        seat: seatsMap.get(booking.seat_id) || { seat_id: 'N/A' }
+      }));
 
       return transformedData;
     } catch (error) {
@@ -92,49 +122,71 @@ export const useReports = () => {
     }
   };
 
-  const fetchTransactionsReport = async (filters: ReportFilter = {}) => {
+  const fetchTransactionsReport = async (filters: ReportFilter = {}): Promise<ReportData[]> => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('transactions')
-        .select(`
-          *,
-          bookings!transactions_booking_id_fkey(
-            booking_number,
-            user_id,
-            study_hall_id,
-            profiles!bookings_user_id_fkey(full_name, email),
-            study_halls!bookings_study_hall_id_fkey(name, merchant_id)
-          )
-        `);
+      console.log('Fetching transactions report with filters:', filters);
+      
+      let query = supabase.from('transactions').select('*');
 
       // Apply role-based filters
-      if (userRole === 'merchant') {
+      if (userRole === 'merchant' && user?.id) {
         // Filter by merchant's study halls
-        const { data: merchantStudyHalls } = await supabase
+        const { data: merchantStudyHalls, error: studyHallsError } = await supabase
           .from('study_halls')
           .select('id')
-          .eq('merchant_id', user?.id);
+          .eq('merchant_id', user.id);
         
-        if (merchantStudyHalls?.length) {
-          const { data: merchantBookings } = await supabase
+        if (studyHallsError) {
+          console.error('Error fetching merchant study halls:', studyHallsError);
+          throw studyHallsError;
+        }
+        
+        if (merchantStudyHalls && merchantStudyHalls.length > 0) {
+          const { data: merchantBookings, error: bookingsError } = await supabase
             .from('bookings')
             .select('id')
             .in('study_hall_id', merchantStudyHalls.map(sh => sh.id));
           
-          if (merchantBookings?.length) {
-            query = query.in('booking_id', merchantBookings.map(b => b.id));
+          if (bookingsError) {
+            console.error('Error fetching merchant bookings:', bookingsError);
+            throw bookingsError;
           }
+          
+          if (merchantBookings && merchantBookings.length > 0) {
+            query = query.in('booking_id', merchantBookings.map(b => b.id));
+          } else {
+            // Merchant has no bookings, return empty array
+            setLoading(false);
+            return [];
+          }
+        } else {
+          // Merchant has no study halls, return empty array
+          setLoading(false);
+          return [];
         }
-      } else if (userRole === 'student') {
-        const { data: studentBookings } = await supabase
+      } else if (userRole === 'student' && user?.id) {
+        const { data: studentBookings, error: bookingsError } = await supabase
           .from('bookings')
           .select('id')
-          .eq('user_id', user?.id);
+          .eq('user_id', user.id);
         
-        if (studentBookings?.length) {
-          query = query.in('booking_id', studentBookings.map(b => b.id));
+        if (bookingsError) {
+          console.error('Error fetching student bookings:', bookingsError);
+          throw bookingsError;
         }
+        
+        if (studentBookings && studentBookings.length > 0) {
+          query = query.in('booking_id', studentBookings.map(b => b.id));
+        } else {
+          // Student has no bookings, return empty array
+          setLoading(false);
+          return [];
+        }
+      } else if (userRole !== 'admin') {
+        // Non-admin roles without proper user context
+        setLoading(false);
+        return [];
       }
 
       // Apply additional filters
@@ -158,12 +210,36 @@ export const useReports = () => {
         throw error;
       }
 
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Fetch related bookings data separately
+      const bookingIds = [...new Set(data.map(t => t.booking_id).filter(Boolean))];
+      
+      let bookingsData: any[] = [];
+      if (bookingIds.length > 0) {
+        const { data: bookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('id, booking_number, user_id, study_hall_id')
+          .in('id', bookingIds);
+        
+        if (bookingsError) {
+          console.error('Error fetching bookings for transactions:', bookingsError);
+        } else {
+          bookingsData = bookings || [];
+        }
+      }
+
+      // Create booking lookup map
+      const bookingsMap = new Map(bookingsData.map(b => [b.id, b]));
+
       // Transform data and add net_amount calculation
-      const transformedData = data?.map(transaction => ({
+      const transformedData = data.map(transaction => ({
         ...transaction,
-        booking: transaction.bookings,
+        booking: bookingsMap.get(transaction.booking_id) || null,
         net_amount: transaction.amount * 0.9 // Assuming 10% platform fee
-      })) || [];
+      }));
 
       return transformedData;
     } catch (error) {
@@ -179,17 +255,14 @@ export const useReports = () => {
     }
   };
 
-  const fetchSettlementsReport = async (filters: ReportFilter = {}) => {
+  const fetchSettlementsReport = async (filters: ReportFilter = {}): Promise<ReportData[]> => {
     if (userRole === 'student') return [];
     
     setLoading(true);
     try {
-      let query = supabase
-        .from('settlements')
-        .select(`
-          *,
-          profiles!settlements_merchant_id_fkey(full_name, email, merchant_number)
-        `);
+      console.log('Fetching settlements report with filters:', filters);
+      
+      let query = supabase.from('settlements').select('*');
 
       // Apply role-based filters
       if (userRole === 'merchant') {
@@ -217,11 +290,24 @@ export const useReports = () => {
         throw error;
       }
 
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Fetch merchant profiles separately
+      const merchantIds = [...new Set(data.map(s => s.merchant_id))];
+      const { data: merchants } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, merchant_number')
+        .in('id', merchantIds);
+
+      const merchantsMap = new Map(merchants?.map(m => [m.id, m]) || []);
+
       // Transform data to match expected structure
-      const transformedData = data?.map(settlement => ({
+      const transformedData = data.map(settlement => ({
         ...settlement,
-        merchant: settlement.profiles
-      })) || [];
+        merchant: merchantsMap.get(settlement.merchant_id) || { full_name: 'Unknown', email: 'N/A' }
+      }));
 
       return transformedData;
     } catch (error) {
@@ -237,17 +323,14 @@ export const useReports = () => {
     }
   };
 
-  const fetchStudyHallsReport = async (filters: ReportFilter = {}) => {
+  const fetchStudyHallsReport = async (filters: ReportFilter = {}): Promise<ReportData[]> => {
     if (userRole === 'student') return [];
     
     setLoading(true);
     try {
-      let query = supabase
-        .from('study_halls')
-        .select(`
-          *,
-          profiles!study_halls_merchant_id_fkey(full_name, email, merchant_number)
-        `);
+      console.log('Fetching study halls report with filters:', filters);
+      
+      let query = supabase.from('study_halls').select('*');
 
       // Apply role-based filters
       if (userRole === 'merchant') {
@@ -269,9 +352,22 @@ export const useReports = () => {
         throw error;
       }
 
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Fetch merchant profiles separately
+      const merchantIds = [...new Set(data.map(sh => sh.merchant_id))];
+      const { data: merchants } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, merchant_number')
+        .in('id', merchantIds);
+
+      const merchantsMap = new Map(merchants?.map(m => [m.id, m]) || []);
+
       // Get booking stats for each study hall
       const studyHallsWithStats = await Promise.all(
-        (data || []).map(async (studyHall) => {
+        data.map(async (studyHall) => {
           const { data: bookingStats } = await supabase
             .from('bookings')
             .select('total_amount')
@@ -281,7 +377,7 @@ export const useReports = () => {
 
           return {
             ...studyHall,
-            merchant: studyHall.profiles,
+            merchant: merchantsMap.get(studyHall.merchant_id) || { full_name: 'Unknown', email: 'N/A' },
             bookings_count: bookingStats?.length || 0,
             total_revenue: bookingStats?.reduce((sum, b) => sum + Number(b.total_amount), 0) || 0
           };
@@ -302,18 +398,14 @@ export const useReports = () => {
     }
   };
 
-  const fetchSubscriptionsReport = async (filters: ReportFilter = {}) => {
+  const fetchSubscriptionsReport = async (filters: ReportFilter = {}): Promise<ReportData[]> => {
     if (userRole !== 'admin') return [];
     
     setLoading(true);
     try {
-      let query = supabase
-        .from('merchant_subscriptions')
-        .select(`
-          *,
-          profiles!merchant_subscriptions_merchant_id_fkey(full_name, email, merchant_number),
-          subscription_plans!merchant_subscriptions_plan_id_fkey(name, price, duration)
-        `);
+      console.log('Fetching subscriptions report with filters:', filters);
+      
+      let query = supabase.from('merchant_subscriptions').select('*');
 
       // Apply additional filters
       if (filters.dateFrom) {
@@ -336,12 +428,28 @@ export const useReports = () => {
         throw error;
       }
 
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Fetch related data separately
+      const merchantIds = [...new Set(data.map(s => s.merchant_id))];
+      const planIds = [...new Set(data.map(s => s.plan_id))];
+
+      const [merchantsRes, plansRes] = await Promise.all([
+        supabase.from('profiles').select('id, full_name, email, merchant_number').in('id', merchantIds),
+        supabase.from('subscription_plans').select('id, name, price, duration').in('id', planIds)
+      ]);
+
+      const merchantsMap = new Map(merchantsRes.data?.map(m => [m.id, m]) || []);
+      const plansMap = new Map(plansRes.data?.map(p => [p.id, p]) || []);
+
       // Transform data to match expected structure
-      const transformedData = data?.map(subscription => ({
+      const transformedData = data.map(subscription => ({
         ...subscription,
-        merchant: subscription.profiles,
-        plan: subscription.subscription_plans
-      })) || [];
+        merchant: merchantsMap.get(subscription.merchant_id) || { full_name: 'Unknown', email: 'N/A' },
+        plan: plansMap.get(subscription.plan_id) || { name: 'Unknown', price: 0, duration: 'N/A' }
+      }));
 
       return transformedData;
     } catch (error) {
@@ -357,30 +465,34 @@ export const useReports = () => {
     }
   };
 
-  const fetchCouponsReport = async (filters: ReportFilter = {}) => {
+  const fetchCouponsReport = async (filters: ReportFilter = {}): Promise<ReportData[]> => {
     if (userRole === 'student') return [];
     
     setLoading(true);
     try {
-      let query = supabase
-        .from('coupon_usage')
-        .select(`
-          *,
-          coupons!coupon_usage_coupon_id_fkey(code, title, type, value, merchant_id),
-          profiles!coupon_usage_user_id_fkey(full_name, email),
-          bookings!coupon_usage_booking_id_fkey(booking_number, study_hall_id)
-        `);
+      console.log('Fetching coupons report with filters:', filters);
+      
+      let query = supabase.from('coupon_usage').select('*');
 
       // Apply role-based filters
-      if (userRole === 'merchant') {
+      if (userRole === 'merchant' && user?.id) {
         // Filter by merchant's coupons
-        const { data: merchantCoupons } = await supabase
+        const { data: merchantCoupons, error: couponsError } = await supabase
           .from('coupons')
           .select('id')
-          .eq('merchant_id', user?.id);
+          .eq('merchant_id', user.id);
         
-        if (merchantCoupons?.length) {
+        if (couponsError) {
+          console.error('Error fetching merchant coupons:', couponsError);
+          throw couponsError;
+        }
+        
+        if (merchantCoupons && merchantCoupons.length > 0) {
           query = query.in('coupon_id', merchantCoupons.map(c => c.id));
+        } else {
+          // Merchant has no coupons, return empty array
+          setLoading(false);
+          return [];
         }
       }
 
@@ -399,13 +511,32 @@ export const useReports = () => {
         throw error;
       }
 
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Fetch related data separately
+      const couponIds = [...new Set(data.map(u => u.coupon_id))];
+      const userIds = [...new Set(data.map(u => u.user_id))];
+      const bookingIds = [...new Set(data.map(u => u.booking_id).filter(Boolean))];
+
+      const [couponsRes, usersRes, bookingsRes] = await Promise.all([
+        supabase.from('coupons').select('id, code, title, type, value, merchant_id').in('id', couponIds),
+        supabase.from('profiles').select('id, full_name, email').in('id', userIds),
+        bookingIds.length > 0 ? supabase.from('bookings').select('id, booking_number, study_hall_id').in('id', bookingIds) : { data: [] }
+      ]);
+
+      const couponsMap = new Map(couponsRes.data?.map(c => [c.id, c]) || []);
+      const usersMap = new Map(usersRes.data?.map(u => [u.id, u]) || []);
+      const bookingsMap = new Map((bookingsRes.data || []).map(b => [b.id, b]));
+
       // Transform data to match expected structure
-      const transformedData = data?.map(usage => ({
+      const transformedData = data.map(usage => ({
         ...usage,
-        coupon: usage.coupons,
-        user: usage.profiles,
-        booking: usage.bookings
-      })) || [];
+        coupon: couponsMap.get(usage.coupon_id) || { code: 'Unknown', title: 'N/A' },
+        user: usersMap.get(usage.user_id) || { full_name: 'Unknown', email: 'N/A' },
+        booking: usage.booking_id ? bookingsMap.get(usage.booking_id) || null : null
+      }));
 
       return transformedData;
     } catch (error) {
@@ -421,17 +552,16 @@ export const useReports = () => {
     }
   };
 
-  const fetchRewardsReport = async (filters: ReportFilter = {}) => {
+  const fetchRewardsReport = async (filters: ReportFilter = {}): Promise<ReportData[]> => {
     if (userRole !== 'student') return [];
     
     setLoading(true);
     try {
+      console.log('Fetching rewards report with filters:', filters);
+      
       let query = supabase
         .from('reward_transactions')
-        .select(`
-          *,
-          bookings!reward_transactions_booking_id_fkey(booking_number, study_hall_id)
-        `)
+        .select('*')
         .eq('user_id', user?.id);
 
       // Apply additional filters
@@ -449,11 +579,30 @@ export const useReports = () => {
         throw error;
       }
 
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Fetch related bookings data separately
+      const bookingIds = [...new Set(data.map(r => r.booking_id).filter(Boolean))];
+      
+      let bookingsData: any[] = [];
+      if (bookingIds.length > 0) {
+        const { data: bookings } = await supabase
+          .from('bookings')
+          .select('id, booking_number, study_hall_id')
+          .in('id', bookingIds);
+        
+        bookingsData = bookings || [];
+      }
+
+      const bookingsMap = new Map(bookingsData.map(b => [b.id, b]));
+
       // Transform data to match expected structure
-      const transformedData = data?.map(reward => ({
+      const transformedData = data.map(reward => ({
         ...reward,
-        booking: reward.bookings
-      })) || [];
+        booking: reward.booking_id ? bookingsMap.get(reward.booking_id) || null : null
+      }));
 
       return transformedData;
     } catch (error) {

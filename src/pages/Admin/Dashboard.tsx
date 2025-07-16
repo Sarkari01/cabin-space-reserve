@@ -1145,6 +1145,22 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {/* Reports Tab */}
+          {activeTab === "reports" && (
+            <div className="space-y-6">
+              <PageHeader
+                title="Reports & Analytics"
+                description="Comprehensive reports across the platform"
+                breadcrumbs={[
+                  { label: "Dashboard", href: "#", onClick: () => setActiveTab("overview") },
+                  { label: "Reports", active: true }
+                ]}
+                actions={<RealTimeIndicator lastUpdate={lastUpdate} />}
+              />
+              <AdminReportsTab />
+            </div>
+          )}
+
           {/* Operational Users Tab */}
           {activeTab === "operational-users" && (
             <div className="space-y-6">
