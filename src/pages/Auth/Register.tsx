@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { signUp } = useAuth();
+  const { brandSettings, loading: brandLoading } = useBrandSettings();
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -65,7 +67,7 @@ const Register = () => {
       
       toast({
         title: "Registration successful",
-        description: "Welcome to CabinSpace! Please check your email to verify your account."
+        description: `Welcome to ${brandSettings.brand_name || "StudySpace Platform"}! Please check your email to verify your account.`
       });
       
       // Navigate to login page after successful registration
@@ -86,9 +88,26 @@ const Register = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg"></div>
-            <h1 className="text-2xl font-bold text-foreground">CabinSpace</h1>
+          <Link to="/" className="inline-flex flex-col items-center space-y-2">
+            {brandSettings.logo_url ? (
+              <img 
+                src={brandSettings.logo_url} 
+                alt={brandSettings.brand_name || "Logo"} 
+                className="w-12 h-12 object-contain"
+              />
+            ) : (
+              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xl">
+                  {brandSettings.brand_name?.charAt(0) || "S"}
+                </span>
+              </div>
+            )}
+            <h1 className="text-2xl font-bold text-foreground">
+              {brandLoading ? "StudySpace Platform" : brandSettings.brand_name}
+            </h1>
+            {brandSettings.tagline && (
+              <p className="text-sm text-muted-foreground">{brandSettings.tagline}</p>
+            )}
           </Link>
         </div>
         
@@ -96,7 +115,7 @@ const Register = () => {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Create Account</CardTitle>
             <CardDescription>
-              Join CabinSpace and start your journey
+              Join {brandSettings.brand_name || "StudySpace Platform"} and start your journey
             </CardDescription>
           </CardHeader>
           <CardContent>

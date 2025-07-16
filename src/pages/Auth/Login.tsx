@@ -8,12 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { getRoleBasedDashboard } from '@/utils/roleRedirects';
+import { useBrandSettings } from '@/hooks/useBrandSettings';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user, userRole } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { brandSettings, loading: brandLoading } = useBrandSettings();
 
   // Redirect authenticated users to their dashboard
   useEffect(() => {
@@ -115,11 +117,39 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome to CoWork</CardTitle>
-          <CardDescription>Sign in to your account or create a new one</CardDescription>
-        </CardHeader>
+      <div className="w-full max-w-md">
+        {/* Brand Header */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex flex-col items-center space-y-2">
+            {brandSettings.logo_url ? (
+              <img 
+                src={brandSettings.logo_url} 
+                alt={brandSettings.brand_name || "Logo"} 
+                className="w-12 h-12 object-contain"
+              />
+            ) : (
+              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xl">
+                  {brandSettings.brand_name?.charAt(0) || "S"}
+                </span>
+              </div>
+            )}
+            <h1 className="text-2xl font-bold text-foreground">
+              {brandLoading ? "StudySpace Platform" : brandSettings.brand_name}
+            </h1>
+            {brandSettings.tagline && (
+              <p className="text-sm text-muted-foreground">{brandSettings.tagline}</p>
+            )}
+          </Link>
+        </div>
+
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">
+              Welcome back!
+            </CardTitle>
+            <CardDescription>Sign in to your account or create a new one</CardDescription>
+          </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -227,7 +257,8 @@ const Login = () => {
             </Link>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };
