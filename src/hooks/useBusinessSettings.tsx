@@ -23,6 +23,7 @@ export interface BusinessSettings {
   support_phone?: string;
   website_url?: string;
   tagline?: string;
+  business_address?: string;
   // Trial Plan Settings
   trial_plan_enabled?: boolean;
   trial_duration_days?: number;

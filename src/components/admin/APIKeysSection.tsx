@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,7 @@ import {
   CheckCircle, 
   XCircle, 
   Loader2,
-  TestTube,
-  Save
+  TestTube
 } from "lucide-react";
 
 interface APIKeyData {
@@ -31,7 +30,11 @@ interface APIKeyFormData {
   ekqr_api_key: string;
 }
 
-export const APIKeysSection = () => {
+export interface APIKeysSectionRef {
+  saveAPIKeys: () => Promise<boolean>;
+}
+
+export const APIKeysSection = forwardRef<APIKeysSectionRef>((_, ref) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState<APIKeyFormData>({
     google_maps_api_key: '',
@@ -41,7 +44,6 @@ export const APIKeysSection = () => {
   });
   const [previews, setPreviews] = useState<APIKeyData>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<Record<string, boolean>>({});
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<Record<string, any>>({});
@@ -74,8 +76,7 @@ export const APIKeysSection = () => {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
+  const handleSave = async (): Promise<boolean> => {
     try {
       // Only send non-empty values
       const updates: Partial<APIKeyFormData> = {};
@@ -86,11 +87,7 @@ export const APIKeysSection = () => {
       });
 
       if (Object.keys(updates).length === 0) {
-        toast({
-          title: "No Changes",
-          description: "No API keys to update",
-        });
-        return;
+        return true; // No changes to save
       }
 
       const { data, error } = await supabase.functions.invoke('manage-api-keys', {
@@ -116,7 +113,9 @@ export const APIKeysSection = () => {
           ekqr_api_key: '',
         });
         await fetchAPIKeys();
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Error saving API keys:', error);
       toast({
@@ -124,10 +123,13 @@ export const APIKeysSection = () => {
         description: "Failed to save API keys",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
+      return false;
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    saveAPIKeys: handleSave
+  }));
 
   const testAPIKey = async (keyType: string) => {
     setTesting(prev => ({ ...prev, [keyType]: true }));
@@ -213,28 +215,14 @@ export const APIKeysSection = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            API Keys Management
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Securely configure API keys for external services
-          </p>
-        </div>
-        <Button 
-          onClick={handleSave} 
-          disabled={saving}
-          className="flex items-center gap-2"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          Save Changes
-        </Button>
+      <div>
+        <h3 className="text-lg font-medium flex items-center gap-2">
+          <Key className="h-5 w-5" />
+          API Keys Management
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Securely configure API keys for external services
+        </p>
       </div>
 
       <div className="grid gap-6">
@@ -485,4 +473,4 @@ export const APIKeysSection = () => {
       </div>
     </div>
   );
-};
+});

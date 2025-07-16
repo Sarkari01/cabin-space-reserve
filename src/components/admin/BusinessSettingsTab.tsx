@@ -13,12 +13,13 @@ import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandAssetUpload } from "@/components/BrandAssetUpload";
-import { APIKeysSection } from "./APIKeysSection";
+import { APIKeysSection, APIKeysSectionRef } from "./APIKeysSection";
 import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key } from "lucide-react";
 
 export const BusinessSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
   const { toast } = useToast();
+  const apiKeysSectionRef = React.useRef<APIKeysSectionRef>(null);
   const [formData, setFormData] = useState({
     ekqr_enabled: false,
     offline_enabled: true,
@@ -31,6 +32,7 @@ export const BusinessSettingsTab = () => {
     support_phone: '',
     website_url: '',
     tagline: '',
+    business_address: '',
     // Trial Plan Settings
     trial_plan_enabled: false,
     trial_duration_days: 14,
@@ -59,6 +61,7 @@ export const BusinessSettingsTab = () => {
         support_phone: settings.support_phone || '',
         website_url: settings.website_url || '',
         tagline: settings.tagline || '',
+        business_address: settings.business_address || '',
         // Trial Plan Settings
         trial_plan_enabled: settings.trial_plan_enabled || false,
         trial_duration_days: settings.trial_duration_days || 14,
@@ -90,13 +93,39 @@ export const BusinessSettingsTab = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const success = await updateSettings(formData);
-      if (success) {
+      // Save business settings
+      const businessSettingsSuccess = await updateSettings(formData);
+      
+      // Save API keys
+      const apiKeysSuccess = await apiKeysSectionRef.current?.saveAPIKeys() ?? true;
+      
+      if (businessSettingsSuccess && apiKeysSuccess) {
+        toast({
+          title: "Success",
+          description: "All settings saved successfully",
+        });
         // Re-validate gateways after save
         setTimeout(validateGateways, 1000);
+      } else if (businessSettingsSuccess && !apiKeysSuccess) {
+        toast({
+          title: "Partial Success",
+          description: "Business settings saved, but API keys failed to save",
+          variant: "destructive",
+        });
+      } else if (!businessSettingsSuccess && apiKeysSuccess) {
+        toast({
+          title: "Partial Success",
+          description: "API keys saved, but business settings failed to save",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error saving business settings:', error);
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -270,6 +299,17 @@ export const BusinessSettingsTab = () => {
                     onChange={(e) => setFormData(prev => ({ ...prev, tagline: e.target.value }))}
                     placeholder="Your study space awaits..."
                     rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="business-address">Business Address (Optional)</Label>
+                  <Textarea
+                    id="business-address"
+                    value={formData.business_address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, business_address: e.target.value }))}
+                    placeholder="Enter your business address..."
+                    rows={3}
                   />
                 </div>
               </CardContent>
@@ -499,7 +539,7 @@ export const BusinessSettingsTab = () => {
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-6 pt-4">
-          <APIKeysSection />
+          <APIKeysSection ref={apiKeysSectionRef} />
         </CollapsibleContent>
       </Collapsible>
 
@@ -509,7 +549,7 @@ export const BusinessSettingsTab = () => {
         <Button 
           onClick={handleSave} 
           disabled={saving}
-          className="min-w-[120px]"
+          className="min-w-[140px]"
         >
           {saving ? (
             <>
@@ -517,7 +557,7 @@ export const BusinessSettingsTab = () => {
               Saving...
             </>
           ) : (
-            'Save Settings'
+            'Save All Settings'
           )}
         </Button>
       </div>
