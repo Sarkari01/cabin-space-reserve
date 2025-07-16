@@ -166,15 +166,21 @@ export function PopupNotificationManager({
 }: PopupNotificationManagerProps) {
   const [currentNotificationIndex, setCurrentNotificationIndex] = useState(0);
   const [isShowing, setIsShowing] = useState(false);
+  const [shownIds, setShownIds] = useState<Set<string>>(new Set());
 
-  // Show notifications one at a time
+  // Show notifications one at a time - prevent infinite loop by tracking shown IDs
   useEffect(() => {
     if (notifications.length > 0 && currentNotificationIndex < notifications.length && !isShowing) {
-      setIsShowing(true);
       const currentNotification = notifications[currentNotificationIndex];
-      onNotificationShown(currentNotification.id);
+      
+      // Only show if we haven't already called onNotificationShown for this ID
+      if (!shownIds.has(currentNotification.id)) {
+        setIsShowing(true);
+        setShownIds(prev => new Set([...prev, currentNotification.id]));
+        onNotificationShown(currentNotification.id);
+      }
     }
-  }, [notifications, currentNotificationIndex, isShowing, onNotificationShown]);
+  }, [notifications, currentNotificationIndex, isShowing]);
 
   const handleClose = () => {
     const currentNotification = notifications[currentNotificationIndex];
