@@ -209,6 +209,8 @@ export type Database = {
           auto_approval_threshold: number | null
           brand_name: string | null
           business_address: string | null
+          contact_address: string | null
+          contact_hours: string | null
           copyright_text: string | null
           created_at: string
           ekqr_api_key_preview: string | null
@@ -223,9 +225,12 @@ export type Database = {
           maintenance_message: string | null
           maintenance_mode_enabled: boolean | null
           maintenance_target_roles: string[] | null
+          map_embed_url: string | null
           min_redemption_points: number | null
           minimum_settlement_amount: number | null
           minimum_withdrawal_amount: number | null
+          newsletter_description: string | null
+          newsletter_enabled: boolean | null
           offline_enabled: boolean
           platform_fee_percentage: number | null
           points_per_booking: number | null
@@ -236,6 +241,11 @@ export type Database = {
           razorpay_key_secret_preview: string | null
           rewards_conversion_rate: number | null
           rewards_enabled: boolean | null
+          social_facebook: string | null
+          social_instagram: string | null
+          social_linkedin: string | null
+          social_twitter: string | null
+          social_youtube: string | null
           support_email: string | null
           support_phone: string | null
           tagline: string | null
@@ -251,6 +261,8 @@ export type Database = {
           auto_approval_threshold?: number | null
           brand_name?: string | null
           business_address?: string | null
+          contact_address?: string | null
+          contact_hours?: string | null
           copyright_text?: string | null
           created_at?: string
           ekqr_api_key_preview?: string | null
@@ -265,9 +277,12 @@ export type Database = {
           maintenance_message?: string | null
           maintenance_mode_enabled?: boolean | null
           maintenance_target_roles?: string[] | null
+          map_embed_url?: string | null
           min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null
+          newsletter_description?: string | null
+          newsletter_enabled?: boolean | null
           offline_enabled?: boolean
           platform_fee_percentage?: number | null
           points_per_booking?: number | null
@@ -278,6 +293,11 @@ export type Database = {
           razorpay_key_secret_preview?: string | null
           rewards_conversion_rate?: number | null
           rewards_enabled?: boolean | null
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_twitter?: string | null
+          social_youtube?: string | null
           support_email?: string | null
           support_phone?: string | null
           tagline?: string | null
@@ -293,6 +313,8 @@ export type Database = {
           auto_approval_threshold?: number | null
           brand_name?: string | null
           business_address?: string | null
+          contact_address?: string | null
+          contact_hours?: string | null
           copyright_text?: string | null
           created_at?: string
           ekqr_api_key_preview?: string | null
@@ -307,9 +329,12 @@ export type Database = {
           maintenance_message?: string | null
           maintenance_mode_enabled?: boolean | null
           maintenance_target_roles?: string[] | null
+          map_embed_url?: string | null
           min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null
+          newsletter_description?: string | null
+          newsletter_enabled?: boolean | null
           offline_enabled?: boolean
           platform_fee_percentage?: number | null
           points_per_booking?: number | null
@@ -320,6 +345,11 @@ export type Database = {
           razorpay_key_secret_preview?: string | null
           rewards_conversion_rate?: number | null
           rewards_enabled?: boolean | null
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_twitter?: string | null
+          social_youtube?: string | null
           support_email?: string | null
           support_phone?: string | null
           tagline?: string | null
@@ -586,6 +616,62 @@ export type Database = {
           },
         ]
       }
+      contact_submissions: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          priority: string
+          response_sent: boolean
+          source: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          priority?: string
+          response_sent?: boolean
+          source?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          priority?: string
+          response_sent?: boolean
+          source?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_submissions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupon_usage: {
         Row: {
           booking_id: string | null
@@ -710,6 +796,90 @@ export type Database = {
           {
             foreignKeyName: "coupons_merchant_id_fkey"
             columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faq_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      faq_items: {
+        Row: {
+          answer: string
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          question: string
+          target_audience: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          question: string
+          target_audience?: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          question?: string
+          target_audience?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faq_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "faq_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faq_items_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
