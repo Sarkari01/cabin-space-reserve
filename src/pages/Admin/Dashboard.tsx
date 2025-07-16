@@ -101,6 +101,7 @@ const AdminDashboard = () => {
   const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("view");
   const [selectedStudyHall, setSelectedStudyHall] = useState<any>(null);
   const [studyHallSearchTerm, setStudyHallSearchTerm] = useState("");
+  const [bookingSearchTerm, setBookingSearchTerm] = useState("");
 
   // Redirect to login if not authenticated or not admin
   useEffect(() => {
@@ -119,6 +120,28 @@ const AdminDashboard = () => {
       return;
     }
   }, [user, userRole]);
+
+  // Filter bookings based on search term
+  const filteredBookings = bookings.filter(booking => {
+    if (!bookingSearchTerm) return true;
+    
+    const searchLower = bookingSearchTerm.toLowerCase();
+    const studentName = booking.user?.full_name?.toLowerCase() || '';
+    const studentEmail = booking.user?.email?.toLowerCase() || '';
+    const studentPhone = booking.user?.phone?.toLowerCase() || '';
+    const studyHallName = booking.study_hall?.name?.toLowerCase() || '';
+    const studyHallLocation = booking.study_hall?.location?.toLowerCase() || '';
+    const bookingNumber = booking.booking_number?.toString() || '';
+    const seatId = booking.seat?.seat_id?.toLowerCase() || '';
+    
+    return studentName.includes(searchLower) ||
+           studentEmail.includes(searchLower) ||
+           studentPhone.includes(searchLower) ||
+           studyHallName.includes(searchLower) ||
+           studyHallLocation.includes(searchLower) ||
+           bookingNumber.includes(searchLower) ||
+           seatId.includes(searchLower);
+  });
 
   const handleCreateUser = async (userData: any) => {
     setIsSubmitting(true);
@@ -825,6 +848,22 @@ const AdminDashboard = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Search Section */}
+              <div className="flex items-center space-x-4">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search bookings by student, hall, location, or booking #..."
+                    value={bookingSearchTerm}
+                    onChange={(e) => setBookingSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Badge variant="secondary" className="whitespace-nowrap">
+                  {bookingsLoading ? "Loading..." : `${filteredBookings.length} bookings`}
+                </Badge>
+              </div>
               
               {bookingsLoading ? (
                 <div className="space-y-4">
@@ -834,9 +873,9 @@ const AdminDashboard = () => {
                     </div>
                   ))}
                 </div>
-              ) : bookings.length > 0 ? (
+              ) : filteredBookings.length > 0 ? (
                 <div className="space-y-4">
-                  {bookings.map((booking, index) => (
+                  {filteredBookings.map((booking, index) => (
                     <Card key={booking.id} className="animate-fade-in hover:shadow-lg transition-all duration-300" style={{ animationDelay: `${index * 50}ms` }}>
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
@@ -847,11 +886,17 @@ const AdminDashboard = () => {
                                 {booking.status.toUpperCase()}
                               </Badge>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                               <span className="flex items-center space-x-1">
                                 <Users className="h-4 w-4" />
                                 <span>{booking.user?.full_name || booking.user?.email}</span>
                               </span>
+                              {booking.user?.phone && (
+                                <span className="flex items-center space-x-1">
+                                  <Phone className="h-4 w-4" />
+                                  <span>{booking.user.phone}</span>
+                                </span>
+                              )}
                               <span className="flex items-center space-x-1">
                                 <Building className="h-4 w-4" />
                                 <span>{booking.study_hall?.location}</span>
@@ -897,11 +942,24 @@ const AdminDashboard = () => {
                     </Card>
                   ))}
                 </div>
-              ) : (
+              ) : bookings.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <h3 className="text-lg font-medium mb-2">No bookings found</h3>
                   <p>Platform bookings will appear here once users start booking study halls</p>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No bookings match your search</h3>
+                  <p>Try adjusting your search criteria or clear the search to see all bookings</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setBookingSearchTerm("")}
+                    className="mt-4"
+                  >
+                    Clear Search
+                  </Button>
                 </div>
               )}
             </div>
