@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { useToast } from "@/hooks/use-toast";
+import { useInstitutions, type Institution } from "@/hooks/useInstitutions";
 import { 
   School, 
   Search, 
@@ -18,27 +19,28 @@ import {
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-// Temporary interface until migration is run
-interface Institution {
-  id: string;
-  name: string;
-  email: string;
-  mobile?: string;
-  status: 'active' | 'inactive';
-  logo_url?: string;
-  auth_user_id?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export const InstitutionsTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [newsCounts, setNewsCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
+  const { 
+    institutions, 
+    loading: isLoading, 
+    stats,
+    fetchInstitutions, 
+    toggleInstitutionStatus,
+    getInstitutionNewsCounts 
+  } = useInstitutions();
 
-  // Temporary placeholder data until migration is run
-  const institutions: Institution[] = [];
-  const newsCounts: Record<string, number> = {};
-  const isLoading = false;
+  useEffect(() => {
+    fetchInstitutions();
+    loadNewsCounts();
+  }, []);
+
+  const loadNewsCounts = async () => {
+    const counts = await getInstitutionNewsCounts();
+    setNewsCounts(counts);
+  };
 
   const filteredInstitutions = institutions.filter(institution =>
     institution.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -47,34 +49,35 @@ export const InstitutionsTab = () => {
 
   const handleCreateInstitution = () => {
     toast({
-      title: "Migration Required",
-      description: "Please run the database migration first to enable institution management.",
-      variant: "destructive",
+      title: "Coming Soon",
+      description: "Institution creation will be available through user management.",
+      variant: "default",
     });
   };
 
   const handleEditInstitution = (institution: Institution) => {
     toast({
-      title: "Migration Required", 
-      description: "Please run the database migration first to enable institution management.",
-      variant: "destructive",
+      title: "Coming Soon", 
+      description: "Institution editing functionality will be available soon.",
+      variant: "default",
     });
   };
 
   const handleViewInstitution = (institution: Institution) => {
     toast({
-      title: "Migration Required",
-      description: "Please run the database migration first to enable institution management.", 
-      variant: "destructive",
+      title: "Institution Details",
+      description: `Viewing ${institution.name} - ${institution.email}`,
+      variant: "default",
     });
   };
 
   const handleToggleStatus = async (institutionId: string, currentStatus: string) => {
-    toast({
-      title: "Migration Required",
-      description: "Please run the database migration first to enable institution management.",
-      variant: "destructive",
-    });
+    try {
+      await toggleInstitutionStatus(institutionId, currentStatus);
+      await loadNewsCounts(); // Refresh counts after status change
+    } catch (error) {
+      console.error('Error toggling status:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -113,10 +116,10 @@ export const InstitutionsTab = () => {
       )
     },
     {
-      key: "mobile",
+      key: "phone",
       title: "Contact",
       render: (value: any, institution: Institution) => (
-        <div className="text-sm">{institution.mobile || "Not provided"}</div>
+        <div className="text-sm">{institution.phone || "Not provided"}</div>
       ),
       mobileHidden: true
     },
@@ -214,20 +217,6 @@ export const InstitutionsTab = () => {
         ]}
       />
 
-      {/* Migration Notice */}
-      <Card className="border-warning bg-warning/5">
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-2">
-            <School className="h-5 w-5 text-warning" />
-            <div>
-              <p className="font-medium text-warning">Database Migration Required</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Please run the database migration to enable institution management functionality.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -237,7 +226,7 @@ export const InstitutionsTab = () => {
             <School className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{institutions.length}</div>
+            <div className="text-2xl font-bold">{stats.total_institutions}</div>
           </CardContent>
         </Card>
         
@@ -248,7 +237,7 @@ export const InstitutionsTab = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-success">
-              {institutions.filter(i => i.status === "active").length}
+              {stats.active_institutions}
             </div>
           </CardContent>
         </Card>
@@ -260,7 +249,7 @@ export const InstitutionsTab = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              {Object.values(newsCounts).reduce((sum, count) => sum + count, 0)}
+              {stats.total_news_posts}
             </div>
           </CardContent>
         </Card>
@@ -272,7 +261,7 @@ export const InstitutionsTab = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-muted-foreground">
-              {institutions.filter(i => i.status === "inactive").length}
+              {stats.total_institutions - stats.active_institutions}
             </div>
           </CardContent>
         </Card>
@@ -305,7 +294,7 @@ export const InstitutionsTab = () => {
             data={filteredInstitutions}
             columns={tableColumns}
             loading={isLoading}
-            emptyMessage="Run the database migration to enable institution management"
+            emptyMessage="No institutions found"
           />
         </CardContent>
       </Card>

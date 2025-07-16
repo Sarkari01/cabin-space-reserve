@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { InstitutionNewsTab } from "@/components/institution/InstitutionNewsTab";
 import { InstitutionProfileTab } from "@/components/institution/InstitutionProfileTab";
+import { useInstitutions } from "@/hooks/useInstitutions";
+import { useNews } from "@/hooks/useNews";
 import { 
   School, 
   Newspaper, 
@@ -16,24 +18,43 @@ import {
 export default function InstitutionDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
+  const { currentInstitution, loading: institutionLoading } = useInstitutions();
+  const { news, loading: newsLoading, fetchInstitutionNews } = useNews();
 
-  // Show migration notice for any tab switch
-  const handleTabChange = (value: string) => {
-    if (value !== "overview") {
-      toast({
-        title: "Migration Required",
-        description: "Please run the database migration first to enable full institution functionality.",
-        variant: "destructive",
-      });
-      return;
+  const [newsStats, setNewsStats] = useState({
+    total: 0,
+    published: 0,
+    drafts: 0,
+    views: 0
+  });
+
+  useEffect(() => {
+    if (currentInstitution) {
+      fetchInstitutionNews(currentInstitution.id);
     }
+  }, [currentInstitution]);
+
+  useEffect(() => {
+    if (news.length > 0) {
+      const published = news.filter(n => n.status === 'active').length;
+      const drafts = news.filter(n => n.status === 'draft').length;
+      setNewsStats({
+        total: news.length,
+        published,
+        drafts,
+        views: 0 // Would need view tracking
+      });
+    }
+  }, [news]);
+
+  const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "news":
-        return <InstitutionNewsTab mode="manage" />;
+        return <InstitutionNewsTab institutionId={currentInstitution?.id} mode="manage" />;
       case "profile":
         return <InstitutionProfileTab />;
       default:
@@ -43,15 +64,26 @@ export default function InstitutionDashboard() {
               <CardTitle>Welcome to Your Institution Dashboard</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Once the database migration is complete, you'll be able to:
-              </p>
-              <ul className="list-disc list-inside mt-4 space-y-2 text-sm text-muted-foreground">
-                <li>Create and manage news posts</li>
-                <li>View your publishing statistics</li>
-                <li>Update your institution profile</li>
-                <li>Schedule news posts for later publication</li>
-              </ul>
+              {currentInstitution ? (
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Welcome to {currentInstitution.name}'s dashboard. Here you can:
+                  </p>
+                  <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                    <li>Create and manage news posts</li>
+                    <li>View your publishing statistics</li>
+                    <li>Update your institution profile</li>
+                    <li>Monitor your content performance</li>
+                  </ul>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <School className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">
+                    Loading institution details...
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -61,27 +93,12 @@ export default function InstitutionDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Institution Dashboard"
+        title={currentInstitution ? `${currentInstitution.name} Dashboard` : "Institution Dashboard"}
         description="Manage your institution's news and content"
         breadcrumbs={[
           { label: "Dashboard", active: true }
         ]}
       />
-
-      {/* Migration Notice */}
-      <Card className="border-warning bg-warning/5">
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-2">
-            <School className="h-5 w-5 text-warning" />
-            <div>
-              <p className="font-medium text-warning">Database Migration Required</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Please run the database migration to enable full institution dashboard functionality.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Overview Stats */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -91,8 +108,10 @@ export default function InstitutionDashboard() {
             <Newspaper className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Migration required</p>
+            <div className="text-2xl font-bold">{newsStats.total}</div>
+            <p className="text-xs text-muted-foreground">
+              {newsLoading ? "Loading..." : "All time"}
+            </p>
           </CardContent>
         </Card>
         
@@ -102,8 +121,8 @@ export default function InstitutionDashboard() {
             <FileText className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">0</div>
-            <p className="text-xs text-muted-foreground">Migration required</p>
+            <div className="text-2xl font-bold text-success">{newsStats.published}</div>
+            <p className="text-xs text-muted-foreground">Active posts</p>
           </CardContent>
         </Card>
         
@@ -113,19 +132,21 @@ export default function InstitutionDashboard() {
             <FileText className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">0</div>
-            <p className="text-xs text-muted-foreground">Migration required</p>
+            <div className="text-2xl font-bold text-warning">{newsStats.drafts}</div>
+            <p className="text-xs text-muted-foreground">Unpublished</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Views</CardTitle>
-            <BarChart3 className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-medium">Status</CardTitle>
+            <User className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">0</div>
-            <p className="text-xs text-muted-foreground">Migration required</p>
+            <div className="text-2xl font-bold text-primary">
+              {currentInstitution?.status === 'active' ? 'Active' : 'Inactive'}
+            </div>
+            <p className="text-xs text-muted-foreground">Account status</p>
           </CardContent>
         </Card>
       </div>

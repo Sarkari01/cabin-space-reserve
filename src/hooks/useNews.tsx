@@ -34,6 +34,29 @@ export function useNews() {
     }
   };
 
+  const fetchInstitutionNews = async (institutionId: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("news_posts")
+        .select("*")
+        .eq("institution_id", institutionId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setNews(data || []);
+    } catch (error) {
+      console.error("Error fetching institution news:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load institution news posts",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createNews = async (newsData: NewsPostInsert): Promise<NewsPost | null> => {
     try {
       const { data, error } = await supabase
@@ -125,6 +148,7 @@ export function useNews() {
     createNews,
     updateNews,
     deleteNews,
+    fetchInstitutionNews,
     refetch: fetchNews,
   };
 }
