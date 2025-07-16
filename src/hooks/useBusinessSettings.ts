@@ -32,6 +32,10 @@ interface BusinessSettings {
   points_per_referral?: number;
   points_profile_complete?: number;
   min_redemption_points?: number;
+  // Maintenance mode
+  maintenance_mode_enabled?: boolean;
+  maintenance_message?: string;
+  maintenance_estimated_return?: string;
   // API Key previews
   google_maps_api_key_preview?: string;
   razorpay_key_id_preview?: string;
@@ -85,6 +89,9 @@ export const useBusinessSettings = () => {
           points_per_referral: 500,
           points_profile_complete: 100,
           min_redemption_points: 10,
+          maintenance_mode_enabled: false,
+          maintenance_message: 'We are currently performing maintenance. Please check back later.',
+          maintenance_estimated_return: null,
         };
 
         const { data: newData, error: createError } = await supabase

@@ -219,6 +219,9 @@ export type Database = {
           google_maps_api_key_preview: string | null
           id: string
           logo_url: string | null
+          maintenance_estimated_return: string | null
+          maintenance_message: string | null
+          maintenance_mode_enabled: boolean | null
           min_redemption_points: number | null
           minimum_settlement_amount: number | null
           minimum_withdrawal_amount: number | null
@@ -257,6 +260,9 @@ export type Database = {
           google_maps_api_key_preview?: string | null
           id?: string
           logo_url?: string | null
+          maintenance_estimated_return?: string | null
+          maintenance_message?: string | null
+          maintenance_mode_enabled?: boolean | null
           min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null
@@ -295,6 +301,9 @@ export type Database = {
           google_maps_api_key_preview?: string | null
           id?: string
           logo_url?: string | null
+          maintenance_estimated_return?: string | null
+          maintenance_message?: string | null
+          maintenance_mode_enabled?: boolean | null
           min_redemption_points?: number | null
           minimum_settlement_amount?: number | null
           minimum_withdrawal_amount?: number | null

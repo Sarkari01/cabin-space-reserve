@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { getRoleBasedDashboard } from "@/utils/roleRedirects";
 import { MerchantOnboardingGuard } from "@/components/merchant/MerchantOnboardingGuard";
+import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,10 +17,11 @@ const ProtectedRoute = ({
   allowMultipleRoles 
 }: ProtectedRouteProps) => {
   const { user, userRole, loading } = useAuth();
+  const { maintenanceStatus, loading: maintenanceLoading } = useMaintenanceMode();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || maintenanceLoading) return;
 
     // If not authenticated, redirect to login
     if (!user) {
@@ -29,6 +31,12 @@ const ProtectedRoute = ({
 
     // If user is authenticated but no role is set yet, wait
     if (!userRole) {
+      return;
+    }
+
+    // Check maintenance mode - only admins can access during maintenance
+    if (maintenanceStatus.enabled && userRole !== 'admin') {
+      navigate("/maintenance", { replace: true });
       return;
     }
 
@@ -46,10 +54,10 @@ const ProtectedRoute = ({
       navigate(dashboard, { replace: true });
       return;
     }
-  }, [user, userRole, loading, navigate, requiredRole, allowMultipleRoles]);
+  }, [user, userRole, loading, maintenanceLoading, maintenanceStatus.enabled, navigate, requiredRole, allowMultipleRoles]);
 
-  // Show loading spinner while checking authentication
-  if (loading || !user || !userRole) {
+  // Show loading spinner while checking authentication and maintenance status
+  if (loading || maintenanceLoading || !user || !userRole) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

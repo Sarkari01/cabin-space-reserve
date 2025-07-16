@@ -14,7 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandAssetUpload } from "@/components/BrandAssetUpload";
 import { APIKeysSection, APIKeysSectionRef } from "./APIKeysSection";
-import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key, AlertTriangle } from "lucide-react";
+
+import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key, AlertTriangle, Settings } from "lucide-react";
 
 export const BusinessSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
@@ -40,6 +41,10 @@ export const BusinessSettingsTab = () => {
     trial_duration_days: 14,
     trial_plan_name: 'Free Trial',
     trial_max_study_halls: 1,
+    // Maintenance Mode
+    maintenance_mode_enabled: false,
+    maintenance_message: 'We are currently performing maintenance. Please check back later.',
+    maintenance_estimated_return: '',
   });
   const [saving, setSaving] = useState(false);
   const [gatewayStatus, setGatewayStatus] = useState<Record<string, string>>({});
@@ -48,6 +53,7 @@ export const BusinessSettingsTab = () => {
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
   const [trialSectionOpen, setTrialSectionOpen] = useState(false);
   const [apiKeysSectionOpen, setApiKeysSectionOpen] = useState(false);
+  const [maintenanceSectionOpen, setMaintenanceSectionOpen] = useState(false);
   const [saveProgress, setSaveProgress] = useState({
     step: '',
     progress: 0,
@@ -76,6 +82,10 @@ export const BusinessSettingsTab = () => {
         trial_duration_days: settings.trial_duration_days || 14,
         trial_plan_name: settings.trial_plan_name || 'Free Trial',
         trial_max_study_halls: settings.trial_max_study_halls || 1,
+        // Maintenance Mode
+        maintenance_mode_enabled: settings.maintenance_mode_enabled || false,
+        maintenance_message: settings.maintenance_message || 'We are currently performing maintenance. Please check back later.',
+        maintenance_estimated_return: settings.maintenance_estimated_return || '',
       });
     }
   }, [settings]);
@@ -716,6 +726,99 @@ export const BusinessSettingsTab = () => {
                 </div>
               </CardContent>
             )}
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Separator />
+
+      {/* Maintenance Mode Section */}
+      <Collapsible open={maintenanceSectionOpen} onOpenChange={setMaintenanceSectionOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              <span className="text-lg font-medium">Maintenance Mode</span>
+              {formData.maintenance_mode_enabled && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Active
+                </Badge>
+              )}
+            </div>
+            <ChevronDown className={`h-4 w-4 transition-transform ${maintenanceSectionOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle className="text-base">Platform Maintenance Mode</CardTitle>
+                <CardDescription>
+                  When enabled, only admins can access the platform. All other users will see a maintenance screen.
+                </CardDescription>
+              </div>
+              <Switch
+                checked={formData.maintenance_mode_enabled}
+                onCheckedChange={(checked) =>
+                  setFormData(prev => ({ ...prev, maintenance_mode_enabled: checked }))
+                }
+              />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {formData.maintenance_mode_enabled && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-yellow-800">Maintenance Mode Active</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        When you save these settings, all non-admin users will be redirected to the maintenance screen with your custom message.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="maintenance-message">Maintenance Message</Label>
+                <Textarea
+                  id="maintenance-message"
+                  value={formData.maintenance_message}
+                  onChange={(e) => setFormData(prev => ({ ...prev, maintenance_message: e.target.value }))}
+                  placeholder="We are currently performing maintenance. Please check back later."
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This message will be displayed to users when maintenance mode is active.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maintenance-return">Estimated Return Time (Optional)</Label>
+                <Input
+                  id="maintenance-return"
+                  type="datetime-local"
+                  value={formData.maintenance_estimated_return}
+                  onChange={(e) => setFormData(prev => ({ ...prev, maintenance_estimated_return: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  If set, users will see when you expect the platform to be back online.
+                </p>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-2">Maintenance Mode Effects</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Only admin users can access the platform</li>
+                  <li>• All other users (Merchants, Students, etc.) see maintenance screen</li>
+                  <li>• Custom maintenance message is displayed</li>
+                  <li>• Estimated return time shown if configured</li>
+                  <li>• Contact information displayed for urgent matters</li>
+                  <li>• Changes take effect immediately after saving</li>
+                </ul>
+              </div>
+            </CardContent>
           </Card>
         </CollapsibleContent>
       </Collapsible>
