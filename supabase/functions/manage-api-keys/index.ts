@@ -29,6 +29,79 @@ interface RequestBody {
   };
 }
 
+// Get secret from Supabase Management API
+async function getSupabaseSecret(secretName: string): Promise<string | null> {
+  try {
+    const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'jseyxxsptcckjumjcljk';
+    const managementUrl = `https://api.supabase.com/v1/projects/${projectId}/secrets`;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!serviceRoleKey) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY not found');
+      return null;
+    }
+
+    const response = await fetch(managementUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch secrets: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const secrets = await response.json();
+    const secret = secrets.find((s: any) => s.name === secretName);
+    return secret?.value || null;
+  } catch (error) {
+    console.error(`Error getting secret ${secretName}:`, error);
+    return null;
+  }
+}
+
+// Set secret in Supabase Management API
+async function setSupabaseSecret(secretName: string, secretValue: string): Promise<boolean> {
+  try {
+    const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'jseyxxsptcckjumjcljk';
+    const managementUrl = `https://api.supabase.com/v1/projects/${projectId}/secrets`;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!serviceRoleKey) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY not found');
+      return false;
+    }
+
+    const response = await fetch(managementUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify([{
+        name: secretName,
+        value: secretValue
+      }])
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to set secret ${secretName}: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      return false;
+    }
+
+    console.log(`Successfully set secret: ${secretName}`);
+    return true;
+  } catch (error) {
+    console.error(`Error setting secret ${secretName}:`, error);
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -75,23 +148,23 @@ serve(async (req) => {
       // Return masked previews of current API keys
       const previews: APIKeyResponse = {};
 
-      // Get current secrets and create masked previews
-      const googleMapsKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+      // Get current secrets from Supabase secrets management
+      const googleMapsKey = await getSupabaseSecret('GOOGLE_MAPS_API_KEY');
       if (googleMapsKey) {
         previews.google_maps_api_key_preview = maskAPIKey(googleMapsKey, 'AIza', 4);
       }
 
-      const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
+      const razorpayKeyId = await getSupabaseSecret('RAZORPAY_KEY_ID');
       if (razorpayKeyId) {
         previews.razorpay_key_id_preview = maskAPIKey(razorpayKeyId, 'rzp_', 4);
       }
 
-      const razorpaySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+      const razorpaySecret = await getSupabaseSecret('RAZORPAY_KEY_SECRET');
       if (razorpaySecret) {
         previews.razorpay_key_secret_preview = maskAPIKey(razorpaySecret, '', 4);
       }
 
-      const ekqrKey = Deno.env.get('EKQR_API_KEY');
+      const ekqrKey = await getSupabaseSecret('EKQR_API_KEY');
       if (ekqrKey) {
         previews.ekqr_api_key_preview = maskAPIKey(ekqrKey, '', 4);
       }
@@ -125,19 +198,21 @@ serve(async (req) => {
         throw new Error('No API key data provided');
       }
 
-      const updates: Record<string, string> = {};
+      const secretOperations: Promise<boolean>[] = [];
       const previews: APIKeyResponse = {};
+      const updatedKeys: string[] = [];
 
-      // Relax validation patterns to be more permissive
+      // Save each provided API key as a Supabase secret and create preview
       if (apiKeyData.google_maps_api_key !== undefined) {
         if (apiKeyData.google_maps_api_key && apiKeyData.google_maps_api_key.length < 10) {
           throw new Error('Google Maps API key is too short');
         }
         if (apiKeyData.google_maps_api_key) {
-          updates.GOOGLE_MAPS_API_KEY = apiKeyData.google_maps_api_key;
+          secretOperations.push(setSupabaseSecret('GOOGLE_MAPS_API_KEY', apiKeyData.google_maps_api_key));
           previews.google_maps_api_key_preview = maskAPIKey(apiKeyData.google_maps_api_key, '', 4);
+          updatedKeys.push('GOOGLE_MAPS_API_KEY');
         } else {
-          updates.GOOGLE_MAPS_API_KEY = '';
+          // Empty string means delete the secret (not implemented in this version)
           previews.google_maps_api_key_preview = '';
         }
       }
@@ -147,10 +222,10 @@ serve(async (req) => {
           throw new Error('Razorpay Key ID is too short');
         }
         if (apiKeyData.razorpay_key_id) {
-          updates.RAZORPAY_KEY_ID = apiKeyData.razorpay_key_id;
+          secretOperations.push(setSupabaseSecret('RAZORPAY_KEY_ID', apiKeyData.razorpay_key_id));
           previews.razorpay_key_id_preview = maskAPIKey(apiKeyData.razorpay_key_id, '', 4);
+          updatedKeys.push('RAZORPAY_KEY_ID');
         } else {
-          updates.RAZORPAY_KEY_ID = '';
           previews.razorpay_key_id_preview = '';
         }
       }
@@ -160,10 +235,10 @@ serve(async (req) => {
           throw new Error('Razorpay Secret is too short');
         }
         if (apiKeyData.razorpay_key_secret) {
-          updates.RAZORPAY_KEY_SECRET = apiKeyData.razorpay_key_secret;
+          secretOperations.push(setSupabaseSecret('RAZORPAY_KEY_SECRET', apiKeyData.razorpay_key_secret));
           previews.razorpay_key_secret_preview = maskAPIKey(apiKeyData.razorpay_key_secret, '', 4);
+          updatedKeys.push('RAZORPAY_KEY_SECRET');
         } else {
-          updates.RAZORPAY_KEY_SECRET = '';
           previews.razorpay_key_secret_preview = '';
         }
       }
@@ -173,15 +248,27 @@ serve(async (req) => {
           throw new Error('EKQR API key is too short');
         }
         if (apiKeyData.ekqr_api_key) {
-          updates.EKQR_API_KEY = apiKeyData.ekqr_api_key;
+          secretOperations.push(setSupabaseSecret('EKQR_API_KEY', apiKeyData.ekqr_api_key));
           previews.ekqr_api_key_preview = maskAPIKey(apiKeyData.ekqr_api_key, '', 4);
+          updatedKeys.push('EKQR_API_KEY');
         } else {
-          updates.EKQR_API_KEY = '';
           previews.ekqr_api_key_preview = '';
         }
       }
 
-      console.log('Updating API keys:', Object.keys(updates));
+      console.log('Saving API keys as Supabase secrets:', updatedKeys);
+
+      // Wait for all secret operations to complete
+      if (secretOperations.length > 0) {
+        const secretResults = await Promise.all(secretOperations);
+        const failedOperations = secretResults.filter(result => !result);
+        
+        if (failedOperations.length > 0) {
+          throw new Error(`Failed to save ${failedOperations.length} API key(s) as secrets. Check function logs for details.`);
+        }
+        
+        console.log(`Successfully saved ${secretResults.length} API keys as Supabase secrets`);
+      }
 
       // Update business_settings with preview values
       if (Object.keys(previews).length > 0) {
@@ -201,8 +288,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'API keys updated successfully',
-          updated_keys: Object.keys(updates)
+          message: 'API keys saved successfully to Supabase secrets',
+          updated_keys: updatedKeys
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
