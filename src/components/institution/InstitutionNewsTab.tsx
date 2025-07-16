@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNews } from "@/hooks/useNews";
 import { useInstitutions } from "@/hooks/useInstitutions";
 import { InstitutionNewsModal } from "@/components/institution/InstitutionNewsModal";
-import { Newspaper, Plus, Eye, Edit, MoreHorizontal, Calendar, Clock } from "lucide-react";
+import { Newspaper, Eye, Edit, MoreHorizontal, Calendar, Clock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,11 +39,6 @@ export function InstitutionNewsTab({
     }
   }, [effectiveInstitutionId]);
 
-  const handleCreateNews = () => {
-    setSelectedNews(null);
-    setModalMode("create");
-    setShowModal(true);
-  };
 
   const handleEditNews = (newsItem: any) => {
     setSelectedNews(newsItem);
@@ -102,12 +97,6 @@ export function InstitutionNewsTab({
               {mode === "create" ? "Create News Post" : 
                mode === "recent" ? "Recent News" : "My News Posts"}
             </CardTitle>
-            {mode !== "recent" && (
-              <Button onClick={handleCreateNews}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create News Post
-              </Button>
-            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -117,11 +106,6 @@ export function InstitutionNewsTab({
               <p className="text-muted-foreground">
                 {mode === "recent" ? "No recent news posts" : "No news posts created yet"}
               </p>
-              {mode !== "recent" && (
-                <Button className="mt-4" onClick={handleCreateNews}>
-                  Create your first news post
-                </Button>
-              )}
             </div>
           ) : (
             <div className="space-y-4">
