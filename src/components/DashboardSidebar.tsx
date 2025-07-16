@@ -55,6 +55,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminFooter } from "@/components/admin/AdminFooter";
 
 
 interface DashboardSidebarProps {
@@ -63,6 +65,7 @@ interface DashboardSidebarProps {
   children: React.ReactNode;
   onTabChange?: (tab: string) => void;
   activeTab?: string;
+  onSearch?: (term: string) => void;
 }
 
 const sidebarItems = {
@@ -741,17 +744,18 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
   );
 }
 
-export function DashboardSidebar({ userRole, userName, children, onTabChange, activeTab }: DashboardSidebarProps) {
+export function DashboardSidebar({ userRole, userName, children, onTabChange, activeTab, onSearch }: DashboardSidebarProps) {
   return (
     <SidebarProvider>
-      <div className="flex w-full">
+      <div className="min-h-screen flex w-full">
         <AppSidebar userRole={userRole} userName={userName} onTabChange={onTabChange} activeTab={activeTab} />
-        <main className="flex-1 flex flex-col min-w-0">
-          {/* Main content */}
-          <div className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
+        <div className="flex-1 flex flex-col">
+          <AdminHeader userName={userName} onSearch={onSearch} />
+          <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
             {children}
-          </div>
-        </main>
+          </main>
+          <AdminFooter />
+        </div>
       </div>
     </SidebarProvider>
   );
