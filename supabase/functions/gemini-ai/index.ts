@@ -6,6 +6,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Function to clean AI response text by removing markdown and special characters
+function cleanAIResponse(text: string): string {
+  if (!text) return '';
+  
+  return text
+    // Remove markdown bold formatting
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    // Remove markdown italic formatting
+    .replace(/\*(.*?)\*/g, '$1')
+    // Remove markdown underline formatting
+    .replace(/_(.*?)_/g, '$1')
+    // Remove markdown strikethrough
+    .replace(/~~(.*?)~~/g, '$1')
+    // Remove markdown code blocks
+    .replace(/```[\s\S]*?```/g, '')
+    // Remove inline code formatting
+    .replace(/`(.*?)`/g, '$1')
+    // Remove markdown headers
+    .replace(/^#+\s*/gm, '')
+    // Remove markdown bullet points
+    .replace(/^\s*[-*+]\s*/gm, '• ')
+    // Remove numbered list formatting
+    .replace(/^\s*\d+\.\s*/gm, '')
+    // Clean up extra whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
 // Function to get secret from Supabase Management API with vault fallback
 async function getSupabaseSecret(secretName: string): Promise<string | null> {
   try {
@@ -178,17 +207,20 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!generatedText) {
+    if (!rawText) {
       throw new Error('No content generated from Gemini API');
     }
+
+    // Clean the response text to remove markdown and special characters
+    const cleanedText = cleanAIResponse(rawText);
 
     console.log('Successfully generated content with Gemini AI');
 
     return new Response(
       JSON.stringify({ 
-        content: generatedText,
+        content: cleanedText,
         model: model,
         type: type,
         tokensUsed: data.usageMetadata?.totalTokenCount || 0
