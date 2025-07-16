@@ -60,6 +60,7 @@ import { CommunicationHubTab } from "@/components/admin/CommunicationHubTab";
 import { AutomationWorkflowTab } from "@/components/admin/AutomationWorkflowTab";
 import { EnhancedMerchantExperienceTab } from "@/components/admin/EnhancedMerchantExperienceTab";
 import { TrialActivationLogsTab } from "@/components/admin/TrialActivationLogsTab";
+import { PolicyPagesTab } from "@/components/admin/PolicyPagesTab";
 
 
 const AdminDashboard = () => {
@@ -919,6 +920,9 @@ const AdminDashboard = () => {
           
           {/* News Tab */}
           {activeTab === "news" && <NewsTab userRole="admin" />}
+          
+          {/* Policy Pages Tab */}
+          {activeTab === "policy-pages" && <PolicyPagesTab />}
           
           {/* Community Tab */}
           {activeTab === "community" && <CommunityTab />}

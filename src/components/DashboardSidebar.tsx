@@ -143,6 +143,9 @@ const sidebarItems = {
       { title: "News", url: "/admin/dashboard", icon: Newspaper, tab: "news" },
       { title: "Rewards Settings", url: "/admin/dashboard", icon: Settings, tab: "rewards-settings" },
     ],
+    content: [
+      { title: "Policy Pages", url: "/admin/dashboard", icon: FileText, tab: "policy-pages" },
+    ],
      analytics: [
        { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
        { title: "Advanced Analytics", url: "/admin/dashboard", icon: TrendingUp, tab: "advanced-analytics" },
@@ -492,6 +495,21 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
                   <SidebarGroupContent>
                     <SidebarMenu>
                       {'marketing' in items && items.marketing?.map(renderMenuItem)}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+
+                {/* Content Management */}
+                <SidebarGroup>
+                  <SidebarGroupLabel>
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-3 w-3" />
+                      {!isCollapsed && <span className="text-xs font-semibold">Content Management</span>}
+                    </div>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {'content' in items && items.content?.map(renderMenuItem)}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>

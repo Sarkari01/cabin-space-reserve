@@ -18,6 +18,7 @@ import GeneralAdminDashboard from "./pages/GeneralAdminDashboard";
 import InstitutionDashboard from "./pages/Institution/Dashboard";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import { PolicyPage } from "./components/PolicyPage";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -148,6 +149,10 @@ const App = () => (
                     </ProtectedRoute>
                   } 
                 />
+                
+                {/* Policy Pages Route */}
+                <Route path="/policies/:slug" element={<PolicyPage />} />
+                
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

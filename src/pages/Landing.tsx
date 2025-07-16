@@ -9,11 +9,13 @@ import FeaturesSection from "@/components/landing/FeaturesSection";
 import PricingSection from "@/components/landing/PricingSection";
 import ContactSection from "@/components/landing/ContactSection";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { usePolicyPages } from "@/hooks/usePolicyPages";
 
 const Landing = () => {
   const { user, userRole, loading } = useAuth();
   const navigate = useNavigate();
   const { brandSettings } = useBrandSettings();
+  const { data: policyPages } = usePolicyPages(true);
 
   // Redirect authenticated users to their dashboard
   useEffect(() => {
@@ -103,6 +105,13 @@ const Landing = () => {
                     </a>
                   </li>
                 )}
+                {policyPages?.map((page) => (
+                  <li key={page.id}>
+                    <a href={`/policies/${page.slug}`} className="hover:text-foreground">
+                      {page.title}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
