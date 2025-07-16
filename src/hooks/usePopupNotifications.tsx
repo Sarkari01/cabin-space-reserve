@@ -58,9 +58,9 @@ export function usePopupNotifications() {
     refetchInterval: 30000, // Refetch every 30 seconds for new notifications
   });
 
-  // Track notification interaction mutation - memoized to prevent infinite loops
+  // Track notification interaction mutation - stable reference
   const trackInteractionMutation = useMutation({
-    mutationFn: useCallback(async ({
+    mutationFn: async ({
       notificationId,
       action
     }: {
@@ -121,13 +121,13 @@ export function usePopupNotifications() {
             .eq('id', notificationId);
         }
       }
-    }, [user]),
+    },
     onError: (error) => {
       console.error('Error tracking notification interaction:', error);
     }
   });
 
-  // Handle notification shown - stabilized to prevent infinite loops
+  // Handle notification shown - stable with proper dependencies
   const handleNotificationShown = useCallback((notificationId: string) => {
     setShownNotifications(prev => {
       if (prev.has(notificationId)) return prev; // Prevent duplicate calls
@@ -138,7 +138,7 @@ export function usePopupNotifications() {
       notificationId,
       action: 'shown'
     });
-  }, []);
+  }, [trackInteractionMutation]);
 
   // Handle notification dismissed
   const handleNotificationDismissed = useCallback((notificationId: string) => {
@@ -149,7 +149,7 @@ export function usePopupNotifications() {
     
     // Refetch to get updated list
     setTimeout(() => refetch(), 1000);
-  }, [refetch]);
+  }, [trackInteractionMutation, refetch]);
 
   // Handle notification clicked
   const handleNotificationClicked = useCallback((notificationId: string) => {
@@ -157,7 +157,7 @@ export function usePopupNotifications() {
       notificationId,
       action: 'clicked'
     });
-  }, []);
+  }, [trackInteractionMutation]);
 
   // Set up real-time subscription for new notifications
   useEffect(() => {
