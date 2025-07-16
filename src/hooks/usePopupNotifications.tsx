@@ -25,12 +25,10 @@ interface PopupUserInteraction {
 
 export function usePopupNotifications() {
   const { user, userRole, loading } = useAuth();
-  const [shownNotifications, setShownNotifications] = useState<Set<string>>(new Set());
 
   console.log('[usePopupNotifications] Hook state:', { 
     userId: user?.id, 
-    userRole,
-    shownCount: shownNotifications.size 
+    userRole
   });
 
   // Get user role for targeting
@@ -38,7 +36,7 @@ export function usePopupNotifications() {
     return userRole || 'student';
   }, [userRole]);
 
-  // Query for notifications with enhanced debugging
+  // Query for notifications - ALWAYS return fresh, unfiltered notifications
   const { data: notifications = [], isError, error, refetch } = useQuery({
     queryKey: ['popup-notifications', user?.id, userRole],
     queryFn: async () => {
@@ -74,7 +72,7 @@ export function usePopupNotifications() {
 
         const allNotifications: PopupNotification[] = generalData || [];
 
-        console.log('[usePopupNotifications] Query completed:', {
+        console.log('[usePopupNotifications] Query completed - RETURNING ALL NOTIFICATIONS:', {
           count: allNotifications.length,
           notifications: allNotifications.map(n => ({
             id: n.id,
@@ -161,21 +159,11 @@ export function usePopupNotifications() {
     }
   });
 
-  // Handle notification shown - stable with guards
+  // Handle notification shown - just track analytics, no state management
   const handleNotificationShown = useCallback((notificationId: string) => {
-    console.log('[usePopupNotifications] Showing notification:', notificationId);
+    console.log('[usePopupNotifications] Notification shown, tracking analytics:', notificationId);
     
-    setShownNotifications(prev => {
-      if (prev.has(notificationId)) {
-        console.log('[usePopupNotifications] Already shown:', notificationId);
-        return prev;
-      }
-      const newSet = new Set(prev);
-      newSet.add(notificationId);
-      return newSet;
-    });
-    
-    // Use setTimeout to break potential synchronous loops
+    // Only track for analytics - don't manage display state here
     setTimeout(() => {
       trackInteractionMutation.mutate({
         notificationId,
@@ -208,46 +196,30 @@ export function usePopupNotifications() {
     }, 0);
   }, []);
 
-  // Reset shown notifications and refetch on every login
+  // Force refetch on authentication changes
   useEffect(() => {
     if (user && userRole && !loading) {
-      console.log('[usePopupNotifications] User authenticated, clearing shown notifications and refetching');
-      setShownNotifications(new Set()); // Clear shown notifications on every login
+      console.log('[usePopupNotifications] User authenticated, forcing refetch');
       refetch();
     }
   }, [user, userRole, loading, refetch]);
 
-  // Reset on user logout
-  useEffect(() => {
-    if (!user) {
-      console.log('[usePopupNotifications] User logged out, resetting state');
-      setShownNotifications(new Set());
-    }
-  }, [user]);
-
-  // Filter out notifications that have been shown
-  const pendingNotifications = notifications.filter(
-    notification => !shownNotifications.has(notification.id)
-  );
-
-  // Sort by priority and creation date
-  const sortedNotifications = pendingNotifications.sort((a, b) => {
+  // Sort notifications by priority and creation date - NO FILTERING HERE
+  const sortedNotifications = notifications.sort((a, b) => {
     if (a.priority !== b.priority) {
       return b.priority - a.priority;
     }
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
-  console.log('[usePopupNotifications] Final notifications:', {
+  console.log('[usePopupNotifications] FINAL NOTIFICATIONS TO DISPLAY:', {
     total: notifications.length,
-    shown: shownNotifications.size,
-    pending: pendingNotifications.length,
-    sorted: sortedNotifications.length,
-    finalList: sortedNotifications.map(n => ({ id: n.id, title: n.title }))
+    sortedCount: sortedNotifications.length,
+    notifications: sortedNotifications.map(n => ({ id: n.id, title: n.title, priority: n.priority }))
   });
 
   return {
-    notifications: sortedNotifications,
+    notifications: sortedNotifications, // Return ALL notifications, let manager handle display logic
     hasNotifications: sortedNotifications.length > 0,
     handleNotificationShown,
     handleNotificationDismissed,

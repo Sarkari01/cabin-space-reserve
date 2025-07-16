@@ -158,36 +158,35 @@ export function PopupNotificationManager({
   defaultDuration = 10
 }: PopupNotificationManagerProps) {
   const [currentNotificationIndex, setCurrentNotificationIndex] = useState(0);
-  const [shownNotifications, setShownNotifications] = useState<Set<string>>(new Set());
+  const [sessionShown, setSessionShown] = useState<Set<string>>(new Set());
 
-  console.log('[PopupNotificationManager] State:', { 
+  console.log('[PopupNotificationManager] RENDER STATE:', { 
     totalNotifications: notifications.length, 
     currentIndex: currentNotificationIndex,
-    shownCount: shownNotifications.size
+    sessionShownCount: sessionShown.size,
+    currentNotification: notifications[currentNotificationIndex] ? {
+      id: notifications[currentNotificationIndex].id,
+      title: notifications[currentNotificationIndex].title
+    } : null
   });
 
-  // Reset when notifications change
+  // Reset index when new notifications arrive
   useEffect(() => {
-    console.log('[PopupNotificationManager] Notifications changed, resetting');
-    setCurrentNotificationIndex(0);
-    setShownNotifications(new Set());
+    if (notifications.length > 0) {
+      console.log('[PopupNotificationManager] New notifications available, starting from index 0');
+      setCurrentNotificationIndex(0);
+      // DON'T reset sessionShown - let notifications show in sequence
+    }
   }, [notifications]);
 
-  // Mark current notification as shown when it becomes available
-  useEffect(() => {
-    if (notifications.length === 0 || currentNotificationIndex >= notifications.length) {
-      return;
+  // Track shown notifications and call callback
+  const markAsShown = useCallback((notificationId: string) => {
+    if (!sessionShown.has(notificationId)) {
+      console.log('[PopupNotificationManager] First time showing notification:', notificationId);
+      setSessionShown(prev => new Set([...prev, notificationId]));
+      onNotificationShown(notificationId);
     }
-
-    const currentNotification = notifications[currentNotificationIndex];
-    if (!currentNotification || shownNotifications.has(currentNotification.id)) {
-      return;
-    }
-
-    console.log('[PopupNotificationManager] Marking notification as shown:', currentNotification.id);
-    setShownNotifications(prev => new Set([...prev, currentNotification.id]));
-    onNotificationShown(currentNotification.id);
-  }, [notifications, currentNotificationIndex, shownNotifications, onNotificationShown]);
+  }, [sessionShown, onNotificationShown]);
 
   const handleClose = useCallback(() => {
     const currentNotification = notifications[currentNotificationIndex];
@@ -208,19 +207,41 @@ export function PopupNotificationManager({
     }
   }, [notifications, currentNotificationIndex, onNotificationClicked]);
 
-  if (!notifications.length || currentNotificationIndex >= notifications.length) {
+  // Check if we have any notifications to show
+  if (!notifications.length) {
+    console.log('[PopupNotificationManager] No notifications available');
+    return null;
+  }
+
+  if (currentNotificationIndex >= notifications.length) {
+    console.log('[PopupNotificationManager] All notifications shown');
     return null;
   }
 
   const currentNotification = notifications[currentNotificationIndex];
-  // Show notifications that haven't been shown yet, not the opposite!
-  const shouldShow = currentNotification && !shownNotifications.has(currentNotification.id);
+  if (!currentNotification) {
+    console.log('[PopupNotificationManager] Current notification is null');
+    return null;
+  }
 
-  console.log('[PopupNotificationManager] Render decision:', { 
-    hasNotification: !!currentNotification, 
-    shouldShow: shouldShow,
-    notificationId: currentNotification?.id,
-    alreadyShown: currentNotification ? shownNotifications.has(currentNotification.id) : false
+  // Show notification immediately when available, track after render
+  const shouldShow = true; // ALWAYS show available notifications
+  
+  // Mark as shown after a brief delay to avoid render loops
+  useEffect(() => {
+    if (currentNotification && shouldShow) {
+      const timer = setTimeout(() => {
+        markAsShown(currentNotification.id);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [currentNotification?.id, shouldShow, markAsShown]);
+
+  console.log('[PopupNotificationManager] SHOWING NOTIFICATION:', { 
+    notificationId: currentNotification.id,
+    title: currentNotification.title,
+    shouldShow,
+    currentIndex: currentNotificationIndex
   });
 
   return (
