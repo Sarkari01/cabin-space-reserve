@@ -1,12 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
+import { useAuth } from '@/hooks/useAuth';
+import { getRoleBasedDashboard } from '@/utils/roleRedirects';
 import { Clock, Wrench, Mail, Phone } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 export const MaintenanceScreen = () => {
   const { maintenanceStatus } = useMaintenanceMode();
   const { settings } = useBusinessSettings();
+  const { user, userRole } = useAuth();
+  const navigate = useNavigate();
+
+  // Auto-redirect when maintenance is disabled
+  useEffect(() => {
+    if (!maintenanceStatus.enabled) {
+      if (user && userRole) {
+        const dashboard = getRoleBasedDashboard(userRole);
+        navigate(dashboard, { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [maintenanceStatus.enabled, user, userRole, navigate]);
 
   const formatEstimatedReturn = (dateString: string | null) => {
     if (!dateString) return null;

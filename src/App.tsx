@@ -19,7 +19,7 @@ import InstitutionDashboard from "./pages/Institution/Dashboard";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { PolicyPage } from "./components/PolicyPage";
-import { MaintenanceScreen } from "./components/MaintenanceScreen";
+import { ProtectedMaintenanceRoute } from "./components/ProtectedMaintenanceRoute";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -40,7 +40,7 @@ const App = () => (
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/maintenance" element={<MaintenanceScreen />} />
+                <Route path="/maintenance" element={<ProtectedMaintenanceRoute />} />
                 <Route 
                   path="/student/dashboard" 
                   element={
