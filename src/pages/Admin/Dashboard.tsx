@@ -54,6 +54,9 @@ import { StudyHallModal } from "@/components/StudyHallModal";
 import { InstitutionsTab } from "@/components/admin/InstitutionsTab";
 import { AdminReportsTab } from "@/components/reports/AdminReportsTab";
 import { AllMerchantsTab } from "@/components/admin/AllMerchantsTab";
+import { AdvancedAnalyticsTab } from "@/components/admin/AdvancedAnalyticsTab";
+import { AdvancedTrialManagementTab } from "@/components/admin/AdvancedTrialManagementTab";
+import { CommunicationHubTab } from "@/components/admin/CommunicationHubTab";
 
 
 const AdminDashboard = () => {
