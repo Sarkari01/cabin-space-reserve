@@ -62,6 +62,8 @@ import { EnhancedMerchantExperienceTab } from "@/components/admin/EnhancedMercha
 import { TrialActivationLogsTab } from "@/components/admin/TrialActivationLogsTab";
 import { PolicyPagesTab } from "@/components/admin/PolicyPagesTab";
 import { AIAssistantTab } from "@/components/admin/AIAssistantTab";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminFooter } from "@/components/admin/AdminFooter";
 
 
 const AdminDashboard = () => {
@@ -569,12 +571,18 @@ const AdminDashboard = () => {
         loading={isSubmitting}
       />
 
-      <DashboardSidebar
-        userRole="admin" 
-        userName={user.email || "Admin"}
-        onTabChange={setActiveTab}
-        activeTab={activeTab}
-      >
+      <div className="min-h-screen flex flex-col">
+        <AdminHeader 
+          userName={user?.user_metadata?.full_name || user?.email || "Admin User"}
+          onSearch={setSearchTerm}
+        />
+        <div className="flex flex-1">
+          <DashboardSidebar
+            userRole="admin" 
+            userName={user?.user_metadata?.full_name || user?.email || "Admin User"}
+            onTabChange={setActiveTab}
+            activeTab={activeTab}
+          >
         <LoadingOverlay loading={loading}>
           {/* Overview Tab */}
           {activeTab === "overview" && (
@@ -1374,7 +1382,10 @@ const AdminDashboard = () => {
             </div>
           )}
         </LoadingOverlay>
-      </DashboardSidebar>
+          </DashboardSidebar>
+        </div>
+        <AdminFooter />
+      </div>
 
       <BookingDetailModal
         open={bookingDetailOpen}
