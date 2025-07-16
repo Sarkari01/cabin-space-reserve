@@ -85,7 +85,10 @@ export const BusinessSettingsTab = () => {
         // Maintenance Mode
         maintenance_mode_enabled: settings.maintenance_mode_enabled || false,
         maintenance_message: settings.maintenance_message || 'We are currently performing maintenance. Please check back later.',
-        maintenance_estimated_return: settings.maintenance_estimated_return || '',
+        // Convert ISO timestamp back to datetime-local format for the input
+        maintenance_estimated_return: settings.maintenance_estimated_return 
+          ? new Date(settings.maintenance_estimated_return).toISOString().slice(0, 16)
+          : '',
       });
     }
   }, [settings]);
@@ -201,7 +204,17 @@ export const BusinessSettingsTab = () => {
       setSaveProgress({ step: 'Saving Business Settings...', progress: 50, message: 'Updating business configuration' });
       console.log('Phase 2: Saving business settings...');
       
-      const businessSettingsSuccess = await updateSettings(formData);
+      // Sanitize form data before saving
+      const sanitizedFormData = {
+        ...formData,
+        // Convert empty datetime-local string to null, otherwise convert to ISO timestamp
+        maintenance_estimated_return: formData.maintenance_estimated_return 
+          ? new Date(formData.maintenance_estimated_return).toISOString()
+          : null
+      };
+      
+      console.log('Sanitized form data:', sanitizedFormData);
+      const businessSettingsSuccess = await updateSettings(sanitizedFormData);
       
       if (!businessSettingsSuccess) {
         setSaveProgress({ step: 'Partial Save', progress: 50, message: 'API keys saved, business settings failed' });

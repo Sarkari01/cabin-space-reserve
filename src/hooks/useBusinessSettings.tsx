@@ -103,13 +103,25 @@ export const useBusinessSettings = () => {
     }
 
     try {
+      // Validate maintenance_estimated_return field if provided
+      if (updates.maintenance_estimated_return !== undefined && updates.maintenance_estimated_return !== null) {
+        const dateValue = new Date(updates.maintenance_estimated_return);
+        if (isNaN(dateValue.getTime())) {
+          throw new Error("Invalid maintenance return date format");
+        }
+      }
 
+      console.log("Updating business settings with:", updates);
+      
       const { error } = await supabase
         .from("business_settings")
         .update(updates)
         .eq("id", settings.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -120,9 +132,10 @@ export const useBusinessSettings = () => {
       return true;
     } catch (error) {
       console.error("Error updating business settings:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Error",
-        description: "Failed to update business settings",
+        description: `Failed to update business settings: ${errorMessage}`,
         variant: "destructive",
       });
       return false;
