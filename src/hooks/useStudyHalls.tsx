@@ -328,12 +328,14 @@ export const useSeats = (studyHallId?: string) => {
     }
   }, [studyHallId]);
 
-  // Real-time subscription for seat updates
+  // Real-time subscription for seat updates with debouncing
   useEffect(() => {
     if (!studyHallId) return;
 
+    let debounceTimer: NodeJS.Timeout;
+
     const channel = supabase
-      .channel('seats-changes')
+      .channel(`seats-changes-${studyHallId}`)
       .on(
         'postgres_changes',
         {
@@ -343,13 +345,17 @@ export const useSeats = (studyHallId?: string) => {
           filter: `study_hall_id=eq.${studyHallId}`
         },
         (payload) => {
-          console.log('Seat change detected:', payload);
-          fetchSeats(studyHallId); // Refresh seats when changes occur
+          // Debounce rapid updates to prevent excessive re-renders
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            fetchSeats(studyHallId);
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [studyHallId]);

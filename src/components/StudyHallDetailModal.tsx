@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +24,14 @@ interface StudyHallDetailModalProps {
   onEdit?: () => void;
 }
 
-export function StudyHallDetailModal({ 
+const StudyHallDetailModalComponent = ({ 
   open, 
   onOpenChange, 
   studyHall, 
   seats,
   userRole,
   onEdit 
-}: StudyHallDetailModalProps) {
+}: StudyHallDetailModalProps) => {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
@@ -47,15 +47,6 @@ export function StudyHallDetailModal({
 
   if (!studyHall) return null;
 
-  // Debug logging for incharges data
-  console.log('StudyHallDetailModal received studyHall:', {
-    id: studyHall.id,
-    name: studyHall.name,
-    incharges: studyHall.incharges,
-    inchargesCount: studyHall.incharges?.length || 0,
-    inchargesType: typeof studyHall.incharges,
-    inchargesIsArray: Array.isArray(studyHall.incharges)
-  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -65,8 +56,23 @@ export function StudyHallDetailModal({
     });
   };
 
-  const availableSeats = seats.filter(seat => seat.is_available).length;
-  const occupiedSeats = seats.length - availableSeats;
+  const { availableSeats, occupiedSeats, seatsByRow } = useMemo(() => {
+    const available = seats.filter(seat => seat.is_available).length;
+    const occupied = seats.length - available;
+    const byRow = seats.reduce((acc, seat) => {
+      if (!acc[seat.row_name]) {
+        acc[seat.row_name] = [];
+      }
+      acc[seat.row_name].push(seat);
+      return acc;
+    }, {} as Record<string, Seat[]>);
+    
+    return {
+      availableSeats: available,
+      occupiedSeats: occupied,
+      seatsByRow: byRow
+    };
+  }, [seats]);
 
   const handleFavoriteToggle = () => {
     if (isFavorite(studyHall.id)) {
@@ -80,14 +86,6 @@ export function StudyHallDetailModal({
     return seat.is_available ? "bg-green-100 border-green-300" : "bg-red-100 border-red-300";
   };
 
-  // Group seats by row
-  const seatsByRow = seats.reduce((acc, seat) => {
-    if (!acc[seat.row_name]) {
-      acc[seat.row_name] = [];
-    }
-    acc[seat.row_name].push(seat);
-    return acc;
-  }, {} as Record<string, Seat[]>);
 
   return (
     <>
@@ -121,7 +119,7 @@ export function StudyHallDetailModal({
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
-              <StudyHallImageGallery studyHallId={studyHall.id} />
+              {open && <StudyHallImageGallery studyHallId={studyHall.id} />}
 
               <div className="grid md:grid-cols-2 gap-4">
                 <Card>
@@ -444,4 +442,6 @@ export function StudyHallDetailModal({
       {/* Note: Review form will be handled by the StudentReviewsTab component */}
     </>
   );
-}
+};
+
+export const StudyHallDetailModal = memo(StudyHallDetailModalComponent);

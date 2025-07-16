@@ -1,5 +1,5 @@
 import { useStudyHallImages } from "@/hooks/useStudyHallImages";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -7,7 +7,7 @@ interface StudyHallImageGalleryProps {
   studyHallId: string;
 }
 
-export const StudyHallImageGallery = ({ studyHallId }: StudyHallImageGalleryProps) => {
+const StudyHallImageGalleryComponent = ({ studyHallId }: StudyHallImageGalleryProps) => {
   const { images, loading } = useStudyHallImages(studyHallId);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -19,7 +19,7 @@ export const StudyHallImageGallery = ({ studyHallId }: StudyHallImageGalleryProp
     );
   }
 
-  if (images.length === 0) {
+  if (!loading && images.length === 0) {
     return (
       <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted flex items-center justify-center">
         <span className="text-muted-foreground">No images available</span>
@@ -46,6 +46,9 @@ export const StudyHallImageGallery = ({ studyHallId }: StudyHallImageGalleryProp
           src={images[currentIndex]?.image_url || mainImage.image_url}
           alt="Study hall"
           className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.svg";
+          }}
         />
         
         {images.length > 1 && (
@@ -85,6 +88,9 @@ export const StudyHallImageGallery = ({ studyHallId }: StudyHallImageGalleryProp
                 src={image.image_url}
                 alt=""
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
               />
             </button>
           ))}
@@ -93,3 +99,5 @@ export const StudyHallImageGallery = ({ studyHallId }: StudyHallImageGalleryProp
     </div>
   );
 };
+
+export const StudyHallImageGallery = memo(StudyHallImageGalleryComponent);

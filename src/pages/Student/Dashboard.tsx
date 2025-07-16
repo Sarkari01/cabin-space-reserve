@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,22 +79,15 @@ const StudentDashboard = () => {
     .filter(booking => booking.status === 'completed')
     .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
 
-  const handleViewStudyHall = async (studyHall) => {
+  const handleViewStudyHall = useCallback((studyHall) => {
     // Use the current data from studyHalls state which already has incharges
     const currentStudyHall = studyHalls.find(hall => hall.id === studyHall.id) || studyHall;
     
-    console.log('🎯 Opening study hall detail:', {
-      id: currentStudyHall.id,
-      name: currentStudyHall.name,
-      hasIncharges: currentStudyHall.incharges?.length > 0,
-      inchargeCount: currentStudyHall.incharges?.length || 0,
-      inchargesList: currentStudyHall.incharges?.map(i => i.full_name) || []
-    });
-    
     setSelectedStudyHall(currentStudyHall);
-    await fetchSeats(studyHall.id);
     setDetailModalOpen(true);
-  };
+    // Fetch seats asynchronously after opening modal to prevent blocking
+    fetchSeats(studyHall.id);
+  }, [studyHalls, fetchSeats]);
 
   const handleFavoriteToggle = (studyHallId) => {
     if (isFavorite(studyHallId)) {
@@ -153,13 +146,12 @@ const StudentDashboard = () => {
   return (
     <>
       <BookingLifecycleManager />
-      <SeatSynchronizer onSeatUpdate={() => {
-        // Refresh study halls and seats when seat updates occur
-        fetchStudyHalls();
-        if (selectedStudyHall) {
+      <SeatSynchronizer onSeatUpdate={useCallback(() => {
+        // Only refresh if we have active modals or are viewing seats
+        if (detailModalOpen && selectedStudyHall) {
           fetchSeats(selectedStudyHall.id);
         }
-      }} />
+      }, [detailModalOpen, selectedStudyHall, fetchSeats])} />
       <DashboardSidebar 
         userRole="student" 
         userName={user.email || "Student"}
