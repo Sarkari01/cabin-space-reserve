@@ -61,6 +61,7 @@ import { AutomationWorkflowTab } from "@/components/admin/AutomationWorkflowTab"
 import { EnhancedMerchantExperienceTab } from "@/components/admin/EnhancedMerchantExperienceTab";
 import { TrialActivationLogsTab } from "@/components/admin/TrialActivationLogsTab";
 import { PolicyPagesTab } from "@/components/admin/PolicyPagesTab";
+import { AIAssistantTab } from "@/components/admin/AIAssistantTab";
 
 
 const AdminDashboard = () => {
@@ -923,6 +924,9 @@ const AdminDashboard = () => {
           
           {/* Policy Pages Tab */}
           {activeTab === "policy-pages" && <PolicyPagesTab />}
+          
+          {/* AI Assistant Tab */}
+          {activeTab === "ai-assistant" && <AIAssistantTab />}
           
           {/* Community Tab */}
           {activeTab === "community" && <CommunityTab />}

@@ -38,6 +38,7 @@ import {
   Bell,
   Plus,
   School,
+  Brain,
 } from "lucide-react";
 import {
   Sidebar,
@@ -145,6 +146,7 @@ const sidebarItems = {
     ],
     content: [
       { title: "Policy Pages", url: "/admin/dashboard", icon: FileText, tab: "policy-pages" },
+      { title: "AI Assistant", url: "/admin/dashboard", icon: Brain, tab: "ai-assistant" },
     ],
      analytics: [
        { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
