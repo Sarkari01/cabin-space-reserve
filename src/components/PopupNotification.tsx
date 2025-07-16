@@ -125,16 +125,6 @@ export function PopupNotification({
           )}
         </CardContent>
 
-        {/* Footer with dismiss option */}
-        <div className="px-6 pb-4">
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="w-full text-sm text-muted-foreground hover:text-foreground"
-          >
-            Dismiss
-          </Button>
-        </div>
       </AlertDialogContent>
     </AlertDialog>
   );
