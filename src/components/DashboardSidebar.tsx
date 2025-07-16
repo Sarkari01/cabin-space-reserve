@@ -66,6 +66,8 @@ interface DashboardSidebarProps {
   onTabChange?: (tab: string) => void;
   activeTab?: string;
   onSearch?: (term: string) => void;
+  showHeader?: boolean;
+  showFooter?: boolean;
 }
 
 const sidebarItems = {
@@ -744,17 +746,21 @@ function AppSidebar({ userRole, userName, onTabChange, activeTab }: {
   );
 }
 
-export function DashboardSidebar({ userRole, userName, children, onTabChange, activeTab, onSearch }: DashboardSidebarProps) {
+export function DashboardSidebar({ userRole, userName, children, onTabChange, activeTab, onSearch, showHeader = false, showFooter = false }: DashboardSidebarProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar userRole={userRole} userName={userName} onTabChange={onTabChange} activeTab={activeTab} />
         <div className="flex-1 flex flex-col">
-          <AdminHeader userName={userName} onSearch={onSearch} />
+          {(showHeader || userRole === "admin") && (
+            <AdminHeader userName={userName} onSearch={onSearch} />
+          )}
           <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
             {children}
           </main>
-          <AdminFooter />
+          {(showFooter || userRole === "admin") && (
+            <AdminFooter />
+          )}
         </div>
       </div>
     </SidebarProvider>
