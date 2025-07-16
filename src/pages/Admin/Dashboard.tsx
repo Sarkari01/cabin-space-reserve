@@ -49,6 +49,7 @@ import { useOperationalUsers } from "@/hooks/useOperationalUsers";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useSupportTickets } from "@/hooks/useSupportTickets";
 import { AdminReviewsTab } from "@/components/admin/AdminReviewsTab";
+import { StudyHallModal } from "@/components/StudyHallModal";
 
 
 const AdminDashboard = () => {
@@ -84,6 +85,9 @@ const AdminDashboard = () => {
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
   const [merchantDetailOpen, setMerchantDetailOpen] = useState(false);
   const [merchantEditOpen, setMerchantEditOpen] = useState(false);
+  const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
+  const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("view");
+  const [selectedStudyHall, setSelectedStudyHall] = useState<any>(null);
 
   // Redirect to login if not authenticated or not admin
   useEffect(() => {
@@ -195,6 +199,47 @@ const AdminDashboard = () => {
   const handleUpdateStudyHallStatus = async (studyHallId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     await updateStudyHallStatus(studyHallId, newStatus);
+  };
+
+  const handleViewStudyHall = (studyHall: any) => {
+    setSelectedStudyHall(studyHall);
+    setStudyHallModalMode("view");
+    setStudyHallModalOpen(true);
+  };
+
+  const handleEditStudyHall = (studyHall: any) => {
+    setSelectedStudyHall(studyHall);
+    setStudyHallModalMode("edit");
+    setStudyHallModalOpen(true);
+  };
+
+  const handleSaveStudyHall = async (studyHallData: any) => {
+    try {
+      if (studyHallModalMode === "edit" && selectedStudyHall) {
+        const { error } = await supabase
+          .from("study_halls")
+          .update({
+            ...studyHallData,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", selectedStudyHall.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Study hall updated successfully",
+        });
+      }
+      setStudyHallModalOpen(false);
+      setSelectedStudyHall(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update study hall",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatDate = (dateString) => {
@@ -666,11 +711,11 @@ const AdminDashboard = () => {
                       </div>
                       
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewStudyHall(studyHall)}>
                           <Eye className="h-4 w-4 mr-1" />
                           View Layout
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditStudyHall(studyHall)}>
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </Button>
@@ -1255,6 +1300,17 @@ const AdminDashboard = () => {
           setSelectedMerchant(null);
           // The useAdminData hook should automatically refetch
         }}
+      />
+
+      <StudyHallModal
+        isOpen={studyHallModalOpen}
+        onClose={() => {
+          setStudyHallModalOpen(false);
+          setSelectedStudyHall(null);
+        }}
+        onSave={handleSaveStudyHall}
+        studyHall={selectedStudyHall}
+        mode={studyHallModalMode}
       />
     </>
   );
