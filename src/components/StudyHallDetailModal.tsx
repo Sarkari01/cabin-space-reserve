@@ -38,14 +38,14 @@ export function StudyHallDetailModal({
   const { user } = useAuth();
   const { reviews, loading: reviewsLoading, fetchReviews, createReview, fetchEligibleBookings } = useReviews();
 
-  if (!studyHall) return null;
-
   // Fetch reviews when study hall changes
   useEffect(() => {
     if (studyHall?.id && open) {
       fetchReviews(studyHall.id);
     }
   }, [studyHall?.id, open, fetchReviews]);
+
+  if (!studyHall) return null;
 
   // Debug logging for incharges data
   console.log('StudyHallDetailModal received studyHall:', {
