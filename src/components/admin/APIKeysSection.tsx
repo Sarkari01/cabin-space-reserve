@@ -21,6 +21,7 @@ interface APIKeyData {
   razorpay_key_id_preview?: string;
   razorpay_key_secret_preview?: string;
   ekqr_api_key_preview?: string;
+  gemini_api_key_preview?: string;
 }
 
 interface APIKeyFormData {
@@ -28,6 +29,7 @@ interface APIKeyFormData {
   razorpay_key_id: string;
   razorpay_key_secret: string;
   ekqr_api_key: string;
+  gemini_api_key: string;
 }
 
 export interface APIKeysSectionRef {
@@ -41,6 +43,7 @@ export const APIKeysSection = forwardRef<APIKeysSectionRef>((_, ref) => {
     razorpay_key_id: '',
     razorpay_key_secret: '',
     ekqr_api_key: '',
+    gemini_api_key: '',
   });
   const [previews, setPreviews] = useState<APIKeyData>({});
   const [loading, setLoading] = useState(true);
@@ -111,6 +114,7 @@ export const APIKeysSection = forwardRef<APIKeysSectionRef>((_, ref) => {
           razorpay_key_id: '',
           razorpay_key_secret: '',
           ekqr_api_key: '',
+          gemini_api_key: '',
         });
         await fetchAPIKeys();
         return true;
@@ -148,6 +152,9 @@ export const APIKeysSection = forwardRef<APIKeysSectionRef>((_, ref) => {
           break;
         case 'ekqr':
           keyValue = formData.ekqr_api_key;
+          break;
+        case 'gemini':
+          keyValue = formData.gemini_api_key;
           break;
         default:
           throw new Error('Invalid key type');
@@ -460,6 +467,74 @@ export const APIKeysSection = forwardRef<APIKeysSectionRef>((_, ref) => {
                   className="flex items-center gap-2"
                 >
                   {testing.ekqr ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <TestTube className="h-4 w-4" />
+                  )}
+                  Test
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Gemini AI API Key */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-base">Gemini AI API Key</CardTitle>
+              <CardDescription>
+                Required for AI assistant features and content generation
+              </CardDescription>
+            </div>
+            {getStatusBadge('gemini')}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {previews.gemini_api_key_preview && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Key</Label>
+                <div className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded">
+                  {previews.gemini_api_key_preview}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="gemini-key">New Gemini AI API Key</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="gemini-key"
+                    type={showKeys.gemini ? "text" : "password"}
+                    value={formData.gemini_api_key}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      gemini_api_key: e.target.value 
+                    }))}
+                    placeholder="Enter Gemini API key..."
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleShowKey('gemini')}
+                  >
+                    {showKeys.gemini ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => testAPIKey('gemini')}
+                  disabled={!formData.gemini_api_key || testing.gemini}
+                  className="flex items-center gap-2"
+                >
+                  {testing.gemini ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <TestTube className="h-4 w-4" />

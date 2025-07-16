@@ -6,6 +6,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Function to get secret from Supabase
+async function getSupabaseSecret(secretName: string): Promise<string | null> {
+  try {
+    const projectRef = Deno.env.get('SUPABASE_PROJECT_REF');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!projectRef || !serviceRoleKey) {
+      console.error('Missing Supabase environment variables');
+      return null;
+    }
+
+    const response = await fetch(
+      `https://${projectRef}.supabase.co/rest/v1/rpc/get_secret`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json',
+          'apikey': serviceRoleKey,
+        },
+        body: JSON.stringify({ secret_name: secretName }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to get secret ${secretName}:`, response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    return data || null;
+  } catch (error) {
+    console.error(`Error getting secret ${secretName}:`, error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -19,7 +56,7 @@ serve(async (req) => {
       throw new Error('Prompt is required');
     }
 
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const geminiApiKey = await getSupabaseSecret('GEMINI_API_KEY');
     if (!geminiApiKey) {
       throw new Error('Gemini API key not configured');
     }

@@ -11,6 +11,7 @@ interface APIKeyUpdate {
   razorpay_key_id?: string;
   razorpay_key_secret?: string;
   ekqr_api_key?: string;
+  gemini_api_key?: string;
 }
 
 interface APIKeyResponse {
@@ -18,6 +19,7 @@ interface APIKeyResponse {
   razorpay_key_id_preview?: string;
   razorpay_key_secret_preview?: string;
   ekqr_api_key_preview?: string;
+  gemini_api_key_preview?: string;
 }
 
 interface RequestBody {
@@ -169,6 +171,11 @@ serve(async (req) => {
         previews.ekqr_api_key_preview = maskAPIKey(ekqrKey, '', 4);
       }
 
+      const geminiKey = await getSupabaseSecret('GEMINI_API_KEY');
+      if (geminiKey) {
+        previews.gemini_api_key_preview = maskAPIKey(geminiKey, '', 4);
+      }
+
       // Update business_settings with preview values
       if (Object.keys(previews).length > 0) {
         const { data: settingsData } = await supabase.from('business_settings').select('id').single();
@@ -256,6 +263,19 @@ serve(async (req) => {
         }
       }
 
+      if (apiKeyData.gemini_api_key !== undefined) {
+        if (apiKeyData.gemini_api_key && apiKeyData.gemini_api_key.length < 10) {
+          throw new Error('Gemini API key is too short');
+        }
+        if (apiKeyData.gemini_api_key) {
+          secretOperations.push(setSupabaseSecret('GEMINI_API_KEY', apiKeyData.gemini_api_key));
+          previews.gemini_api_key_preview = maskAPIKey(apiKeyData.gemini_api_key, '', 4);
+          updatedKeys.push('GEMINI_API_KEY');
+        } else {
+          previews.gemini_api_key_preview = '';
+        }
+      }
+
       console.log('Saving API keys as Supabase secrets:', updatedKeys);
 
       // Wait for all secret operations to complete
@@ -316,6 +336,9 @@ serve(async (req) => {
           break;
         case 'ekqr':
           testResult = await testEKQRKey(key_value);
+          break;
+        case 'gemini':
+          testResult = await testGeminiKey(key_value);
           break;
         default:
           throw new Error('Invalid key type for testing');
@@ -421,5 +444,20 @@ async function testEKQRKey(apiKey: string): Promise<any> {
     }
   } catch (error) {
     return { status: 'error', message: 'Failed to test EKQR key' };
+  }
+}
+
+async function testGeminiKey(apiKey: string): Promise<any> {
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey);
+    const data = await response.json();
+    
+    if (response.ok && data.models) {
+      return { status: 'valid', message: 'Gemini API key is working' };
+    } else {
+      return { status: 'invalid', message: data.error?.message || 'Invalid Gemini API key' };
+    }
+  } catch (error) {
+    return { status: 'error', message: 'Failed to test Gemini API key' };
   }
 }

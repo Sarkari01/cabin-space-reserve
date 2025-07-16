@@ -24,6 +24,7 @@ export const BusinessSettingsTab = () => {
     ekqr_enabled: false,
     offline_enabled: true,
     razorpay_enabled: false,
+    gemini_enabled: false,
     // Brand Identity
     logo_url: '',
     favicon_url: '',
@@ -54,6 +55,7 @@ export const BusinessSettingsTab = () => {
         ekqr_enabled: settings.ekqr_enabled,
         offline_enabled: settings.offline_enabled,
         razorpay_enabled: settings.razorpay_enabled,
+        gemini_enabled: settings.gemini_enabled || false,
         // Brand Identity
         logo_url: settings.logo_url || '',
         favicon_url: settings.favicon_url || '',
@@ -440,6 +442,33 @@ export const BusinessSettingsTab = () => {
               />
             </div>
           </CardHeader>
+        </Card>
+
+        {/* Gemini AI */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-base">Gemini AI Assistant</CardTitle>
+              <CardDescription>
+                Enable AI-powered features like content generation and customer support
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              {getStatusBadge(gatewayStatus.gemini || 'unknown')}
+              <Switch
+                checked={formData.gemini_enabled}
+                onCheckedChange={(checked) =>
+                  setFormData(prev => ({ ...prev, gemini_enabled: checked }))
+                }
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              <p>Gemini AI API key is managed through the API Keys section below.</p>
+              <p>Enable this to unlock AI-powered policy generation, customer support, and content creation features.</p>
+            </div>
+          </CardContent>
         </Card>
           </div>
         </CollapsibleContent>

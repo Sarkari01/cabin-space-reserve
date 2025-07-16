@@ -190,6 +190,8 @@ export type Database = {
           ekqr_api_key_preview: string | null
           ekqr_enabled: boolean
           favicon_url: string | null
+          gemini_api_key_preview: string | null
+          gemini_enabled: boolean | null
           google_maps_api_key_preview: string | null
           id: string
           logo_url: string | null
@@ -226,6 +228,8 @@ export type Database = {
           ekqr_api_key_preview?: string | null
           ekqr_enabled?: boolean
           favicon_url?: string | null
+          gemini_api_key_preview?: string | null
+          gemini_enabled?: boolean | null
           google_maps_api_key_preview?: string | null
           id?: string
           logo_url?: string | null
@@ -262,6 +266,8 @@ export type Database = {
           ekqr_api_key_preview?: string | null
           ekqr_enabled?: boolean
           favicon_url?: string | null
+          gemini_api_key_preview?: string | null
+          gemini_enabled?: boolean | null
           google_maps_api_key_preview?: string | null
           id?: string
           logo_url?: string | null

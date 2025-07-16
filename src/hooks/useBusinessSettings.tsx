@@ -35,6 +35,8 @@ export interface BusinessSettings {
   razorpay_key_id_preview?: string;
   razorpay_key_secret_preview?: string;
   ekqr_api_key_preview?: string;
+  gemini_api_key_preview?: string;
+  gemini_enabled?: boolean;
   created_at: string;
   updated_at: string;
 }
