@@ -800,6 +800,59 @@ export type Database = {
           },
         ]
       }
+      institutions: {
+        Row: {
+          address: string | null
+          created_at: string
+          description: string | null
+          email: string
+          id: string
+          logo_url: string | null
+          name: string
+          phone: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          email: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institutions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_documents: {
         Row: {
           document_type: string
@@ -996,6 +1049,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          institution_id: string | null
           status: string
           title: string
           updated_at: string
@@ -1007,6 +1061,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          institution_id?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1018,13 +1073,22 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          institution_id?: string | null
           status?: string
           title?: string
           updated_at?: string
           video_url?: string | null
           visible_to?: Database["public"]["Enums"]["news_visibility"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "news_posts_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -2343,6 +2407,7 @@ export type Database = {
         | "customer_care_executive"
         | "settlement_manager"
         | "general_administrator"
+        | "institution"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2485,6 +2550,7 @@ export const Constants = {
         "customer_care_executive",
         "settlement_manager",
         "general_administrator",
+        "institution",
       ],
     },
   },
