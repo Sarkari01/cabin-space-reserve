@@ -184,6 +184,7 @@ export type Database = {
         Row: {
           auto_approval_threshold: number | null
           brand_name: string | null
+          business_address: string | null
           created_at: string
           ekqr_api_key_preview: string | null
           ekqr_enabled: boolean
@@ -218,6 +219,7 @@ export type Database = {
         Insert: {
           auto_approval_threshold?: number | null
           brand_name?: string | null
+          business_address?: string | null
           created_at?: string
           ekqr_api_key_preview?: string | null
           ekqr_enabled?: boolean
@@ -252,6 +254,7 @@ export type Database = {
         Update: {
           auto_approval_threshold?: number | null
           brand_name?: string | null
+          business_address?: string | null
           created_at?: string
           ekqr_api_key_preview?: string | null
           ekqr_enabled?: boolean
