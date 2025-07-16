@@ -183,6 +183,16 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     }
   }, [open, studyHall]);
 
+  // Lock body scroll when payment modal is open
+  useEffect(() => {
+    if (showPayment) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'auto';
+      };
+    }
+  }, [showPayment]);
+
   // Update end date when booking period changes
   useEffect(() => {
     if (!startDate) return;
@@ -313,30 +323,15 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   if (!studyHall) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-        {showPayment && bookingIntent ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Complete Payment</DialogTitle>
-              <DialogDescription>
-                Choose your payment method to complete the booking
-              </DialogDescription>
-            </DialogHeader>
-            <PaymentProcessor
-              bookingIntent={bookingIntent}
-              onPaymentSuccess={handlePaymentSuccess}
-              onCancel={handlePaymentCancel}
-            />
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-          <DialogTitle>Book Study Hall</DialogTitle>
-          <DialogDescription>
-            Reserve your seat at {studyHall.name}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open && !showPayment} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle>Book Study Hall</DialogTitle>
+            <DialogDescription>
+              Reserve your seat at {studyHall.name}
+            </DialogDescription>
+          </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {studyHall.image_url && (
@@ -577,9 +572,33 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </Button>
           </div>
         </form>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Modal - Separate overlay with higher z-index and body scroll lock */}
+      {showPayment && bookingIntent && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+          onClick={(e) => {
+            // Prevent background clicks from closing the modal
+            e.stopPropagation();
+          }}
+        >
+          <div 
+            className="bg-background w-full max-w-md rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => {
+              // Prevent clicks on the modal content from bubbling up
+              e.stopPropagation();
+            }}
+          >
+            <PaymentProcessor
+              bookingIntent={bookingIntent}
+              onPaymentSuccess={handlePaymentSuccess}
+              onCancel={handlePaymentCancel}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
