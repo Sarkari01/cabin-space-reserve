@@ -11,6 +11,12 @@ interface BrandSettings {
   support_phone: string | null;
   business_address: string | null;
   copyright_text: string | null;
+  social_facebook: string | null;
+  social_twitter: string | null;
+  social_instagram: string | null;
+  social_linkedin: string | null;
+  newsletter_enabled: boolean | null;
+  newsletter_description: string | null;
 }
 
 export const useBrandSettings = () => {
@@ -24,6 +30,12 @@ export const useBrandSettings = () => {
     support_phone: null,
     business_address: null,
     copyright_text: null,
+    social_facebook: null,
+    social_twitter: null,
+    social_instagram: null,
+    social_linkedin: null,
+    newsletter_enabled: null,
+    newsletter_description: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +43,7 @@ export const useBrandSettings = () => {
     try {
       const { data, error } = await supabase
         .from("business_settings")
-        .select("brand_name, logo_url, favicon_url, tagline, website_url, support_email, support_phone, business_address, copyright_text")
+        .select("brand_name, logo_url, favicon_url, tagline, website_url, support_email, support_phone, business_address, copyright_text, social_facebook, social_twitter, social_instagram, social_linkedin, newsletter_enabled, newsletter_description")
         .maybeSingle();
 
       if (error) {
@@ -50,6 +62,12 @@ export const useBrandSettings = () => {
           support_phone: data.support_phone,
           business_address: data.business_address,
           copyright_text: data.copyright_text,
+          social_facebook: data.social_facebook,
+          social_twitter: data.social_twitter,
+          social_instagram: data.social_instagram,
+          social_linkedin: data.social_linkedin,
+          newsletter_enabled: data.newsletter_enabled,
+          newsletter_description: data.newsletter_description,
         });
       }
     } catch (error) {
@@ -119,6 +137,12 @@ export const useBrandSettings = () => {
             support_phone: newData.support_phone,
             business_address: newData.business_address,
             copyright_text: newData.copyright_text,
+            social_facebook: newData.social_facebook,
+            social_twitter: newData.social_twitter,
+            social_instagram: newData.social_instagram,
+            social_linkedin: newData.social_linkedin,
+            newsletter_enabled: newData.newsletter_enabled,
+            newsletter_description: newData.newsletter_description,
           };
           
           setBrandSettings(updatedSettings);
