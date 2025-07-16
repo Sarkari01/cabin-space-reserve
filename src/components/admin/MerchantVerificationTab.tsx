@@ -139,11 +139,20 @@ export const MerchantVerificationTab = () => {
 
       if (error) throw error;
 
+      // If approving, show additional success message about trial activation
+      if (status === 'approved') {
+        toast({
+          title: "Merchant Approved",
+          description: "Merchant has been approved and trial plan will be automatically activated if enabled.",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Merchant verification status updated to ${status}`,
+        });
+      }
+
       await fetchMerchants();
-      toast({
-        title: "Success",
-        description: `Merchant verification status updated to ${status}`,
-      });
     } catch (error) {
       console.error('Error updating verification status:', error);
       toast({

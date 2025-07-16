@@ -57,6 +57,9 @@ import { AllMerchantsTab } from "@/components/admin/AllMerchantsTab";
 import { AdvancedAnalyticsTab } from "@/components/admin/AdvancedAnalyticsTab";
 import { AdvancedTrialManagementTab } from "@/components/admin/AdvancedTrialManagementTab";
 import { CommunicationHubTab } from "@/components/admin/CommunicationHubTab";
+import { AutomationWorkflowTab } from "@/components/admin/AutomationWorkflowTab";
+import { EnhancedMerchantExperienceTab } from "@/components/admin/EnhancedMerchantExperienceTab";
+import { TrialActivationLogsTab } from "@/components/admin/TrialActivationLogsTab";
 
 
 const AdminDashboard = () => {
@@ -1304,6 +1307,9 @@ const AdminDashboard = () => {
 
           {/* Reviews Tab */}
           {activeTab === "reviews" && <AdminReviewsTab />}
+
+          {/* Trial Activation Logs Tab */}
+          {activeTab === "trial-logs" && <TrialActivationLogsTab />}
 
           {/* Support Tickets Management Tab */}
           {activeTab === "support-tickets-management" && (

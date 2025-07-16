@@ -78,7 +78,13 @@ export function TelemarketingMerchantVerificationTab() {
 
       if (error) throw error;
 
-      toast.success(`Merchant ${action} successfully`);
+      // If approving, show additional success message about trial activation
+      if (action === 'approved') {
+        toast.success("Merchant approved successfully! Trial plan will be automatically activated if enabled.");
+      } else {
+        toast.success(`Merchant ${action} successfully`);
+      }
+      
       refetch();
       setSelectedProfile(null);
     } catch (error) {

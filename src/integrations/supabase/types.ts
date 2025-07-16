@@ -2085,6 +2085,44 @@ export type Database = {
           },
         ]
       }
+      trial_activation_logs: {
+        Row: {
+          activated_by: string | null
+          activation_type: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          merchant_id: string
+          success: boolean
+        }
+        Insert: {
+          activated_by?: string | null
+          activation_type: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          merchant_id: string
+          success?: boolean
+        }
+        Update: {
+          activated_by?: string | null
+          activation_type?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          merchant_id?: string
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_activation_logs_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_settings: {
         Row: {
           avatar_url: string | null
