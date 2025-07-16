@@ -14,7 +14,7 @@ interface UserModalProps {
     email: string;
     password: string;
     full_name: string;
-    role: 'admin' | 'merchant' | 'student' | 'telemarketing_executive';
+    role: 'admin' | 'merchant' | 'student' | 'telemarketing_executive' | 'institution';
     phone?: string;
     department?: string;
     employee_id?: string;
@@ -201,6 +201,7 @@ export const UserModal = ({ open, onOpenChange, onSubmit, user, loading, isEdit 
                   <SelectItem value="merchant">Merchant</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="telemarketing_executive">Telemarketing Executive</SelectItem>
+                  <SelectItem value="institution">Institution</SelectItem>
                 </SelectContent>
               </Select>
             </div>
