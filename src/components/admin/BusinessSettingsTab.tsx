@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandAssetUpload } from "@/components/BrandAssetUpload";
 import { APIKeysSection, APIKeysSectionRef } from "./APIKeysSection";
-import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key } from "lucide-react";
+import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key, AlertTriangle } from "lucide-react";
 
 export const BusinessSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
@@ -78,6 +78,15 @@ export const BusinessSettingsTab = () => {
   useEffect(() => {
     if (settings) {
       validateGateways();
+      // Auto-expand API Keys section if enabled services are missing API keys
+      const shouldExpandApiKeys = (
+        (settings.gemini_enabled && !settings.gemini_api_key_preview) ||
+        (settings.razorpay_enabled && (!settings.razorpay_key_id_preview || !settings.razorpay_key_secret_preview)) ||
+        (settings.ekqr_enabled && !settings.ekqr_api_key_preview)
+      );
+      if (shouldExpandApiKeys) {
+        setApiKeysSectionOpen(true);
+      }
     }
   }, [settings]);
 
@@ -578,6 +587,16 @@ export const BusinessSettingsTab = () => {
             <div className="flex items-center gap-2">
               <Key className="h-5 w-5" />
               <span className="text-lg font-medium">API Keys Management</span>
+              {settings && (
+                (settings.gemini_enabled && !settings.gemini_api_key_preview) ||
+                (settings.razorpay_enabled && (!settings.razorpay_key_id_preview || !settings.razorpay_key_secret_preview)) ||
+                (settings.ekqr_enabled && !settings.ekqr_api_key_preview)
+              ) && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Action Required
+                </Badge>
+              )}
             </div>
             <ChevronDown className={`h-4 w-4 transition-transform ${apiKeysSectionOpen ? 'rotate-180' : ''}`} />
           </Button>
