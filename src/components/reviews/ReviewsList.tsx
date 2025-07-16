@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Search, MessageSquare, Filter } from "lucide-react";
 import { ReviewCard } from "./ReviewCard";
 import { RatingDisplay } from "./RatingDisplay";
@@ -36,12 +37,20 @@ export const ReviewsList = ({
   const { reviews, loading, fetchReviews, fetchAllReviews } = useReviews();
 
   useEffect(() => {
-    if (studyHallId) {
-      fetchReviews(studyHallId, 100); // Fetch more for client-side filtering
-    } else {
-      fetchAllReviews({ limit: 100 });
-    }
-  }, [studyHallId]);
+    const loadReviews = async () => {
+      try {
+        if (studyHallId) {
+          await fetchReviews(studyHallId, 100);
+        } else {
+          await fetchAllReviews({ limit: 100 });
+        }
+      } catch (error) {
+        console.error('Error loading reviews in component:', error);
+      }
+    };
+
+    loadReviews();
+  }, [studyHallId, fetchReviews, fetchAllReviews]);
 
   useEffect(() => {
     let filtered = [...reviews];
@@ -99,11 +108,29 @@ export const ReviewsList = ({
   if (loading) {
     return (
       <Card className={className}>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-center space-y-2">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto" />
-            <p className="text-sm text-muted-foreground">Loading reviews...</p>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-6 w-16" />
           </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-3 p-4 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ))}
         </CardContent>
       </Card>
     );

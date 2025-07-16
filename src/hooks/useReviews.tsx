@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,39 +47,46 @@ export const useReviews = () => {
   const { user } = useAuth();
 
   // Fetch reviews for a specific study hall
-  const fetchReviews = async (studyHallId: string, limit = 10) => {
+  const fetchReviews = useCallback(async (studyHallId: string, limit = 10) => {
     try {
       setLoading(true);
+      console.log('Fetching reviews for study hall:', studyHallId);
+      
       const { data, error } = await supabase
         .from('study_hall_reviews')
         .select(`
           *,
-          profiles:user_id (full_name, email),
-          study_halls:study_hall_id (name)
+          profiles!study_hall_reviews_user_id_fkey (full_name, email),
+          study_halls!study_hall_reviews_study_hall_id_fkey (name)
         `)
         .eq('study_hall_id', studyHallId)
         .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully fetched reviews:', data?.length || 0);
       setReviews((data as unknown as Review[]) || []);
       return (data as unknown as Review[]) || [];
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch reviews",
+        description: `Failed to fetch reviews: ${error.message}`,
         variant: "destructive",
       });
       return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   // Fetch all reviews (for admin/merchant)
-  const fetchAllReviews = async (filters?: {
+  const fetchAllReviews = useCallback(async (filters?: {
     merchantId?: string;
     userId?: string;
     studyHallId?: string;
@@ -88,12 +95,14 @@ export const useReviews = () => {
   }) => {
     try {
       setLoading(true);
+      console.log('Fetching all reviews with filters:', filters);
+      
       let query = supabase
         .from('study_hall_reviews')
         .select(`
           *,
-          profiles:user_id (full_name, email),
-          study_halls:study_hall_id (name)
+          profiles!study_hall_reviews_user_id_fkey (full_name, email),
+          study_halls!study_hall_reviews_study_hall_id_fkey (name)
         `);
 
       if (filters?.merchantId) {
@@ -113,21 +122,26 @@ export const useReviews = () => {
         .order('created_at', { ascending: false })
         .limit(filters?.limit || 50);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully fetched all reviews:', data?.length || 0);
       setReviews((data as unknown as Review[]) || []);
       return (data as unknown as Review[]) || [];
     } catch (error: any) {
       console.error('Error fetching all reviews:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch reviews",
+        description: `Failed to fetch reviews: ${error.message}`,
         variant: "destructive",
       });
       return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   // Get eligible bookings for review
   const fetchEligibleBookings = async (userId?: string) => {
