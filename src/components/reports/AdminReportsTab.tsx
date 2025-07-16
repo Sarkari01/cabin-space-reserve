@@ -134,7 +134,7 @@ export const AdminReportsTab: React.FC = () => {
             render: (value: any) => (
               <div>
                 <div className="font-medium">{value?.full_name || 'N/A'}</div>
-                <div className="text-sm text-muted-foreground">{value?.email}</div>
+                <div className="text-sm text-muted-foreground">{value?.email || 'N/A'}</div>
               </div>
             )
           },
@@ -143,15 +143,15 @@ export const AdminReportsTab: React.FC = () => {
             title: 'Study Hall',
             render: (value: any) => (
               <div>
-                <div className="font-medium">{value?.name}</div>
-                <div className="text-sm text-muted-foreground">{value?.location}</div>
+                <div className="font-medium">{value?.name || 'N/A'}</div>
+                <div className="text-sm text-muted-foreground">{value?.location || 'N/A'}</div>
               </div>
             )
           },
           {
             key: 'total_amount',
             title: 'Amount',
-            render: (value: number) => formatCurrency(value)
+            render: (value: number) => formatCurrency(value || 0)
           },
           {
             key: 'status',

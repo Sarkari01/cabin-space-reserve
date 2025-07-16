@@ -103,6 +103,7 @@ export const useReports = () => {
       // Transform data to match expected structure
       const transformedData = data.map(booking => ({
         ...booking,
+        total_amount: Number(booking.total_amount) || 0,
         user: usersMap.get(booking.user_id) || { full_name: 'Unknown', email: 'N/A' },
         study_hall: studyHallsMap.get(booking.study_hall_id) || { name: 'Unknown', location: 'N/A' },
         seat: seatsMap.get(booking.seat_id) || { seat_id: 'N/A' }
@@ -237,8 +238,9 @@ export const useReports = () => {
       // Transform data and add net_amount calculation
       const transformedData = data.map(transaction => ({
         ...transaction,
+        amount: Number(transaction.amount) || 0,
         booking: bookingsMap.get(transaction.booking_id) || null,
-        net_amount: transaction.amount * 0.9 // Assuming 10% platform fee
+        net_amount: (Number(transaction.amount) || 0) * 0.9 // Assuming 10% platform fee
       }));
 
       return transformedData;
@@ -306,6 +308,9 @@ export const useReports = () => {
       // Transform data to match expected structure
       const transformedData = data.map(settlement => ({
         ...settlement,
+        total_booking_amount: Number(settlement.total_booking_amount) || 0,
+        platform_fee_amount: Number(settlement.platform_fee_amount) || 0,
+        net_settlement_amount: Number(settlement.net_settlement_amount) || 0,
         merchant: merchantsMap.get(settlement.merchant_id) || { full_name: 'Unknown', email: 'N/A' }
       }));
 
@@ -377,6 +382,9 @@ export const useReports = () => {
 
           return {
             ...studyHall,
+            daily_price: Number(studyHall.daily_price) || 0,
+            weekly_price: Number(studyHall.weekly_price) || 0,
+            monthly_price: Number(studyHall.monthly_price) || 0,
             merchant: merchantsMap.get(studyHall.merchant_id) || { full_name: 'Unknown', email: 'N/A' },
             bookings_count: bookingStats?.length || 0,
             total_revenue: bookingStats?.reduce((sum, b) => sum + Number(b.total_amount), 0) || 0
