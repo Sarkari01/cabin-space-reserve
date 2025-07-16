@@ -106,28 +106,63 @@ export const BusinessSettingsTab = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Save business settings
-      const businessSettingsSuccess = await updateSettings(formData);
+      // Validate enabled services have their API keys configured
+      const validationErrors = [];
       
-      // Save API keys
+      if (formData.gemini_enabled && !settings?.gemini_api_key_preview) {
+        validationErrors.push("Gemini AI is enabled but no API key is configured. Please add the Gemini API key in the API Keys section.");
+      }
+      
+      if (formData.razorpay_enabled && (!settings?.razorpay_key_id_preview || !settings?.razorpay_key_secret_preview)) {
+        validationErrors.push("Razorpay is enabled but API keys are not configured. Please add Razorpay keys in the API Keys section.");
+      }
+      
+      if (formData.ekqr_enabled && !settings?.ekqr_api_key_preview) {
+        validationErrors.push("EKQR is enabled but no API key is configured. Please add the EKQR API key in the API Keys section.");
+      }
+
+      if (validationErrors.length > 0) {
+        setApiKeysSectionOpen(true); // Auto-expand API Keys section
+        toast({
+          title: "Configuration Required",
+          description: validationErrors[0],
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Step 1: Save API keys first (critical for proper configuration)
+      console.log('Saving API keys first...');
       const apiKeysSuccess = await apiKeysSectionRef.current?.saveAPIKeys() ?? true;
       
-      if (businessSettingsSuccess && apiKeysSuccess) {
+      if (!apiKeysSuccess) {
+        toast({
+          title: "API Keys Save Failed",
+          description: "Failed to save API keys. Business settings not updated.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Step 2: Save business settings after API keys are secured
+      console.log('Saving business settings...');
+      const businessSettingsSuccess = await updateSettings(formData);
+      
+      if (businessSettingsSuccess) {
         toast({
           title: "Success",
           description: "All settings saved successfully",
         });
-        // Re-validate gateways after save
-        setTimeout(validateGateways, 1000);
-      } else if (businessSettingsSuccess && !apiKeysSuccess) {
+        
+        // Step 3: Refresh and validate configuration
+        setTimeout(async () => {
+          await validateGateways();
+          // Force refresh of business settings to get updated API key previews
+          window.location.reload();
+        }, 1000);
+      } else {
         toast({
-          title: "Partial Success",
-          description: "Business settings saved, but API keys failed to save",
-          variant: "destructive",
-        });
-      } else if (!businessSettingsSuccess && apiKeysSuccess) {
-        toast({
-          title: "Partial Success",
+          title: "Business Settings Failed",
           description: "API keys saved, but business settings failed to save",
           variant: "destructive",
         });
@@ -136,7 +171,7 @@ export const BusinessSettingsTab = () => {
       console.error('Error saving settings:', error);
       toast({
         title: "Error",
-        description: "Failed to save settings",
+        description: `Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -463,7 +498,17 @@ export const BusinessSettingsTab = () => {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              {getStatusBadge(gatewayStatus.gemini || 'unknown')}
+              {formData.gemini_enabled && !settings?.gemini_api_key_preview && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  API Key Required
+                </Badge>
+              )}
+              {formData.gemini_enabled && settings?.gemini_api_key_preview && (
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  Configured
+                </Badge>
+              )}
               <Switch
                 checked={formData.gemini_enabled}
                 onCheckedChange={(checked) =>
@@ -473,10 +518,43 @@ export const BusinessSettingsTab = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              <p>Gemini AI API key is managed through the API Keys section below.</p>
-              <p>Enable this to unlock AI-powered policy generation, customer support, and content creation features.</p>
-            </div>
+            {formData.gemini_enabled && !settings?.gemini_api_key_preview ? (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-yellow-800">Configuration Required</h4>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Gemini AI is enabled but no API key is configured. Please add your Gemini API key in the API Keys Management section below to use AI features.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                      onClick={() => setApiKeysSectionOpen(true)}
+                    >
+                      Configure API Key
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : formData.gemini_enabled && settings?.gemini_api_key_preview ? (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  <div>
+                    <p className="text-sm text-green-700">
+                      Gemini AI is properly configured and ready to use.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                <p>Enable Gemini AI to access advanced content generation features.</p>
+                <p>You'll need to configure a Gemini API key to use these features.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
           </div>

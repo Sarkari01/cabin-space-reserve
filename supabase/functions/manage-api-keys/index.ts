@@ -264,14 +264,18 @@ serve(async (req) => {
       }
 
       if (apiKeyData.gemini_api_key !== undefined) {
+        console.log('Processing Gemini API key, length:', apiKeyData.gemini_api_key?.length);
         if (apiKeyData.gemini_api_key && apiKeyData.gemini_api_key.length < 10) {
           throw new Error('Gemini API key is too short');
         }
         if (apiKeyData.gemini_api_key) {
+          console.log('Adding Gemini API key to secret operations');
           secretOperations.push(setSupabaseSecret('GEMINI_API_KEY', apiKeyData.gemini_api_key));
           previews.gemini_api_key_preview = maskAPIKey(apiKeyData.gemini_api_key, '', 4);
           updatedKeys.push('GEMINI_API_KEY');
+          console.log('Gemini API key preview created:', previews.gemini_api_key_preview);
         } else {
+          console.log('Clearing Gemini API key preview');
           previews.gemini_api_key_preview = '';
         }
       }
