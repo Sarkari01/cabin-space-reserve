@@ -51,6 +51,7 @@ export function usePopupNotifications() {
 
       try {
         const userRoleForQuery = getUserRole();
+        console.log('[usePopupNotifications] Query parameters: p_user_id=', user.id, 'p_user_role=', userRoleForQuery);
         
         // Get general notifications from RPC
         const { data: generalData, error: generalError } = await supabase.rpc('get_active_popup_notifications', {
@@ -66,6 +67,13 @@ export function usePopupNotifications() {
         const allNotifications: PopupNotification[] = generalData || [];
 
         console.log('[usePopupNotifications] Fetched notifications:', allNotifications.length);
+        if (allNotifications.length) {
+          console.log('[usePopupNotifications] First notification details:', {
+            id: allNotifications[0].id,
+            title: allNotifications[0].title,
+            priority: allNotifications[0].priority
+          });
+        }
         return allNotifications;
       } catch (error) {
         console.error('[usePopupNotifications] Query error:', error);
