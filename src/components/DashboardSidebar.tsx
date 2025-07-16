@@ -72,6 +72,7 @@ const sidebarItems = {
     { title: "Rewards & Coupons", url: "/student/dashboard", icon: Gift, tab: "rewards" },
     { title: "Favorites", url: "/student/dashboard", icon: BookOpen, tab: "favorites" },
     { title: "Transactions", url: "/student/dashboard", icon: CreditCard, tab: "transactions" },
+    { title: "Reports", url: "/student/dashboard", icon: FileText, tab: "reports" },
     { title: "News", url: "/student/dashboard", icon: Newspaper, tab: "news" },
     { title: "Community", url: "/student/dashboard", icon: Heart, tab: "community" },
     { title: "Chat", url: "/student/dashboard", icon: MessageSquare, tab: "chat" },
@@ -90,12 +91,13 @@ const sidebarItems = {
       { title: "Subscription Transactions", url: "/merchant/dashboard", icon: Receipt, tab: "subscription-transactions" },
       { title: "Transactions", url: "/merchant/dashboard", icon: CreditCard, tab: "transactions" },
     ],
-    growth: [
-      { title: "Coupons & Promotions", url: "/merchant/dashboard", icon: Ticket, tab: "coupons" },
-      { title: "Reviews", url: "/merchant/dashboard", icon: Star, tab: "reviews" },
-      { title: "Users", url: "/merchant/dashboard", icon: Users, tab: "users" },
-      { title: "Analytics", url: "/merchant/dashboard", icon: BarChart3, tab: "analytics" },
-    ],
+     growth: [
+       { title: "Coupons & Promotions", url: "/merchant/dashboard", icon: Ticket, tab: "coupons" },
+       { title: "Reviews", url: "/merchant/dashboard", icon: Star, tab: "reviews" },
+       { title: "Reports", url: "/merchant/dashboard", icon: FileText, tab: "reports" },
+       { title: "Users", url: "/merchant/dashboard", icon: Users, tab: "users" },
+       { title: "Analytics", url: "/merchant/dashboard", icon: BarChart3, tab: "analytics" },
+     ],
     communication: [
       { title: "News", url: "/merchant/dashboard", icon: Newspaper, tab: "news" },
       { title: "Community", url: "/merchant/dashboard", icon: Heart, tab: "community" },
@@ -139,9 +141,10 @@ const sidebarItems = {
       { title: "News", url: "/admin/dashboard", icon: Newspaper, tab: "news" },
       { title: "Rewards Settings", url: "/admin/dashboard", icon: Settings, tab: "rewards-settings" },
     ],
-    analytics: [
-      { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
-    ],
+     analytics: [
+       { title: "Analytics", url: "/admin/dashboard", icon: BarChart3, tab: "analytics" },
+       { title: "Reports", url: "/admin/dashboard", icon: FileText, tab: "reports" },
+     ],
     communication: [
       { title: "Community", url: "/admin/dashboard", icon: Heart, tab: "community" },
       { title: "Chat", url: "/admin/dashboard", icon: MessageSquare, tab: "chat" },

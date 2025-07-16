@@ -52,6 +52,7 @@ import { useSupportTickets } from "@/hooks/useSupportTickets";
 import { AdminReviewsTab } from "@/components/admin/AdminReviewsTab";
 import { StudyHallModal } from "@/components/StudyHallModal";
 import { InstitutionsTab } from "@/components/admin/InstitutionsTab";
+import { AdminReportsTab } from "@/components/reports/AdminReportsTab";
 
 
 const AdminDashboard = () => {

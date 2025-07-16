@@ -27,6 +27,7 @@ import { BookingLifecycleManager } from "@/components/BookingLifecycleManager";
 import UserProfileSettings from "@/components/UserProfileSettings";
 import { SeatSynchronizer } from "@/components/SeatSynchronizer";
 import { StudyHallSearchMap } from "@/components/maps/StudyHallSearchMap";
+import { StudentReportsTab } from "@/components/reports/StudentReportsTab";
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading, fetchStudyHalls } = useStudyHalls();
@@ -496,6 +497,11 @@ const StudentDashboard = () => {
           {/* Reviews Tab */}
           {activeTab === "reviews" && (
             <StudentReviewsTab />
+          )}
+
+          {/* Reports Tab */}
+          {activeTab === "reports" && (
+            <StudentReportsTab />
           )}
 
           {/* Transactions Tab */}
