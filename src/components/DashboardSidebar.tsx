@@ -35,6 +35,7 @@ import {
   PieChart,
   Activity,
   Star,
+  Bell,
 } from "lucide-react";
 import {
   Sidebar,
@@ -131,6 +132,7 @@ const sidebarItems = {
       { title: "Coupons", url: "/admin/dashboard", icon: Ticket, tab: "coupons" },
       { title: "Reviews", url: "/admin/dashboard", icon: Star, tab: "reviews" },
       { title: "Banners", url: "/admin/dashboard", icon: BookOpen, tab: "banners" },
+      { title: "Pop-up Notifications", url: "/admin/dashboard", icon: Bell, tab: "popup-notifications" },
       { title: "News", url: "/admin/dashboard", icon: Newspaper, tab: "news" },
       { title: "Rewards Settings", url: "/admin/dashboard", icon: Settings, tab: "rewards-settings" },
     ],
