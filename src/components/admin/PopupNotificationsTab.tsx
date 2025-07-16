@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ResponsiveTable } from '@/components/ResponsiveTable';
 import { useToast } from '@/hooks/use-toast';
-import { MultiImageUpload } from '@/components/MultiImageUpload';
+import { PopupImageUpload } from '@/components/PopupImageUpload';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MoreHorizontal, Plus, Eye, Edit, Trash2, Send } from 'lucide-react';
 import { format } from 'date-fns';
@@ -76,7 +76,7 @@ export function PopupNotificationsTab() {
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingNotification, setEditingNotification] = useState<PopupNotification | null>(null);
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
 
   const form = useForm<PopupNotificationForm>({
     resolver: zodResolver(popupNotificationSchema),
@@ -146,7 +146,7 @@ export function PopupNotificationsTab() {
       toast({ title: 'Popup notification created successfully' });
       setIsCreateModalOpen(false);
       form.reset();
-      setSelectedImages([]);
+      setSelectedImageUrl('');
     },
     onError: (error) => {
       toast({ 
@@ -204,7 +204,7 @@ export function PopupNotificationsTab() {
   const onSubmit = (data: PopupNotificationForm) => {
     createNotificationMutation.mutate({
       ...data,
-      image_url: selectedImages[0] || undefined,
+      image_url: selectedImageUrl || undefined,
     });
   };
 
@@ -434,9 +434,11 @@ export function PopupNotificationsTab() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Image (Optional)</label>
-                <MultiImageUpload
-                  onImagesChange={(images) => setSelectedImages(images.map(img => img.url))}
-                  maxImages={1}
+                <PopupImageUpload
+                  onImageUploaded={setSelectedImageUrl}
+                  currentImageUrl={selectedImageUrl}
+                  onImageRemoved={() => setSelectedImageUrl('')}
+                  disabled={createNotificationMutation.isPending}
                 />
               </div>
 
