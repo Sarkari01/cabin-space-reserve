@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertDialog, AlertDialogContent, AlertDialogFooter } from '@/components/ui/alert-dialog';
@@ -169,42 +169,62 @@ export function PopupNotificationManager({
 }: PopupNotificationManagerProps) {
   const [currentNotificationIndex, setCurrentNotificationIndex] = useState(0);
   const [isShowing, setIsShowing] = useState(false);
-  const [shownIds, setShownIds] = useState<Set<string>>(new Set());
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processedIds] = useState<Set<string>>(new Set());
 
-  // Show notifications one at a time - prevent infinite loop by tracking shown IDs
+  // Memoized handlers to prevent re-renders
+  const memoizedOnNotificationShown = useCallback(onNotificationShown, []);
+  const memoizedOnNotificationClicked = useCallback(onNotificationClicked, []);
+  const memoizedOnNotificationDismissed = useCallback(onNotificationDismissed, []);
+
+  // Show notifications one at a time with proper guards
   useEffect(() => {
-    if (notifications.length > 0 && currentNotificationIndex < notifications.length && !isShowing) {
-      const currentNotification = notifications[currentNotificationIndex];
-      
-      // Only show if we haven't already called onNotificationShown for this ID
-      if (!shownIds.has(currentNotification.id)) {
-        console.log('[PopupNotificationManager] Showing notification:', currentNotification.id);
-        setIsShowing(true);
-        setShownIds(prev => new Set([...prev, currentNotification.id]));
-        onNotificationShown(currentNotification.id);
-      } else {
-        console.log('[PopupNotificationManager] Skipping already shown notification:', currentNotification.id);
-        // Skip to next notification if this one was already shown
-        setCurrentNotificationIndex(prev => prev + 1);
-      }
+    if (isProcessing || notifications.length === 0 || currentNotificationIndex >= notifications.length || isShowing) {
+      return;
     }
-  }, [notifications, currentNotificationIndex, isShowing, onNotificationShown, shownIds]);
 
-  const handleClose = () => {
+    const currentNotification = notifications[currentNotificationIndex];
+    
+    if (!currentNotification || processedIds.has(currentNotification.id)) {
+      // Skip to next notification
+      setCurrentNotificationIndex(prev => prev + 1);
+      return;
+    }
+
+    console.log('[PopupNotificationManager] Showing notification:', currentNotification.id);
+    
+    setIsProcessing(true);
+    setIsShowing(true);
+    processedIds.add(currentNotification.id);
+    
+    // Call the handler and immediately mark as processed to prevent loops
+    memoizedOnNotificationShown(currentNotification.id);
+    
+    // Brief timeout to prevent rapid state changes
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 100);
+  }, [notifications.length, currentNotificationIndex, isShowing, isProcessing, memoizedOnNotificationShown]);
+
+  const handleClose = useCallback(() => {
     const currentNotification = notifications[currentNotificationIndex];
     if (currentNotification) {
-      onNotificationDismissed(currentNotification.id);
+      memoizedOnNotificationDismissed(currentNotification.id);
     }
+    
+    // Batch state updates to prevent multiple re-renders
     setIsShowing(false);
-    setCurrentNotificationIndex(prev => prev + 1);
-  };
+    setTimeout(() => {
+      setCurrentNotificationIndex(prev => prev + 1);
+    }, 50);
+  }, [notifications, currentNotificationIndex, memoizedOnNotificationDismissed]);
 
-  const handleButtonClick = () => {
+  const handleButtonClick = useCallback(() => {
     const currentNotification = notifications[currentNotificationIndex];
     if (currentNotification) {
-      onNotificationClicked(currentNotification.id);
+      memoizedOnNotificationClicked(currentNotification.id);
     }
-  };
+  }, [notifications, currentNotificationIndex, memoizedOnNotificationClicked]);
 
   if (!notifications.length || currentNotificationIndex >= notifications.length) {
     return null;

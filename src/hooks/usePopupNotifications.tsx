@@ -194,34 +194,43 @@ export function usePopupNotifications() {
         console.log('[usePopupNotifications] Already shown:', notificationId);
         return prev;
       }
-      return new Set([...prev, notificationId]);
+      const newSet = new Set(prev);
+      newSet.add(notificationId);
+      return newSet;
     });
     
-    trackInteractionMutation.mutate({
-      notificationId,
-      action: 'shown'
-    });
-  }, [trackInteractionMutation]);
+    // Use setTimeout to break potential synchronous loops
+    setTimeout(() => {
+      trackInteractionMutation.mutate({
+        notificationId,
+        action: 'shown'
+      });
+    }, 0);
+  }, []);
 
   // Handle notification dismissed - no automatic refetch
   const handleNotificationDismissed = useCallback((notificationId: string) => {
     console.log('[usePopupNotifications] Dismissing notification:', notificationId);
     
-    trackInteractionMutation.mutate({
-      notificationId,
-      action: 'dismissed'
-    });
-  }, [trackInteractionMutation]);
+    setTimeout(() => {
+      trackInteractionMutation.mutate({
+        notificationId,
+        action: 'dismissed'
+      });
+    }, 0);
+  }, []);
 
   // Handle notification clicked
   const handleNotificationClicked = useCallback((notificationId: string) => {
     console.log('[usePopupNotifications] Clicking notification:', notificationId);
     
-    trackInteractionMutation.mutate({
-      notificationId,
-      action: 'clicked'
-    });
-  }, [trackInteractionMutation]);
+    setTimeout(() => {
+      trackInteractionMutation.mutate({
+        notificationId,
+        action: 'clicked'
+      });
+    }, 0);
+  }, []);
 
   // Trigger login notifications on user authentication
   useEffect(() => {
