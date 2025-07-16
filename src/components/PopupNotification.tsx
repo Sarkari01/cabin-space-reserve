@@ -213,12 +213,14 @@ export function PopupNotificationManager({
   }
 
   const currentNotification = notifications[currentNotificationIndex];
-  const shouldShow = currentNotification && shownNotifications.has(currentNotification.id);
+  // Show notifications that haven't been shown yet, not the opposite!
+  const shouldShow = currentNotification && !shownNotifications.has(currentNotification.id);
 
   console.log('[PopupNotificationManager] Render decision:', { 
     hasNotification: !!currentNotification, 
-    isShown: shouldShow,
-    notificationId: currentNotification?.id 
+    shouldShow: shouldShow,
+    notificationId: currentNotification?.id,
+    alreadyShown: currentNotification ? shownNotifications.has(currentNotification.id) : false
   });
 
   return (
