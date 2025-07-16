@@ -13,7 +13,8 @@ import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandAssetUpload } from "@/components/BrandAssetUpload";
-import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift } from "lucide-react";
+import { APIKeysSection } from "./APIKeysSection";
+import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key } from "lucide-react";
 
 export const BusinessSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
@@ -42,6 +43,7 @@ export const BusinessSettingsTab = () => {
   const [brandSectionOpen, setBrandSectionOpen] = useState(true);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
   const [trialSectionOpen, setTrialSectionOpen] = useState(false);
+  const [apiKeysSectionOpen, setApiKeysSectionOpen] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -480,6 +482,24 @@ export const BusinessSettingsTab = () => {
               </CardContent>
             )}
           </Card>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Separator />
+
+      {/* API Keys Management Section */}
+      <Collapsible open={apiKeysSectionOpen} onOpenChange={setApiKeysSectionOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+            <div className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              <span className="text-lg font-medium">API Keys Management</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 transition-transform ${apiKeysSectionOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
+          <APIKeysSection />
         </CollapsibleContent>
       </Collapsible>
 

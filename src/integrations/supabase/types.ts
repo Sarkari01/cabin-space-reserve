@@ -185,8 +185,10 @@ export type Database = {
           auto_approval_threshold: number | null
           brand_name: string | null
           created_at: string
+          ekqr_api_key_preview: string | null
           ekqr_enabled: boolean
           favicon_url: string | null
+          google_maps_api_key_preview: string | null
           id: string
           logo_url: string | null
           min_redemption_points: number | null
@@ -198,6 +200,8 @@ export type Database = {
           points_per_referral: number | null
           points_profile_complete: number | null
           razorpay_enabled: boolean
+          razorpay_key_id_preview: string | null
+          razorpay_key_secret_preview: string | null
           rewards_conversion_rate: number | null
           rewards_enabled: boolean | null
           support_email: string | null
@@ -215,8 +219,10 @@ export type Database = {
           auto_approval_threshold?: number | null
           brand_name?: string | null
           created_at?: string
+          ekqr_api_key_preview?: string | null
           ekqr_enabled?: boolean
           favicon_url?: string | null
+          google_maps_api_key_preview?: string | null
           id?: string
           logo_url?: string | null
           min_redemption_points?: number | null
@@ -228,6 +234,8 @@ export type Database = {
           points_per_referral?: number | null
           points_profile_complete?: number | null
           razorpay_enabled?: boolean
+          razorpay_key_id_preview?: string | null
+          razorpay_key_secret_preview?: string | null
           rewards_conversion_rate?: number | null
           rewards_enabled?: boolean | null
           support_email?: string | null
@@ -245,8 +253,10 @@ export type Database = {
           auto_approval_threshold?: number | null
           brand_name?: string | null
           created_at?: string
+          ekqr_api_key_preview?: string | null
           ekqr_enabled?: boolean
           favicon_url?: string | null
+          google_maps_api_key_preview?: string | null
           id?: string
           logo_url?: string | null
           min_redemption_points?: number | null
@@ -258,6 +268,8 @@ export type Database = {
           points_per_referral?: number | null
           points_profile_complete?: number | null
           razorpay_enabled?: boolean
+          razorpay_key_id_preview?: string | null
+          razorpay_key_secret_preview?: string | null
           rewards_conversion_rate?: number | null
           rewards_enabled?: boolean | null
           support_email?: string | null

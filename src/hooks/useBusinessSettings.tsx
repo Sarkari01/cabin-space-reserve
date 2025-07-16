@@ -28,6 +28,11 @@ export interface BusinessSettings {
   trial_duration_days?: number;
   trial_plan_name?: string;
   trial_max_study_halls?: number;
+  // API Key Previews
+  google_maps_api_key_preview?: string;
+  razorpay_key_id_preview?: string;
+  razorpay_key_secret_preview?: string;
+  ekqr_api_key_preview?: string;
   created_at: string;
   updated_at: string;
 }
