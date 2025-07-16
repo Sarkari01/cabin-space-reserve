@@ -6,34 +6,71 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to get secret from Supabase Management API
+// Function to get secret from Supabase Management API with vault fallback
 async function getSupabaseSecret(secretName: string): Promise<string | null> {
   try {
+    // First, try to get from Management API
     const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'jseyxxsptcckjumjcljk';
     const managementUrl = `https://api.supabase.com/v1/projects/${projectId}/secrets`;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!serviceRoleKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY not found');
-      return null;
-    }
+    if (serviceRoleKey) {
+      try {
+        const response = await fetch(managementUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-    const response = await fetch(managementUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json'
+        if (response.ok) {
+          const secrets = await response.json();
+          const secret = secrets.find((s: any) => s.name === secretName);
+          if (secret?.value) {
+            console.log(`Retrieved ${secretName} from Management API`);
+            return secret.value;
+          }
+        } else {
+          console.log(`Management API failed for ${secretName}: ${response.status} ${response.statusText}`);
+        }
+      } catch (apiError) {
+        console.log(`Management API error for ${secretName}:`, apiError);
       }
-    });
+    }
 
-    if (!response.ok) {
-      console.error(`Failed to fetch secrets: ${response.status} ${response.statusText}`);
+    // Fallback to vault retrieval
+    console.log(`Falling back to vault retrieval for ${secretName}`);
+    
+    const supabaseUrl = 'https://jseyxxsptcckjumjcljk.supabase.co';
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    
+    const { data: vaultData, error: vaultError } = await supabase
+      .from('api_keys_vault')
+      .select('key_value_encrypted')
+      .eq('key_name', secretName)
+      .single();
+
+    if (vaultError) {
+      console.error(`Error retrieving ${secretName} from vault:`, vaultError);
       return null;
     }
 
-    const secrets = await response.json();
-    const secret = secrets.find((s: any) => s.name === secretName);
-    return secret?.value || null;
+    if (!vaultData?.key_value_encrypted) {
+      console.error(`No encrypted value found for ${secretName} in vault`);
+      return null;
+    }
+
+    // Simple base64 decode (vault uses base64 encoding)
+    try {
+      const decodedValue = atob(vaultData.key_value_encrypted);
+      console.log(`Successfully retrieved ${secretName} from vault`);
+      return decodedValue;
+    } catch (decodeError) {
+      console.error(`Error decoding ${secretName} from vault:`, decodeError);
+      return null;
+    }
+
   } catch (error) {
     console.error(`Error getting secret ${secretName}:`, error);
     return null;
