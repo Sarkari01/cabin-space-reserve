@@ -119,48 +119,131 @@ async function getAPIKeyFromVault(supabase: any, keyName: string): Promise<strin
   }
 }
 
-// Set secret in Supabase Management API with fallback to vault
+// Set secret in Supabase Management API with enhanced retry logic and fallback to vault
 async function setSupabaseSecret(supabase: any, secretName: string, secretValue: string): Promise<boolean> {
   console.log(`Attempting to store secret: ${secretName}`);
   
-  // Primary approach: Try Supabase Management API first
-  try {
-    const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'jseyxxsptcckjumjcljk';
-    const managementUrl = `https://api.supabase.com/v1/projects/${projectId}/secrets`;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (serviceRoleKey) {
-      console.log(`Trying Management API for ${secretName}`);
-      const response = await fetch(managementUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify([{
-          name: secretName,
-          value: secretValue
-        }])
-      });
-
-      if (response.ok) {
-        console.log(`Successfully set secret via Management API: ${secretName}`);
-        return true;
-      } else {
-        const errorText = await response.text();
-        console.error(`Management API failed for ${secretName}: ${response.status} ${response.statusText}`);
-        console.error('Error response:', errorText);
-      }
-    } else {
-      console.error('SUPABASE_SERVICE_ROLE_KEY not found for Management API');
-    }
-  } catch (error) {
-    console.error(`Management API error for ${secretName}:`, error);
+  // Enhanced validation
+  if (!secretValue || secretValue.trim() === '') {
+    console.error(`Cannot store empty secret: ${secretName}`);
+    return false;
   }
   
-  // Fallback approach: Store in vault
-  console.log(`Falling back to vault storage for ${secretName}`);
-  return await storeAPIKeyInVault(supabase, secretName, secretValue);
+  const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'jseyxxsptcckjumjcljk';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  // Phase 1: Enhanced Management API approach with retry logic
+  if (serviceRoleKey) {
+    const managementUrl = `https://api.supabase.com/v1/projects/${projectId}/secrets`;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
+    
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`Management API attempt ${retryCount + 1}/${maxRetries} for ${secretName}`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+        
+        const response = await fetch(managementUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'Supabase-Edge-Function/1.0'
+          },
+          body: JSON.stringify([{
+            name: secretName,
+            value: secretValue
+          }]),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          console.log(`✅ Successfully set secret via Management API: ${secretName}`);
+          return true;
+        } else {
+          const errorText = await response.text();
+          console.error(`❌ Management API failed for ${secretName}: ${response.status} ${response.statusText}`);
+          console.error('Error response:', errorText);
+          
+          // If unauthorized, don't retry
+          if (response.status === 401 || response.status === 403) {
+            console.error('Authorization failed - falling back to vault immediately');
+            break;
+          }
+          
+          // If server error, retry
+          if (response.status >= 500 && retryCount < maxRetries - 1) {
+            retryCount++;
+            console.log(`Retrying Management API in ${retryDelay * retryCount}ms...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount));
+            continue;
+          }
+        }
+      } catch (error) {
+        console.error(`Management API error for ${secretName}:`, error);
+        
+        if (error.name === 'AbortError') {
+          console.error('Management API request timed out');
+        }
+        
+        // Retry on network errors
+        if (retryCount < maxRetries - 1) {
+          retryCount++;
+          console.log(`Retrying Management API after error in ${retryDelay * retryCount}ms...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount));
+          continue;
+        }
+      }
+      
+      break; // Exit retry loop if not retrying
+    }
+  } else {
+    console.error('🔑 SUPABASE_SERVICE_ROLE_KEY not found for Management API');
+  }
+  
+  // Phase 2: Enhanced fallback to vault with retry logic
+  console.log(`🔄 Falling back to vault storage for ${secretName}`);
+  
+  let vaultRetryCount = 0;
+  const maxVaultRetries = 2;
+  
+  while (vaultRetryCount < maxVaultRetries) {
+    try {
+      const vaultSuccess = await storeAPIKeyInVault(supabase, secretName, secretValue);
+      if (vaultSuccess) {
+        console.log(`✅ Successfully stored ${secretName} in vault`);
+        return true;
+      } else {
+        console.error(`❌ Vault storage failed for ${secretName}`);
+        
+        if (vaultRetryCount < maxVaultRetries - 1) {
+          vaultRetryCount++;
+          console.log(`Retrying vault storage in 1 second...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+      }
+    } catch (error) {
+      console.error(`Vault storage error for ${secretName}:`, error);
+      
+      if (vaultRetryCount < maxVaultRetries - 1) {
+        vaultRetryCount++;
+        console.log(`Retrying vault storage after error in 1 second...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+    }
+    
+    break; // Exit retry loop
+  }
+  
+  console.error(`❌ All storage methods failed for ${secretName}`);
+  return false;
 }
 
 serve(async (req) => {
@@ -170,34 +253,99 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    console.log('API Keys management request received');
+    
+    // Environment variable validation
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing required environment variables:', {
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey
+      });
+      throw new Error('Server configuration error: Missing environment variables');
+    }
 
-    // Verify user is admin
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Enhanced authentication check with retry logic
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      throw new Error('No authorization header provided');
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (!token || token.length < 10) {
+      throw new Error('Invalid authorization token format');
+    }
+
+    let user, authError;
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    // Retry authentication in case of transient failures
+    while (retryCount < maxRetries) {
+      try {
+        const authResult = await supabase.auth.getUser(token);
+        user = authResult.data?.user;
+        authError = authResult.error;
+        break;
+      } catch (err) {
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          authError = err;
+        } else {
+          console.log(`Authentication retry ${retryCount}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
+    }
     
     if (authError || !user) {
-      throw new Error('Invalid user');
+      console.error('Authentication failed:', authError);
+      throw new Error('Authentication failed - Invalid or expired token');
     }
 
-    // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    console.log('User authenticated:', user.id);
 
-    if (profileError || profile?.role !== 'admin') {
+    // Check if user is admin with retry logic
+    let profile, profileError;
+    retryCount = 0;
+
+    while (retryCount < maxRetries) {
+      try {
+        const profileResult = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        profile = profileResult.data;
+        profileError = profileResult.error;
+        break;
+      } catch (err) {
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          profileError = err;
+        } else {
+          console.log(`Profile fetch retry ${retryCount}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
+    }
+
+    if (profileError) {
+      console.error('Profile fetch error:', profileError);
+      throw new Error('Failed to verify user permissions');
+    }
+
+    if (profile?.role !== 'admin') {
+      console.error('Unauthorized access attempt by user:', user.id, 'Role:', profile?.role);
       throw new Error('Unauthorized - Admin access required');
     }
+
+    console.log('Admin access verified for user:', user.id);
 
     // Parse request body for operation type
     const requestBody: RequestBody = await req.json();

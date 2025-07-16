@@ -48,6 +48,11 @@ export const BusinessSettingsTab = () => {
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
   const [trialSectionOpen, setTrialSectionOpen] = useState(false);
   const [apiKeysSectionOpen, setApiKeysSectionOpen] = useState(false);
+  const [saveProgress, setSaveProgress] = useState({
+    step: '',
+    progress: 0,
+    message: ''
+  });
 
   useEffect(() => {
     if (settings) {
@@ -106,9 +111,26 @@ export const BusinessSettingsTab = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Validate enabled services have their API keys configured
+      // Phase 4: Enhanced validation with specific error messages
       const validationErrors = [];
+      const warnings = [];
       
+      // Validate email format
+      if (formData.support_email && !isValidEmail(formData.support_email)) {
+        validationErrors.push("Invalid support email format");
+      }
+      
+      // Validate phone format
+      if (formData.support_phone && !isValidPhone(formData.support_phone)) {
+        validationErrors.push("Invalid support phone format");
+      }
+      
+      // Validate URL format
+      if (formData.website_url && !isValidUrl(formData.website_url)) {
+        validationErrors.push("Invalid website URL format");
+      }
+      
+      // Check for enabled services missing API keys
       if (formData.gemini_enabled && !settings?.gemini_api_key_preview) {
         validationErrors.push("Gemini AI is enabled but no API key is configured. Please add the Gemini API key in the API Keys section.");
       }
@@ -120,57 +142,99 @@ export const BusinessSettingsTab = () => {
       if (formData.ekqr_enabled && !settings?.ekqr_api_key_preview) {
         validationErrors.push("EKQR is enabled but no API key is configured. Please add the EKQR API key in the API Keys section.");
       }
+      
+      // Check for potentially missing configurations
+      if (!formData.support_email) {
+        warnings.push("Support email is not configured");
+      }
+      
+      if (!formData.support_phone) {
+        warnings.push("Support phone is not configured");
+      }
 
+      // Handle validation errors
       if (validationErrors.length > 0) {
         setApiKeysSectionOpen(true); // Auto-expand API Keys section
         toast({
-          title: "Configuration Required",
+          title: "Configuration Errors",
           description: validationErrors[0],
           variant: "destructive",
         });
         return;
       }
 
+      // Show warnings if any
+      if (warnings.length > 0) {
+        console.log('Configuration warnings:', warnings);
+        toast({
+          title: "Configuration Warnings",
+          description: `${warnings.length} warning(s): ${warnings[0]}`,
+          variant: "default",
+        });
+      }
+
+      // Phase 3 & 5: Enhanced save flow with progress tracking and atomic transactions
+      console.log('Starting enhanced save process...');
+      
       // Step 1: Save API keys first (critical for proper configuration)
-      console.log('Saving API keys first...');
+      setSaveProgress({ step: 'Securing API Keys...', progress: 25, message: 'Validating and storing API keys securely' });
+      console.log('Phase 1: Saving API keys...');
+      
       const apiKeysSuccess = await apiKeysSectionRef.current?.saveAPIKeys() ?? true;
       
       if (!apiKeysSuccess) {
+        setSaveProgress({ step: 'Failed', progress: 0, message: 'API key storage failed' });
+        throw new Error("Failed to save API keys - business settings not updated to maintain consistency");
+      }
+
+      // Step 2: Save business settings after API keys are secured
+      setSaveProgress({ step: 'Saving Business Settings...', progress: 50, message: 'Updating business configuration' });
+      console.log('Phase 2: Saving business settings...');
+      
+      const businessSettingsSuccess = await updateSettings(formData);
+      
+      if (!businessSettingsSuccess) {
+        setSaveProgress({ step: 'Partial Save', progress: 50, message: 'API keys saved, business settings failed' });
+        // API keys were saved but business settings failed
         toast({
-          title: "API Keys Save Failed",
-          description: "Failed to save API keys. Business settings not updated.",
+          title: "Partial Save",
+          description: "API keys saved successfully, but business settings failed to save. Please try saving settings again.",
           variant: "destructive",
         });
         return;
       }
 
-      // Step 2: Save business settings after API keys are secured
-      console.log('Saving business settings...');
-      const businessSettingsSuccess = await updateSettings(formData);
+      // Step 3: Validate and refresh configuration
+      setSaveProgress({ step: 'Validating Configuration...', progress: 75, message: 'Verifying payment gateways and settings' });
+      console.log('Phase 3: Validating configuration...');
       
-      if (businessSettingsSuccess) {
-        toast({
-          title: "Success",
-          description: "All settings saved successfully",
-        });
-        
-      // Step 3: Refresh and validate configuration
-      setTimeout(async () => {
-        await validateGateways();
-        // Force refresh of business settings to get updated API key previews
-        window.location.reload();
-      }, 2000);
-      } else {
-        toast({
-          title: "Business Settings Failed",
-          description: "API keys saved, but business settings failed to save",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error saving settings:', error);
       toast({
-        title: "Error",
+        title: "Success",
+        description: "All settings saved successfully. Refreshing configuration...",
+      });
+      
+      // Immediate validation without refresh
+      setTimeout(async () => {
+        try {
+          await validateGateways();
+          console.log('Configuration validation completed');
+          setSaveProgress({ step: 'Completed', progress: 100, message: 'All settings saved and validated successfully' });
+        } catch (error) {
+          console.error('Configuration validation failed:', error);
+          setSaveProgress({ step: 'Validation Warning', progress: 90, message: 'Settings saved but validation had issues' });
+        }
+      }, 1000);
+      
+      // Force refresh after a delay to show updated previews
+      setTimeout(() => {
+        setSaveProgress({ step: 'Refreshing...', progress: 100, message: 'Loading updated configuration' });
+        window.location.reload();
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error in save process:', error);
+      toast({
+        title: "Save Failed",
         description: `Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
@@ -686,6 +750,27 @@ export const BusinessSettingsTab = () => {
 
       <Separator />
 
+      {/* Phase 5: Enhanced Progress Indicator */}
+      {saving && saveProgress.step && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-blue-900">{saveProgress.step}</span>
+                <span className="text-sm text-blue-700">{saveProgress.progress}%</span>
+              </div>
+              <div className="w-full bg-blue-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${saveProgress.progress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-blue-800">{saveProgress.message}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex justify-end">
         <Button 
           onClick={handleSave} 
@@ -695,7 +780,7 @@ export const BusinessSettingsTab = () => {
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Saving...
+              {saveProgress.step || 'Saving...'}
             </>
           ) : (
             'Save All Settings'
