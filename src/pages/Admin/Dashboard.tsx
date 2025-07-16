@@ -293,10 +293,10 @@ const AdminDashboard = () => {
       title: 'Image',
       render: (studyHall: any) => (
         <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted">
-          {studyHall.image_url ? (
+          {studyHall?.image_url ? (
             <img 
-              src={studyHall.image_url} 
-              alt={studyHall.name}
+              src={studyHall?.image_url} 
+              alt={studyHall?.name || 'Study Hall'}
               className="w-full h-full object-cover"
             />
           ) : (
