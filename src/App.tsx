@@ -20,6 +20,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { PopupNotificationProvider } from "./components/PopupNotificationProvider";
 
 const queryClient = new QueryClient();
 
@@ -27,9 +28,10 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ErrorBoundary>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+        <PopupNotificationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
@@ -140,6 +142,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+        </PopupNotificationProvider>
     </AuthProvider>
   </ErrorBoundary>
   </QueryClientProvider>

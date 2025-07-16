@@ -1008,10 +1008,20 @@ export type Database = {
       notifications: {
         Row: {
           action_url: string | null
+          button_text: string | null
+          button_url: string | null
+          click_count: number | null
           created_at: string
+          expires_at: string | null
           id: string
+          image_url: string | null
           message: string
+          popup_enabled: boolean | null
+          priority: number | null
           read: boolean
+          schedule_time: string | null
+          shown_count: number | null
+          target_audience: string | null
           title: string
           type: string
           updated_at: string
@@ -1019,10 +1029,20 @@ export type Database = {
         }
         Insert: {
           action_url?: string | null
+          button_text?: string | null
+          button_url?: string | null
+          click_count?: number | null
           created_at?: string
+          expires_at?: string | null
           id?: string
+          image_url?: string | null
           message: string
+          popup_enabled?: boolean | null
+          priority?: number | null
           read?: boolean
+          schedule_time?: string | null
+          shown_count?: number | null
+          target_audience?: string | null
           title: string
           type?: string
           updated_at?: string
@@ -1030,16 +1050,64 @@ export type Database = {
         }
         Update: {
           action_url?: string | null
+          button_text?: string | null
+          button_url?: string | null
+          click_count?: number | null
           created_at?: string
+          expires_at?: string | null
           id?: string
+          image_url?: string | null
           message?: string
+          popup_enabled?: boolean | null
+          priority?: number | null
           read?: boolean
+          schedule_time?: string | null
+          shown_count?: number | null
+          target_audience?: string | null
           title?: string
           type?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      popup_user_interactions: {
+        Row: {
+          clicked_at: string | null
+          created_at: string | null
+          dismissed_at: string | null
+          id: string
+          notification_id: string
+          shown_at: string | null
+          user_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          created_at?: string | null
+          dismissed_at?: string | null
+          id?: string
+          notification_id: string
+          shown_at?: string | null
+          user_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          created_at?: string | null
+          dismissed_at?: string | null
+          id?: string
+          notification_id?: string
+          shown_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "popup_user_interactions_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -2073,6 +2141,19 @@ export type Database = {
       generate_short_id: {
         Args: { table_name: string; column_name: string }
         Returns: number
+      }
+      get_active_popup_notifications: {
+        Args: { p_user_id: string; p_user_role?: string }
+        Returns: {
+          id: string
+          title: string
+          message: string
+          image_url: string
+          button_text: string
+          button_url: string
+          priority: number
+          created_at: string
+        }[]
       }
       get_available_seats: {
         Args: {

@@ -13,6 +13,7 @@ import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { UserModal } from "@/components/admin/UserModal";
 import { AdvancedUserManagement } from "@/components/admin/AdvancedUserManagement";
 import { BannersTab } from "@/components/admin/BannersTab";
+import { PopupNotificationsTab } from "@/components/admin/PopupNotificationsTab";
 import { BusinessSettingsTab } from "@/components/admin/BusinessSettingsTab";
 import { TransactionsTab } from "@/components/admin/TransactionsTab";
 import { TransactionsManagementTab } from "@/components/admin/TransactionsManagementTab";
@@ -894,6 +895,9 @@ const AdminDashboard = () => {
 
           {/* Banners Tab */}
           {activeTab === "banners" && <BannersTab />}
+          
+          {/* Pop-up Notifications Tab */}
+          {activeTab === "popup-notifications" && <PopupNotificationsTab />}
           
           {/* Business Settings Tab */}
           {activeTab === "business" && <BusinessSettingsTab />}
