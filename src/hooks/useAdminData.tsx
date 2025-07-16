@@ -178,8 +178,16 @@ export const useAdminData = () => {
     email: string;
     password: string;
     full_name: string;
-    role: 'merchant' | 'student';
+    role: 'admin' | 'merchant' | 'student' | 'telemarketing_executive' | 'institution' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator';
     phone?: string;
+    department?: string;
+    employee_id?: string;
+    permissions?: {
+      merchant_onboarding?: boolean;
+      payment_recovery?: boolean;
+      customer_support?: boolean;
+      settlement_management?: boolean;
+    };
   }) => {
     try {
       // Get current session for authorization
@@ -193,9 +201,14 @@ export const useAdminData = () => {
         body: {
           email: userData.email,
           password: userData.password,
-          full_name: userData.full_name,
-          role: userData.role,
-          phone: userData.phone,
+          user_metadata: {
+            full_name: userData.full_name,
+            role: userData.role,
+            phone: userData.phone,
+            department: userData.department,
+            employee_id: userData.employee_id,
+            permissions: userData.permissions,
+          },
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,

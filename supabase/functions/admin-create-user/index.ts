@@ -66,7 +66,7 @@ serve(async (req) => {
     }
 
     // Validate role
-    const validRoles = ['telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator', 'admin', 'merchant', 'student'];
+    const validRoles = ['telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator', 'admin', 'merchant', 'student', 'institution'];
     if (!validRoles.includes(user_metadata.role)) {
       return new Response(
         JSON.stringify({ error: 'Invalid role specified' }),
@@ -126,6 +126,23 @@ serve(async (req) => {
       if (adminProfileError) {
         console.error('Error creating admin profile:', adminProfileError);
         // Don't fail the entire operation for admin profile creation errors
+      }
+    }
+
+    // Create institution profile for institution users
+    if (user_metadata.role === 'institution') {
+      const { error: institutionError } = await supabaseAdmin
+        .from('institutions')
+        .insert({
+          user_id: newUser.user.id,
+          name: user_metadata.full_name || 'New Institution',
+          email: email,
+          status: 'active'
+        });
+
+      if (institutionError) {
+        console.error('Error creating institution profile:', institutionError);
+        // Don't fail the entire operation for institution profile creation errors
       }
     }
 
