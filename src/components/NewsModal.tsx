@@ -141,132 +141,173 @@ export function NewsModal({ news, isEdit = false, trigger, onClose }: NewsModalP
       <DialogTrigger asChild>
         {trigger || <Button>{isEdit ? "Edit News" : "Create News"}</Button>}
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit News Post" : "Create News Post"}</DialogTitle>
+      <DialogContent className="w-[95vw] max-w-sm sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-lg sm:text-xl">{isEdit ? "Edit News Post" : "Create News Post"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="content">Content</Label>
-            <Textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) => handleChange("content", e.target.value)}
-              rows={4}
-              required
-            />
-          </div>
-          
-          {/* File Upload Section */}
-          <div>
-            <Label>Media Upload</Label>
-            <div className="space-y-3">
-              {/* Upload Button */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="media-upload"
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Main form grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+            {/* Left column - Basic info */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title" className="text-sm font-medium">Title</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  className="mt-1.5"
+                  required
                 />
-                <label
-                  htmlFor="media-upload"
-                  className="flex items-center gap-2 px-4 py-2 border border-input rounded-md cursor-pointer hover:bg-accent transition-colors"
-                >
-                  <Upload className="w-4 h-4" />
-                  {uploading ? "Uploading..." : "Upload Image/Video"}
-                </label>
-                {selectedFile && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={removeSelectedFile}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
               </div>
-
-              {/* File Preview */}
-              {selectedFile && (
-                <div className="text-sm text-muted-foreground">
-                  Selected: {selectedFile.name}
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="visible_to" className="text-sm font-medium">Visible To</Label>
+                  <Select value={formData.visible_to} onValueChange={(value) => handleChange("visible_to", value)}>
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="both">Users & Merchants</SelectItem>
+                      <SelectItem value="user">Users Only</SelectItem>
+                      <SelectItem value="merchant">Merchants Only</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                
+                <div>
+                  <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                  <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
 
-              {/* URL inputs as alternative */}
-              <div className="text-sm text-muted-foreground border-t pt-3">
-                Or enter URLs manually:
-              </div>
-              
+            {/* Right column - Media upload */}
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="image_url">Image URL (optional)</Label>
-                <Input
-                  id="image_url"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => handleChange("image_url", e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="video_url">Video URL (optional)</Label>
-                <Input
-                  id="video_url"
-                  type="url"
-                  value={formData.video_url}
-                  onChange={(e) => handleChange("video_url", e.target.value)}
-                  placeholder="https://example.com/video.mp4"
-                />
+                <Label className="text-sm font-medium">Media Upload</Label>
+                <div className="mt-1.5 space-y-3">
+                  {/* Upload area */}
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-muted-foreground/50 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="media-upload"
+                    />
+                    <label
+                      htmlFor="media-upload"
+                      className="flex flex-col items-center gap-2 cursor-pointer"
+                    >
+                      <Upload className="w-8 h-8 text-muted-foreground" />
+                      <div className="text-sm">
+                        {uploading ? (
+                          <span className="text-primary">Uploading...</span>
+                        ) : (
+                          <>
+                            <span className="font-medium">Click to upload</span>
+                            <br />
+                            <span className="text-muted-foreground">Image or video file</span>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* File preview */}
+                  {selectedFile && (
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                      <div className="text-sm">
+                        <div className="font-medium">{selectedFile.name}</div>
+                        <div className="text-muted-foreground">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeSelectedFile}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* URL inputs */}
+                  <div className="pt-3 border-t border-muted-foreground/20">
+                    <div className="text-xs text-muted-foreground mb-3">Or enter URLs manually:</div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <Label htmlFor="image_url" className="text-xs">Image URL</Label>
+                        <Input
+                          id="image_url"
+                          type="url"
+                          value={formData.image_url}
+                          onChange={(e) => handleChange("image_url", e.target.value)}
+                          placeholder="https://example.com/image.jpg"
+                          className="mt-1 text-sm"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="video_url" className="text-xs">Video URL</Label>
+                        <Input
+                          id="video_url"
+                          type="url"
+                          value={formData.video_url}
+                          onChange={(e) => handleChange("video_url", e.target.value)}
+                          placeholder="https://example.com/video.mp4"
+                          className="mt-1 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           
+          {/* Full width content section */}
           <div>
-            <Label htmlFor="visible_to">Visible To</Label>
-            <Select value={formData.visible_to} onValueChange={(value) => handleChange("visible_to", value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="both">Users & Merchants</SelectItem>
-                <SelectItem value="user">Users Only</SelectItem>
-                <SelectItem value="merchant">Merchants Only</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="content" className="text-sm font-medium">Content</Label>
+            <Textarea
+              id="content"
+              value={formData.content}
+              onChange={(e) => handleChange("content", e.target.value)}
+              rows={6}
+              className="mt-1.5 resize-none"
+              placeholder="Write your news content here..."
+              required
+            />
           </div>
           
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+          {/* Action buttons */}
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-muted-foreground/20">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setOpen(false)} 
+              className="flex-1 sm:flex-none sm:w-24"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
+            <Button 
+              type="submit" 
+              disabled={loading || uploading} 
+              className="flex-1 sm:flex-none sm:w-32"
+            >
               {loading ? "Saving..." : (isEdit ? "Update" : "Create")}
             </Button>
           </div>
