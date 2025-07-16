@@ -277,19 +277,19 @@ const AdminDashboard = () => {
       key: 'name',
       title: 'Name',
       sortable: true,
-      render: (studyHall: any) => (
+      render: (value: any, studyHall: any) => (
         <div>
-          <div className="font-medium">{studyHall.name}</div>
-          <div className="text-sm text-muted-foreground">{studyHall.location}</div>
+          <div className="font-medium">{studyHall?.name}</div>
+          <div className="text-sm text-muted-foreground">{studyHall?.location}</div>
         </div>
       )
     },
     {
       key: 'merchant',
       title: 'Owner',
-      render: (studyHall: any) => (
+      render: (value: any, studyHall: any) => (
         <div className="text-sm">
-          {studyHall.owner?.full_name || 'Unknown Owner'}
+          {studyHall?.owner?.full_name || 'Unknown Owner'}
         </div>
       ),
       mobileHidden: true
@@ -298,19 +298,19 @@ const AdminDashboard = () => {
       key: 'status',
       title: 'Status',
       sortable: true,
-      render: (studyHall: any) => (
-        <Badge variant={studyHall.status === 'active' ? 'default' : 'secondary'}>
-          {studyHall.status}
+      render: (value: any, studyHall: any) => (
+        <Badge variant={studyHall?.status === 'active' ? 'default' : 'secondary'}>
+          {studyHall?.status}
         </Badge>
       )
     },
     {
       key: 'capacity',
       title: 'Capacity',
-      render: (studyHall: any) => (
+      render: (value: any, studyHall: any) => (
         <div className="text-sm">
-          <div>{studyHall.total_seats} seats</div>
-          <div className="text-muted-foreground">{studyHall.rows} × {studyHall.seats_per_row}</div>
+          <div>{studyHall?.total_seats} seats</div>
+          <div className="text-muted-foreground">{studyHall?.rows} × {studyHall?.seats_per_row}</div>
         </div>
       ),
       mobileHidden: true
@@ -318,10 +318,10 @@ const AdminDashboard = () => {
     {
       key: 'pricing',
       title: 'Pricing',
-      render: (studyHall: any) => (
+      render: (value: any, studyHall: any) => (
         <div className="text-sm">
-          <div>₹{studyHall.daily_price}/day</div>
-          <div className="text-muted-foreground">₹{studyHall.monthly_price}/month</div>
+          <div>₹{studyHall?.daily_price}/day</div>
+          <div className="text-muted-foreground">₹{studyHall?.monthly_price}/month</div>
         </div>
       ),
       mobileHidden: true
@@ -330,13 +330,13 @@ const AdminDashboard = () => {
       key: 'created_at',
       title: 'Created',
       sortable: true,
-      render: (studyHall: any) => formatDate(studyHall.created_at),
+      render: (value: any, studyHall: any) => formatDate(studyHall?.created_at),
       mobileHidden: true
     },
     {
       key: 'actions',
       title: 'Actions',
-      render: (studyHall: any) => (
+      render: (value: any, studyHall: any) => (
         <div className="flex space-x-1">
           <Button 
             variant="ghost" 
@@ -355,9 +355,9 @@ const AdminDashboard = () => {
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => handleUpdateStudyHallStatus(studyHall.id, studyHall.status)}
+            onClick={() => handleUpdateStudyHallStatus(studyHall?.id, studyHall?.status)}
           >
-            {studyHall.status === 'active' ? (
+            {studyHall?.status === 'active' ? (
               <ToggleLeft className="h-4 w-4" />
             ) : (
               <ToggleRight className="h-4 w-4" />
