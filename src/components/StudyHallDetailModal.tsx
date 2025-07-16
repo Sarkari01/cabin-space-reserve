@@ -32,6 +32,9 @@ const StudyHallDetailModalComponent = ({
   userRole,
   onEdit 
 }: StudyHallDetailModalProps) => {
+  // Early return BEFORE any hooks to prevent hook order violations
+  if (!studyHall) return null;
+
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
@@ -44,8 +47,6 @@ const StudyHallDetailModalComponent = ({
       fetchReviews(studyHall.id);
     }
   }, [studyHall?.id, open, fetchReviews]);
-
-  if (!studyHall) return null;
 
 
   const formatDate = (dateString: string) => {
