@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useNews } from "@/hooks/useNews";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Save, Eye, Upload, Calendar } from "lucide-react";
+import { NewsMediaUpload } from "@/components/NewsMediaUpload";
+import { Plus, Save, Eye, Calendar } from "lucide-react";
 
 interface InstitutionCreateNewsTabProps {
   institutionId?: string;
@@ -205,27 +206,15 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="image_url">Featured Image URL</Label>
-              <Input
-                id="image_url"
-                value={formData.image_url}
-                onChange={(e) => handleInputChange('image_url', e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                type="url"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="video_url">Video URL (Optional)</Label>
-              <Input
-                id="video_url"
-                value={formData.video_url}
-                onChange={(e) => handleInputChange('video_url', e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                type="url"
-              />
-            </div>
+            <NewsMediaUpload
+              onImageUploaded={(url) => handleInputChange('image_url', url)}
+              onVideoUploaded={(url) => handleInputChange('video_url', url)}
+              currentImageUrl={formData.image_url}
+              currentVideoUrl={formData.video_url}
+              onImageRemoved={() => handleInputChange('image_url', '')}
+              onVideoRemoved={() => handleInputChange('video_url', '')}
+              disabled={saving || loading}
+            />
 
             <div className="flex gap-2">
               <Button type="submit" disabled={saving || loading}>
@@ -244,10 +233,6 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
                 Preview
               </Button>
               
-              <Button type="button" variant="outline">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Media
-              </Button>
               
               <Button type="button" variant="outline">
                 <Calendar className="h-4 w-4 mr-2" />
