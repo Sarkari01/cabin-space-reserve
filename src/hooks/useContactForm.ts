@@ -8,6 +8,7 @@ interface ContactFormData {
   phone?: string;
   subject: string;
   message: string;
+  priority?: string;
 }
 
 export const useContactForm = () => {
@@ -19,7 +20,7 @@ export const useContactForm = () => {
           ...formData,
           source: 'landing_page',
           status: 'new',
-          priority: 'normal'
+          priority: formData.priority || 'normal'
         }])
         .select()
         .single();
