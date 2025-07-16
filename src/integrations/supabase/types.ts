@@ -1050,6 +1050,7 @@ export type Database = {
           id: string
           image_url: string | null
           institution_id: string | null
+          scheduled_at: string | null
           status: string
           title: string
           updated_at: string
@@ -1062,6 +1063,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           institution_id?: string | null
+          scheduled_at?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1074,6 +1076,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           institution_id?: string | null
+          scheduled_at?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -2184,6 +2187,10 @@ export type Database = {
         Returns: undefined
       }
       auto_complete_expired_bookings: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      auto_publish_scheduled_news: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

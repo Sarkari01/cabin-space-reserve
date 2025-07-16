@@ -7,7 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { useNews } from "@/hooks/useNews";
 import { useToast } from "@/hooks/use-toast";
+import { useInstitutions } from "@/hooks/useInstitutions";
 import { NewsMediaUpload } from "@/components/NewsMediaUpload";
+import { NewsPreviewModal } from "@/components/NewsPreviewModal";
+import { NewsScheduleModal } from "@/components/NewsScheduleModal";
 import { Plus, Save, Eye, Calendar } from "lucide-react";
 
 interface InstitutionCreateNewsTabProps {
@@ -16,6 +19,7 @@ interface InstitutionCreateNewsTabProps {
 
 export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNewsTabProps) {
   const { createNews, loading } = useNews();
+  const { currentInstitution } = useInstitutions();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -28,6 +32,8 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
   });
   
   const [saving, setSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
 
   // Show loading state if institution is not loaded yet
   if (!institutionId) {
@@ -43,7 +49,7 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, publishNow: boolean = true) => {
     e.preventDefault();
     
     console.log('Creating news post with institution ID:', institutionId);
@@ -81,7 +87,7 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
       const newsData = {
         title: formData.title.trim(),
         content: formData.content.trim(),
-        status: formData.status,
+        status: publishNow ? formData.status : 'draft',
         visible_to: formData.visible_to,
         image_url: formData.image_url.trim() || null,
         video_url: formData.video_url.trim() || null,
@@ -95,7 +101,7 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
       if (result) {
         toast({
           title: "Success",
-          description: "News post created successfully",
+          description: publishNow ? "News post published successfully" : "News post saved as draft",
         });
         
         // Reset form only on success
@@ -132,15 +138,68 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
     }
   };
 
+  const handleSchedule = async (scheduledAt: Date, title: string, content: string) => {
+    if (!institutionId) {
+      toast({
+        title: "Error",
+        description: "Institution ID is missing. Please refresh the page and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      const newsData = {
+        title: title.trim(),
+        content: content.trim(),
+        status: 'scheduled',
+        visible_to: formData.visible_to,
+        image_url: formData.image_url.trim() || null,
+        video_url: formData.video_url.trim() || null,
+        institution_id: institutionId,
+        scheduled_at: scheduledAt.toISOString()
+      };
+      
+      const result = await createNews(newsData);
+      
+      if (result) {
+        toast({
+          title: "Success",
+          description: `News post scheduled for ${scheduledAt.toLocaleDateString()} at ${scheduledAt.toLocaleTimeString()}`,
+        });
+        
+        // Reset form and close modals
+        setFormData({
+          title: "",
+          content: "",
+          status: "active",
+          visible_to: "both",
+          image_url: "",
+          video_url: ""
+        });
+        setShowSchedule(false);
+        setShowPreview(false);
+      }
+    } catch (error: any) {
+      console.error('Error scheduling news:', error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule news post",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePreview = () => {
-    toast({
-      title: "Preview",
-      description: "Preview functionality coming soon",
-    });
+    setShowPreview(true);
   };
 
   return (
@@ -187,6 +246,7 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
                   <SelectContent>
                     <SelectItem value="active">Published</SelectItem>
                     <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -233,8 +293,7 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
                 Preview
               </Button>
               
-              
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" onClick={() => setShowSchedule(true)}>
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule
               </Button>
@@ -258,6 +317,34 @@ export function InstitutionCreateNewsTab({ institutionId }: InstitutionCreateNew
           </div>
         </CardContent>
       </Card>
+
+      {/* Preview Modal */}
+      <NewsPreviewModal
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        formData={formData}
+        institutionName={currentInstitution?.name}
+        onSchedule={() => {
+          setShowPreview(false);
+          setShowSchedule(true);
+        }}
+        onPublish={async () => {
+          setShowPreview(false);
+          await handleSubmit(new Event('submit') as any, true);
+        }}
+      />
+
+      {/* Schedule Modal */}
+      <NewsScheduleModal
+        open={showSchedule}
+        onOpenChange={setShowSchedule}
+        onSchedule={handleSchedule}
+        initialData={{
+          title: formData.title,
+          content: formData.content
+        }}
+        loading={saving}
+      />
     </div>
   );
 }

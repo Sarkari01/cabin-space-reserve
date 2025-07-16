@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNews } from "@/hooks/useNews";
 import { useInstitutions } from "@/hooks/useInstitutions";
 import { InstitutionNewsModal } from "@/components/institution/InstitutionNewsModal";
-import { Newspaper, Plus, Eye, Edit, MoreHorizontal } from "lucide-react";
+import { Newspaper, Plus, Eye, Edit, MoreHorizontal, Calendar, Clock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,11 +57,31 @@ export function InstitutionNewsTab({
         return 'bg-success text-success-foreground';
       case 'draft':
         return 'bg-warning text-warning-foreground';
+      case 'scheduled':
+        return 'bg-info text-info-foreground';
       default:
         return 'bg-muted text-muted-foreground';
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Published';
+      case 'draft':
+        return 'Draft';
+      case 'scheduled':
+        return 'Scheduled';
+      default:
+        return status;
+    }
+  };
+
+  // Separate news by status
+  const publishedNews = news.filter(item => item.status === 'active');
+  const draftNews = news.filter(item => item.status === 'draft');
+  const scheduledNews = news.filter(item => item.status === 'scheduled');
+  
   const displayNews = limit ? news.slice(0, limit) : news;
 
   if (loading) {
@@ -113,7 +133,8 @@ export function InstitutionNewsTab({
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-medium">{newsItem.title}</h3>
                           <Badge className={getStatusColor(newsItem.status)}>
-                            {newsItem.status}
+                            {newsItem.status === 'scheduled' && <Clock className="h-3 w-3 mr-1" />}
+                            {getStatusText(newsItem.status)}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
@@ -122,6 +143,12 @@ export function InstitutionNewsTab({
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span>Created: {format(new Date(newsItem.created_at), 'MMM dd, yyyy')}</span>
                           <span>Updated: {format(new Date(newsItem.updated_at), 'MMM dd, yyyy')}</span>
+                          {newsItem.scheduled_at && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Scheduled: {format(new Date(newsItem.scheduled_at), 'MMM dd, yyyy HH:mm')}
+                            </span>
+                          )}
                           <span>Visibility: {newsItem.visible_to}</span>
                         </div>
                       </div>
