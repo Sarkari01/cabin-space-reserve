@@ -575,6 +575,8 @@ const AdminDashboard = () => {
         onTabChange={setActiveTab}
         activeTab={activeTab}
         onSearch={setSearchTerm}
+        showHeader={true}
+        showFooter={true}
       >
         <LoadingOverlay loading={loading}>
           {/* Overview Tab */}

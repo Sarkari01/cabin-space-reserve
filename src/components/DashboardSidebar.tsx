@@ -752,13 +752,13 @@ export function DashboardSidebar({ userRole, userName, children, onTabChange, ac
       <div className="min-h-screen flex w-full">
         <AppSidebar userRole={userRole} userName={userName} onTabChange={onTabChange} activeTab={activeTab} />
         <div className="flex-1 flex flex-col">
-          {(showHeader || userRole === "admin") && (
+          {showHeader && (
             <AdminHeader userName={userName} onSearch={onSearch} />
           )}
           <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
             {children}
           </main>
-          {(showFooter || userRole === "admin") && (
+          {showFooter && (
             <AdminFooter />
           )}
         </div>
