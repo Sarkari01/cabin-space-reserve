@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -131,10 +131,7 @@ export function PopupNotificationsTab() {
       if (error) throw error;
     },
     onSuccess: () => {
-      // Invalidate all popup notification related queries
       queryClient.invalidateQueries({ queryKey: ['popup-notifications'] });
-      
-      // Invalidate user-specific popup notification queries
       queryClient.invalidateQueries({ 
         predicate: (query) => {
           const queryKey = query.queryKey;
@@ -148,10 +145,57 @@ export function PopupNotificationsTab() {
       setIsCreateModalOpen(false);
       form.reset();
       setSelectedImageUrl('');
+      setEditingNotification(null);
     },
     onError: (error) => {
       toast({ 
         title: 'Error creating popup notification', 
+        description: error.message,
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  // Update popup notification mutation
+  const updateNotificationMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: PopupNotificationForm & { image_url?: string } }) => {
+      const { error } = await supabase.from('notifications').update({
+        title: data.title,
+        message: data.message,
+        image_url: data.image_url,
+        target_audience: data.target_audience,
+        schedule_time: data.schedule_time || null,
+        button_text: data.button_text || null,
+        button_url: data.button_url || null,
+        priority: data.priority,
+        expires_at: data.expires_at || null,
+        duration_seconds: data.duration_seconds,
+        trigger_event: data.trigger_event,
+        updated_at: new Date().toISOString(),
+      }).eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['popup-notifications'] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const queryKey = query.queryKey;
+          return Array.isArray(queryKey) && 
+                 queryKey.length >= 1 && 
+                 queryKey[0] === 'popup-notifications';
+        }
+      });
+      
+      toast({ title: 'Popup notification updated successfully' });
+      setIsCreateModalOpen(false);
+      form.reset();
+      setSelectedImageUrl('');
+      setEditingNotification(null);
+    },
+    onError: (error) => {
+      toast({ 
+        title: 'Error updating popup notification', 
         description: error.message,
         variant: 'destructive' 
       });
@@ -225,11 +269,62 @@ export function PopupNotificationsTab() {
     },
   });
 
+  // Form population when editing
+  useEffect(() => {
+    if (editingNotification && isCreateModalOpen) {
+      form.reset({
+        title: editingNotification.title,
+        message: editingNotification.message,
+        target_audience: editingNotification.target_audience,
+        priority: editingNotification.priority,
+        button_text: editingNotification.button_text || '',
+        button_url: editingNotification.button_url || '',
+        duration_seconds: editingNotification.duration_seconds,
+        trigger_event: editingNotification.trigger_event,
+        schedule_time: editingNotification.schedule_time ? 
+          new Date(editingNotification.schedule_time).toISOString().slice(0, 16) : '',
+        expires_at: editingNotification.expires_at ? 
+          new Date(editingNotification.expires_at).toISOString().slice(0, 16) : '',
+      });
+      setSelectedImageUrl(editingNotification.image_url || '');
+    } else if (!editingNotification && isCreateModalOpen) {
+      form.reset({
+        title: '',
+        message: '',
+        target_audience: 'all_users',
+        priority: 5,
+        button_text: '',
+        button_url: '',
+        duration_seconds: 10,
+        trigger_event: 'general',
+      });
+      setSelectedImageUrl('');
+    }
+  }, [editingNotification, isCreateModalOpen, form]);
+
+  // Reset form and states when modal closes
+  useEffect(() => {
+    if (!isCreateModalOpen) {
+      setEditingNotification(null);
+      form.reset();
+      setSelectedImageUrl('');
+    }
+  }, [isCreateModalOpen, form]);
+
   const onSubmit = (data: PopupNotificationForm) => {
-    createNotificationMutation.mutate({
+    const submissionData = {
       ...data,
       image_url: selectedImageUrl || undefined,
-    });
+    };
+
+    if (editingNotification) {
+      updateNotificationMutation.mutate({
+        id: editingNotification.id,
+        data: submissionData
+      });
+    } else {
+      createNotificationMutation.mutate(submissionData);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -655,10 +750,13 @@ export function PopupNotificationsTab() {
                 <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
                 <Button 
                   type="submit" 
-                  disabled={createNotificationMutation.isPending}
+                  disabled={createNotificationMutation.isPending || updateNotificationMutation.isPending}
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  {createNotificationMutation.isPending ? 'Creating...' : 'Create Pop-up'}
+                  {editingNotification 
+                    ? (updateNotificationMutation.isPending ? 'Updating...' : 'Update Pop-up')
+                    : (createNotificationMutation.isPending ? 'Creating...' : 'Create Pop-up')
+                  }
                 </Button>
               </AlertDialogFooter>
             </form>
