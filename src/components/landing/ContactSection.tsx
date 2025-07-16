@@ -79,17 +79,19 @@ const ContactSection = () => {
                 </div>
               )}
               
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <MapPin className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <div className="font-medium text-foreground">Address</div>
-                  <div className="text-muted-foreground">
-                    Available for registered merchants
+              {brandSettings.business_address && (
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <MapPin className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">Address</div>
+                    <div className="text-muted-foreground">
+                      {brandSettings.business_address}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
             
             {!loading && (!brandSettings.support_email && !brandSettings.support_phone) && (
