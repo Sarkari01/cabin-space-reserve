@@ -12,6 +12,7 @@ interface PopupNotification {
   button_url?: string;
   priority: number;
   created_at: string;
+  duration_seconds?: number;
 }
 
 interface PopupUserInteraction {
@@ -22,10 +23,20 @@ interface PopupUserInteraction {
   clicked_at?: string;
 }
 
+// Global state to prevent concurrent processing
+let isProcessingNotifications = false;
+
 export function usePopupNotifications() {
   const { user, userRole, loading } = useAuth();
   const [shownNotifications, setShownNotifications] = useState<Set<string>>(new Set());
   const [hasTriggeredLogin, setHasTriggeredLogin] = useState(false);
+
+  console.log('[usePopupNotifications] Hook state:', { 
+    userId: user?.id, 
+    userRole,
+    hasTriggeredLogin,
+    shownCount: shownNotifications.size 
+  });
 
   // Get user role for targeting
   const getUserRole = useCallback(() => {
@@ -35,61 +46,86 @@ export function usePopupNotifications() {
            userRole;
   }, [userRole]);
 
-  // Fetch active popup notifications for the current user (both general and login)
+  // Simplified query without real-time subscription to prevent cascade
   const { data: notifications = [], refetch } = useQuery({
-    queryKey: ['popup-notifications', user?.id, userRole, hasTriggeredLogin],
+    queryKey: ['popup-notifications', user?.id, userRole],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user || isProcessingNotifications) {
+        console.log('[usePopupNotifications] Skipping query - no user or processing');
+        return [];
+      }
 
-      const userRoleForQuery = getUserRole();
-      
-      // Get both general notifications and login notifications
-      const generalQuery = supabase.rpc('get_active_popup_notifications', {
-        p_user_id: user.id,
-        p_user_role: userRoleForQuery
-      });
-      
-      // Get login notifications only if login was triggered
-      let loginNotifications: PopupNotification[] = [];
-      if (hasTriggeredLogin) {
-        const { data: loginData, error: loginError } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('popup_enabled', true)
-          .eq('trigger_event', 'login')
-          .in('target_audience', ['all_users', userRoleForQuery])
-          .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-          .or(`schedule_time.is.null,schedule_time.lte.${new Date().toISOString()}`)
-          .order('priority', { ascending: false });
+      console.log('[usePopupNotifications] Fetching notifications');
+      isProcessingNotifications = true;
 
-        if (!loginError && loginData) {
-          loginNotifications = loginData.filter(notification => {
-            const sessionKey = `login-notification-${notification.id}-${user.id}`;
-            return !sessionStorage.getItem(sessionKey);
-          });
+      try {
+        const userRoleForQuery = getUserRole();
+        
+        // Get general notifications from RPC
+        const { data: generalData, error: generalError } = await supabase.rpc('get_active_popup_notifications', {
+          p_user_id: user.id,
+          p_user_role: userRoleForQuery
+        });
+
+        if (generalError) {
+          console.error('[usePopupNotifications] Error fetching notifications:', generalError);
+          return [];
         }
+
+        let allNotifications: PopupNotification[] = generalData || [];
+
+        // Get login notifications if triggered and not already shown this session
+        if (hasTriggeredLogin) {
+          const loginSessionKey = `login-notifications-${user.id}`;
+          const hasShownLoginNotifications = sessionStorage.getItem(loginSessionKey);
+          
+          if (!hasShownLoginNotifications) {
+            console.log('[usePopupNotifications] Fetching login notifications');
+            
+            const { data: loginData, error: loginError } = await supabase
+              .from('notifications')
+              .select('id, title, message, image_url, button_text, button_url, priority, created_at, duration_seconds')
+              .eq('popup_enabled', true)
+              .eq('trigger_event', 'login')
+              .in('target_audience', ['all_users', userRoleForQuery])
+              .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+              .or(`schedule_time.is.null,schedule_time.lte.${new Date().toISOString()}`)
+              .order('priority', { ascending: false });
+
+            if (!loginError && loginData) {
+              // Filter out already dismissed login notifications
+              const filteredLoginNotifications = loginData.filter(notification => {
+                // Check if dismissed
+                const dismissedKey = `dismissed-login-${notification.id}-${user.id}`;
+                return !sessionStorage.getItem(dismissedKey);
+              });
+              
+              allNotifications = [...allNotifications, ...filteredLoginNotifications];
+              
+              // Mark that we've fetched login notifications this session
+              sessionStorage.setItem(loginSessionKey, 'true');
+            }
+          }
+        }
+
+        // Deduplicate
+        const uniqueNotifications = allNotifications.filter((notification, index, array) => 
+          array.findIndex(n => n.id === notification.id) === index
+        );
+
+        console.log('[usePopupNotifications] Returning notifications:', uniqueNotifications);
+        return uniqueNotifications;
+      } finally {
+        isProcessingNotifications = false;
       }
-
-      const { data: generalData, error: generalError } = await generalQuery;
-
-      if (generalError) {
-        console.error('Error fetching popup notifications:', generalError);
-        return loginNotifications;
-      }
-
-      // Combine and deduplicate notifications
-      const allNotifications = [...(generalData || []), ...loginNotifications];
-      const uniqueNotifications = allNotifications.filter((notification, index, array) => 
-        array.findIndex(n => n.id === notification.id) === index
-      );
-
-      return uniqueNotifications as PopupNotification[];
     },
     enabled: !!user && !loading,
-    refetchInterval: 30000, // Refetch every 30 seconds for new notifications
+    staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
-  // Track notification interaction mutation - stable reference
+  // Simplified mutation without stats updates to prevent cascading
   const trackInteractionMutation = useMutation({
     mutationFn: async ({
       notificationId,
@@ -100,6 +136,8 @@ export function usePopupNotifications() {
     }) => {
       if (!user) return;
 
+      console.log('[usePopupNotifications] Tracking interaction:', { notificationId, action });
+
       const updateData: any = {};
       
       if (action === 'dismissed') {
@@ -108,72 +146,54 @@ export function usePopupNotifications() {
         updateData.clicked_at = new Date().toISOString();
       }
 
-      // First try to update existing interaction
-      const { error: updateError } = await supabase
-        .from('popup_user_interactions')
-        .update(updateData)
-        .eq('notification_id', notificationId)
-        .eq('user_id', user.id);
-
-      // If no existing interaction, create new one
-      if (updateError) {
-        const insertData = {
-          notification_id: notificationId,
-          user_id: user.id,
-          ...updateData
-        };
-
-        const { error: insertError } = await supabase
+      try {
+        // Try to update existing interaction
+        const { error: updateError } = await supabase
           .from('popup_user_interactions')
-          .insert(insertData);
+          .update(updateData)
+          .eq('notification_id', notificationId)
+          .eq('user_id', user.id);
 
-        if (insertError) throw insertError;
-      }
+        // If no existing interaction, create new one
+        if (updateError) {
+          const insertData = {
+            notification_id: notificationId,
+            user_id: user.id,
+            ...updateData
+          };
 
-      // Update notification stats by fetching current value and incrementing
-      if (action === 'shown' || action === 'clicked') {
-        const { data: currentNotification } = await supabase
-          .from('notifications')
-          .select('shown_count, click_count')
-          .eq('id', notificationId)
-          .single();
+          const { error: insertError } = await supabase
+            .from('popup_user_interactions')
+            .insert(insertData);
 
-        if (currentNotification) {
-          const updateData: any = {};
-          if (action === 'shown') {
-            updateData.shown_count = (currentNotification.shown_count || 0) + 1;
-          } else if (action === 'clicked') {
-            updateData.click_count = (currentNotification.click_count || 0) + 1;
+          if (insertError) {
+            console.error('[usePopupNotifications] Insert error:', insertError);
           }
-
-          await supabase
-            .from('notifications')
-            .update(updateData)
-            .eq('id', notificationId);
         }
-      }
-      
-      // Mark login notifications in session storage
-      if (action === 'shown' || action === 'dismissed') {
-        const sessionKey = `login-notification-${notificationId}-${user.id}`;
-        sessionStorage.setItem(sessionKey, 'true');
+        
+        // Store dismissal in session storage for login notifications
+        if (action === 'dismissed') {
+          const dismissedKey = `dismissed-login-${notificationId}-${user.id}`;
+          sessionStorage.setItem(dismissedKey, 'true');
+        }
+      } catch (error) {
+        console.error('[usePopupNotifications] Interaction tracking error:', error);
       }
     },
     onError: (error) => {
-      console.error('Error tracking notification interaction:', error);
+      console.error('[usePopupNotifications] Mutation error:', error);
     }
   });
 
-  // Handle notification shown - stable with proper dependencies
+  // Handle notification shown - stable with guards
   const handleNotificationShown = useCallback((notificationId: string) => {
-    console.log('[POPUP] Showing notification:', notificationId);
+    console.log('[usePopupNotifications] Showing notification:', notificationId);
     
     setShownNotifications(prev => {
       if (prev.has(notificationId)) {
-        console.log('[POPUP] Already shown:', notificationId);
-        return prev; // Prevent duplicate calls
+        console.log('[usePopupNotifications] Already shown:', notificationId);
+        return prev;
       }
-      console.log('[POPUP] Adding to shown set:', notificationId);
       return new Set([...prev, notificationId]);
     });
     
@@ -183,26 +203,19 @@ export function usePopupNotifications() {
     });
   }, [trackInteractionMutation]);
 
-  // Handle notification dismissed
+  // Handle notification dismissed - no automatic refetch
   const handleNotificationDismissed = useCallback((notificationId: string) => {
-    console.log('[POPUP] Dismissing notification:', notificationId);
+    console.log('[usePopupNotifications] Dismissing notification:', notificationId);
     
     trackInteractionMutation.mutate({
       notificationId,
       action: 'dismissed'
     });
-    
-    // Refetch to get updated list
-    // Use shorter delay and avoid unnecessary refetch if possible
-    setTimeout(() => {
-      console.log('[POPUP] Refetching after dismiss');
-      refetch();
-    }, 500);
-  }, [trackInteractionMutation, refetch]);
+  }, [trackInteractionMutation]);
 
   // Handle notification clicked
   const handleNotificationClicked = useCallback((notificationId: string) => {
-    console.log('[POPUP] Clicking notification:', notificationId);
+    console.log('[usePopupNotifications] Clicking notification:', notificationId);
     
     trackInteractionMutation.mutate({
       notificationId,
@@ -210,36 +223,10 @@ export function usePopupNotifications() {
     });
   }, [trackInteractionMutation]);
 
-  // Set up real-time subscription for new notifications
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('popup-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `popup_enabled=eq.true`
-        },
-        () => {
-          // Refetch notifications when new ones are created
-          refetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, refetch]);
-
   // Trigger login notifications on user authentication
   useEffect(() => {
     if (user && !loading && !hasTriggeredLogin) {
-      console.log('[POPUP] Triggering login notifications for user:', user.id);
+      console.log('[usePopupNotifications] Triggering login notifications for user:', user.id);
       setHasTriggeredLogin(true);
     }
   }, [user, loading, hasTriggeredLogin]);
@@ -249,15 +236,20 @@ export function usePopupNotifications() {
     if (!user) {
       setHasTriggeredLogin(false);
       setShownNotifications(new Set());
+      // Clear session storage for this user
+      const keys = Object.keys(sessionStorage).filter(key => 
+        key.includes('login-notification') || key.includes('dismissed-login')
+      );
+      keys.forEach(key => sessionStorage.removeItem(key));
     }
   }, [user]);
 
-  // Filter out notifications that have been dismissed or shown
+  // Filter out notifications that have been shown
   const pendingNotifications = notifications.filter(
     notification => !shownNotifications.has(notification.id)
   );
 
-  // Sort by priority (highest first) and creation date
+  // Sort by priority and creation date
   const sortedNotifications = pendingNotifications.sort((a, b) => {
     if (a.priority !== b.priority) {
       return b.priority - a.priority;

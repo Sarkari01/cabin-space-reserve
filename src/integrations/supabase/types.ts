@@ -2159,6 +2159,7 @@ export type Database = {
           button_url: string
           priority: number
           created_at: string
+          duration_seconds: number
         }[]
       }
       get_available_seats: {

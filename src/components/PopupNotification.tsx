@@ -178,9 +178,14 @@ export function PopupNotificationManager({
       
       // Only show if we haven't already called onNotificationShown for this ID
       if (!shownIds.has(currentNotification.id)) {
+        console.log('[PopupNotificationManager] Showing notification:', currentNotification.id);
         setIsShowing(true);
         setShownIds(prev => new Set([...prev, currentNotification.id]));
         onNotificationShown(currentNotification.id);
+      } else {
+        console.log('[PopupNotificationManager] Skipping already shown notification:', currentNotification.id);
+        // Skip to next notification if this one was already shown
+        setCurrentNotificationIndex(prev => prev + 1);
       }
     }
   }, [notifications, currentNotificationIndex, isShowing, onNotificationShown, shownIds]);
