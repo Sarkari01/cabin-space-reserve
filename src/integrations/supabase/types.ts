@@ -1012,6 +1012,7 @@ export type Database = {
           button_url: string | null
           click_count: number | null
           created_at: string
+          duration_seconds: number | null
           expires_at: string | null
           id: string
           image_url: string | null
@@ -1023,6 +1024,7 @@ export type Database = {
           shown_count: number | null
           target_audience: string | null
           title: string
+          trigger_event: string | null
           type: string
           updated_at: string
           user_id: string
@@ -1033,6 +1035,7 @@ export type Database = {
           button_url?: string | null
           click_count?: number | null
           created_at?: string
+          duration_seconds?: number | null
           expires_at?: string | null
           id?: string
           image_url?: string | null
@@ -1044,6 +1047,7 @@ export type Database = {
           shown_count?: number | null
           target_audience?: string | null
           title: string
+          trigger_event?: string | null
           type?: string
           updated_at?: string
           user_id: string
@@ -1054,6 +1058,7 @@ export type Database = {
           button_url?: string | null
           click_count?: number | null
           created_at?: string
+          duration_seconds?: number | null
           expires_at?: string | null
           id?: string
           image_url?: string | null
@@ -1065,6 +1070,7 @@ export type Database = {
           shown_count?: number | null
           target_audience?: string | null
           title?: string
+          trigger_event?: string | null
           type?: string
           updated_at?: string
           user_id?: string

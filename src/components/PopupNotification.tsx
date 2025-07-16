@@ -149,6 +149,7 @@ interface PopupNotificationData {
   button_text?: string;
   button_url?: string;
   priority: number;
+  duration_seconds?: number;
 }
 
 interface PopupNotificationManagerProps {
@@ -156,13 +157,15 @@ interface PopupNotificationManagerProps {
   onNotificationShown: (id: string) => void;
   onNotificationClicked: (id: string) => void;
   onNotificationDismissed: (id: string) => void;
+  defaultDuration?: number;
 }
 
 export function PopupNotificationManager({
   notifications,
   onNotificationShown,
   onNotificationClicked,
-  onNotificationDismissed
+  onNotificationDismissed,
+  defaultDuration = 10
 }: PopupNotificationManagerProps) {
   const [currentNotificationIndex, setCurrentNotificationIndex] = useState(0);
   const [isShowing, setIsShowing] = useState(false);
@@ -215,7 +218,7 @@ export function PopupNotificationManager({
       isOpen={isShowing}
       onClose={handleClose}
       onButtonClick={handleButtonClick}
-      autoClose={10} // Auto close after 10 seconds
+      autoClose={currentNotification.duration_seconds || defaultDuration}
     />
   );
 }

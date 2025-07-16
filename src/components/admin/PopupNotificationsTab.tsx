@@ -29,6 +29,8 @@ const popupNotificationSchema = z.object({
   button_url: z.string().url().optional().or(z.literal('')),
   priority: z.number().min(0).max(10),
   expires_at: z.string().optional(),
+  duration_seconds: z.number().min(1).max(300),
+  trigger_event: z.string().min(1, 'Trigger event is required'),
 });
 
 type PopupNotificationForm = z.infer<typeof popupNotificationSchema>;
@@ -47,6 +49,8 @@ interface PopupNotification {
   expires_at?: string;
   shown_count: number;
   click_count: number;
+  duration_seconds: number;
+  trigger_event: string;
   created_at: string;
   updated_at: string;
 }
@@ -57,6 +61,13 @@ const targetAudienceOptions = [
   { value: 'merchants', label: 'Merchants Only' },
   { value: 'admin', label: 'Admin Only' },
   { value: 'telemarketing_executive', label: 'Telemarketing Only' },
+];
+
+const triggerEventOptions = [
+  { value: 'general', label: 'General Pop-up' },
+  { value: 'login', label: 'Login Event' },
+  { value: 'booking_success', label: 'After Booking Success' },
+  { value: 'payment_success', label: 'After Payment Success' },
 ];
 
 export function PopupNotificationsTab() {
@@ -76,6 +87,8 @@ export function PopupNotificationsTab() {
       priority: 5,
       button_text: '',
       button_url: '',
+      duration_seconds: 10,
+      trigger_event: 'general',
     },
   });
 
@@ -108,6 +121,8 @@ export function PopupNotificationsTab() {
         popup_enabled: true,
         priority: data.priority,
         expires_at: data.expires_at || null,
+        duration_seconds: data.duration_seconds,
+        trigger_event: data.trigger_event,
         user_id: user?.id, // This will be overridden by the backend for system notifications
         type: 'popup',
       });
@@ -461,6 +476,54 @@ export function PopupNotificationsTab() {
                         <Input 
                           type="datetime-local" 
                           {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="trigger_event"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Trigger Event *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select trigger event" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {triggerEventOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="duration_seconds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duration (seconds)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          max={300} 
+                          placeholder="10"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 10)}
                         />
                       </FormControl>
                       <FormMessage />
