@@ -92,20 +92,69 @@ export default function PublicBooking() {
       
       console.log('Fetching data for study hall:', studyHallId);
       
-      // Call the public booking edge function
-      const response = await supabase.functions.invoke('public-booking', {
-        body: { studyHallId }
-      });
+      // Try edge function first, fallback to direct query if needed
+      let response;
+      try {
+        response = await supabase.functions.invoke('public-booking', {
+          body: { studyHallId }
+        });
+        
+        console.log('Function response:', response);
+        
+        if (response.error) {
+          console.error('Function error:', response.error);
+          throw response.error;
+        }
 
-      console.log('Function response:', response);
+        if (!response.data?.success) {
+          throw new Error(response.data?.error || 'Failed to load study hall data');
+        }
+      } catch (edgeFunctionError) {
+        console.warn('Edge function failed, trying direct database query:', edgeFunctionError);
+        
+        // Fallback to direct database queries
+        const { data: hallData, error: hallError } = await supabase
+          .from('study_halls')
+          .select(`
+            id, name, description, location, formatted_address,
+            daily_price, weekly_price, monthly_price, amenities,
+            image_url, total_seats, rows, seats_per_row,
+            custom_row_names, layout_mode, row_seat_config,
+            qr_booking_enabled, status
+          `)
+          .eq('id', studyHallId)
+          .eq('status', 'active')
+          .single();
 
-      if (response.error) {
-        console.error('Function error:', response.error);
-        throw response.error;
-      }
+        if (hallError || !hallData) {
+          throw new Error('Study hall not found or not available for booking');
+        }
 
-      if (!response.data?.success) {
-        throw new Error(response.data?.error || 'Failed to load study hall data');
+        if (!hallData.qr_booking_enabled) {
+          throw new Error('QR booking is disabled for this study hall');
+        }
+
+        const { data: seatsData, error: seatsError } = await supabase
+          .from('seats')
+          .select('*')
+          .eq('study_hall_id', studyHallId)
+          .order('row_name')
+          .order('seat_number');
+
+        if (seatsError) {
+          throw new Error('Failed to fetch seat information');
+        }
+
+        const availableSeatsCount = seatsData?.filter(seat => seat.is_available).length || 0;
+        
+        response = {
+          data: {
+            success: true,
+            studyHall: hallData,
+            seats: seatsData || [],
+            availableSeats: availableSeatsCount
+          }
+        };
       }
 
       const { studyHall: hallData, seats: seatsData, availableSeats: available } = response.data;

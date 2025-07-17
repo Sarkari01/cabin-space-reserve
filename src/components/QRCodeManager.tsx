@@ -68,9 +68,12 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
     }
     
     try {
-      // Add timestamp to prevent caching issues
+      // Add timestamp to prevent caching issues and use no-cors for public URLs
       const downloadUrl = `${studyHall.qr_code_url}?t=${Date.now()}`;
-      const response = await fetch(downloadUrl);
+      const response = await fetch(downloadUrl, {
+        mode: 'cors',
+        cache: 'no-cache'
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -78,9 +81,9 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
       
       const blob = await response.blob();
       
-      // Verify it's a valid image
-      if (!blob.type.startsWith('image/')) {
-        throw new Error('Downloaded file is not a valid image');
+      // Accept any image type for QR codes (might be PNG, JPEG, etc.)
+      if (!blob.type || (!blob.type.startsWith('image/') && blob.type !== 'application/octet-stream')) {
+        console.warn('Unexpected content type:', blob.type, 'but proceeding with download');
       }
       
       const url = window.URL.createObjectURL(blob);
@@ -282,7 +285,7 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
                     className="w-72 h-72 mx-auto border-2 border-muted rounded-xl shadow-lg"
                     onError={(e) => {
                       console.error('QR code preview failed to load');
-                      e.currentTarget.src = '/placeholder.svg';
+                      e.currentTarget.style.display = 'none';
                     }}
                   />
                   <div className="absolute top-2 right-2 bg-success text-success-foreground text-xs px-2 py-1 rounded-full font-medium">

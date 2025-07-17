@@ -106,7 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate QR code URL - use the lovable app domain
+    // Generate QR code URL - use the production domain
     const domain = 'https://jseyxxsptcckjumjcljk.lovable.app';
     const qrUrl = `${domain}/studyhall/${studyHallId}/booking`;
 
