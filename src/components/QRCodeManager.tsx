@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +39,7 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
       if (data.success) {
         toast({
           title: "QR Code Generated!",
-          description: `QR code for ${data.studyHallName} has been created successfully.`,
+          description: `Scannable QR code for ${data.studyHallName} has been created successfully.`,
         });
         onUpdate();
       } else {
@@ -66,11 +67,16 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
       
       const link = document.createElement('a');
       link.href = url;
-      link.download = `qr-code-${studyHall.name.replace(/\s+/g, '-').toLowerCase()}.svg`;
+      link.download = `qr-code-${studyHall.name.replace(/\s+/g, '-').toLowerCase()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Downloaded!",
+        description: "QR code image has been downloaded successfully.",
+      });
     } catch (error) {
       console.error('Error downloading QR code:', error);
       toast({
@@ -128,7 +134,7 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Generate a QR code that allows guests to book seats without creating an account.
+          Generate a scannable QR code that allows guests to book seats without creating an account.
         </p>
 
         {/* QR Code Status */}
@@ -137,12 +143,12 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
             <div className="flex items-center gap-3">
               <img
                 src={studyHall.qr_code_url}
-                alt="QR Code"
+                alt="Scannable QR Code"
                 className="w-12 h-12 border rounded"
               />
               <div>
-                <p className="font-medium">QR Code Ready</p>
-                <p className="text-xs text-muted-foreground">Click to preview or download</p>
+                <p className="font-medium">Scannable QR Code Ready</p>
+                <p className="text-xs text-muted-foreground">PNG format - Click to preview or download</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -166,7 +172,7 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
           <div className="text-center py-6 border-2 border-dashed border-muted-foreground/25 rounded-lg">
             <QrCode className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
             <p className="text-sm text-muted-foreground mb-4">
-              No QR code generated yet
+              No scannable QR code generated yet
             </p>
           </div>
         )}
@@ -181,12 +187,12 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
             {loading ? (
               <>
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
+                Generating Scannable QR...
               </>
             ) : (
               <>
                 <QrCode className="h-4 w-4 mr-2" />
-                {studyHall.qr_code_url ? "Regenerate QR Code" : "Generate QR Code"}
+                {studyHall.qr_code_url ? "Regenerate Scannable QR Code" : "Generate Scannable QR Code"}
               </>
             )}
           </Button>
@@ -225,25 +231,25 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>QR Code for {studyHall.name}</DialogTitle>
+            <DialogTitle>Scannable QR Code for {studyHall.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {studyHall.qr_code_url && (
               <div className="text-center">
                 <img
                   src={studyHall.qr_code_url}
-                  alt="QR Code"
+                  alt="Scannable QR Code"
                   className="w-full max-w-64 mx-auto border rounded-lg"
                 />
               </div>
             )}
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">
-                Scan this QR code to book a seat at {studyHall.name}
+                Scan this QR code with any QR scanner to book a seat at {studyHall.name}
               </p>
               <Button onClick={downloadQRCode} className="w-full">
                 <Download className="h-4 w-4 mr-2" />
-                Download QR Code
+                Download PNG QR Code
               </Button>
             </div>
           </div>

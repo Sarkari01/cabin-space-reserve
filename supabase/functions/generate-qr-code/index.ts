@@ -1,7 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
-// Import a proper QR code library that works in Deno
-import { encode } from "https://deno.land/x/qrcode@v2.0.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,37 +16,30 @@ interface QRCodeRequest {
   studyHallId: string;
 }
 
-// Generate a real, scannable QR code using proper library
-async function generateQRCodeSVG(text: string): Promise<string> {
+// Generate QR code using QR Server API (reliable service for PNG generation)
+async function generateQRCodePNG(text: string): Promise<Uint8Array> {
   try {
     console.log('Generating QR code for URL:', text);
     
-    // Use the proper QR library to generate scannable QR code
-    const qrData = await encode(text, {
-      errorCorrection: 'M', // Medium error correction
-      type: 'svg',
-      width: 400,
-      height: 400,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      },
-      margin: 2
-    });
+    // Use QR Server API to generate a proper scannable QR code
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&format=png&data=${encodeURIComponent(text)}`;
     
-    console.log('QR code SVG generated successfully');
-    return qrData;
+    console.log('Calling QR API:', qrApiUrl);
+    
+    const response = await fetch(qrApiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`QR API failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const qrCodeBuffer = new Uint8Array(await response.arrayBuffer());
+    
+    console.log('QR code PNG generated successfully, size:', qrCodeBuffer.length, 'bytes');
+    return qrCodeBuffer;
   } catch (error) {
     console.error('Error generating QR code:', error);
     throw error;
   }
-}
-
-function svgStringToBuffer(svgString: string): Uint8Array {
-  const encoder = new TextEncoder();
-  const svgData = encoder.encode(svgString);
-  console.log('QR code buffer created, size:', svgData.length, 'bytes');
-  return svgData;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -86,21 +78,18 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Generating QR code for URL: ${qrUrl}`);
 
     try {
-      // Generate QR code SVG
-      const qrCodeSvg = await generateQRCodeSVG(qrUrl);
-      console.log('QR code SVG generated successfully');
+      // Generate QR code PNG
+      const qrCodeBuffer = await generateQRCodePNG(qrUrl);
+      console.log('QR code PNG generated successfully');
 
-      // Convert SVG to buffer
-      const qrCodeBuffer = svgStringToBuffer(qrCodeSvg);
-
-      // Upload QR code to Supabase Storage as SVG
-      const fileName = `qr-${studyHallId}-${Date.now()}.svg`;
+      // Upload QR code to Supabase Storage as PNG
+      const fileName = `qr-${studyHallId}-${Date.now()}.png`;
       console.log(`Uploading QR code with filename: ${fileName}`);
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('qr-codes')
         .upload(fileName, qrCodeBuffer, {
-          contentType: 'image/svg+xml',
+          contentType: 'image/png',
           cacheControl: '3600',
           upsert: true
         });
