@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
+import { calculateBookingAmountWithFees } from '@/utils/feeCalculations';
 
 export interface DateAvailability {
   date: string;
@@ -140,8 +141,7 @@ export const useBookingAvailability = () => {
   };
 
   /**
-   * Calculate booking amount with Razorpay fee handling
-   * Returns final amount that includes the fee as a "discount"
+   * Calculate booking amount using centralized fee calculation logic
    */
   const calculateBookingAmount = (
     startDate: string,
@@ -162,53 +162,22 @@ export const useBookingAvailability = () => {
       baseMonthly: number;
     };
   } => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const timeDiff = end.getTime() - start.getTime();
-    const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    const result = calculateBookingAmountWithFees(
+      startDate,
+      endDate,
+      dailyPrice,
+      weeklyPrice,
+      monthlyPrice
+    );
 
-    console.log(`Calculating amount for ${days} days from ${startDate} to ${endDate}`);
-
-    // Calculate customer original prices (merchant price - ₹100)
-    const baseDailyPrice = dailyPrice - 100;
-    const baseWeeklyPrice = weeklyPrice - 100;
-    const baseMonthlyPrice = monthlyPrice - 100;
-
-    // Calculate totals for each method using base prices
-    const dailyTotal = days * baseDailyPrice;
-    const weeklyTotal = Math.ceil(days / 7) * baseWeeklyPrice;
-    const monthlyTotal = Math.ceil(days / 30) * baseMonthlyPrice;
-
-    let baseAmount = dailyTotal;
-    let calculationMethod = 'daily';
-
-    // Choose the most cost-effective option
-    if (days >= 7 && weeklyTotal < baseAmount) {
-      baseAmount = weeklyTotal;
-      calculationMethod = 'weekly';
-    }
-
-    if (days >= 30 && monthlyTotal < baseAmount) {
-      baseAmount = monthlyTotal;
-      calculationMethod = 'monthly';
-    }
-
-    // Calculate the "discount" amount (covers Razorpay fee)
-    const discountAmount = Math.round(baseAmount * 0.02);
-    const finalAmount = baseAmount + discountAmount; // Original price + 2%
-
-    return { 
-      amount: finalAmount, 
-      baseAmount,
-      discountAmount,
-      finalAmount,
-      days, 
-      method: calculationMethod,
-      priceBreakdown: {
-        baseDaily: baseDailyPrice,
-        baseWeekly: baseWeeklyPrice,
-        baseMonthly: baseMonthlyPrice
-      }
+    return {
+      amount: result.finalAmount,
+      baseAmount: result.baseAmount,
+      discountAmount: result.discountAmount,
+      finalAmount: result.finalAmount,
+      days: result.days,
+      method: result.method,
+      priceBreakdown: result.priceBreakdown
     };
   };
 
