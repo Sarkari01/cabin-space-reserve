@@ -157,7 +157,7 @@ const App = () => (
                 <Route path="/policies/:slug" element={<PolicyPage />} />
                 
                 {/* Public QR Booking Route */}
-                <Route path="/studyhall/:id/booking" element={<PublicBooking />} />
+                <Route path="/studyhall/:studyHallId/booking" element={<PublicBooking />} />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

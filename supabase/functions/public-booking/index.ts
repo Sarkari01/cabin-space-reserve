@@ -6,11 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Create Supabase client with service role for bypassing RLS
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
+
+interface PublicBookingRequest {
+  studyHallId: string;
+}
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
@@ -18,30 +21,24 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    let studyHallId: string;
-    
-    // Try to get studyHallId from request body first, then from URL path
-    try {
-      const body = await req.json();
-      studyHallId = body.studyHallId;
-    } catch (parseError) {
-      // If JSON parsing fails, try to extract from URL path
-      const url = new URL(req.url);
-      const pathParts = url.pathname.split('/');
-      studyHallId = pathParts[pathParts.length - 1];
-    }
-    
+    const { studyHallId }: PublicBookingRequest = await req.json();
+
     if (!studyHallId) {
-      console.error('No study hall ID provided in request body or URL');
       return new Response(
-        JSON.stringify({ error: 'Study hall ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Study hall ID is required' 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
-    console.log(`Fetching data for study hall: ${studyHallId}`);
+    console.log('Fetching study hall data for ID:', studyHallId);
 
-    // Fetch study hall details with seat information
+    // Fetch study hall details
     const { data: studyHall, error: studyHallError } = await supabase
       .from('study_halls')
       .select(`
@@ -66,20 +63,39 @@ const handler = async (req: Request): Promise<Response> => {
       `)
       .eq('id', studyHallId)
       .eq('status', 'active')
-      .eq('qr_booking_enabled', true)
       .single();
 
     if (studyHallError || !studyHall) {
+      console.error('Study hall not found:', studyHallError);
       return new Response(
-        JSON.stringify({ error: 'Study hall not found or QR booking is disabled' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Study hall not found or not available for booking' 
+        }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
-    // Fetch seat availability
+    if (!studyHall.qr_booking_enabled) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'QR booking is disabled for this study hall' 
+        }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Fetch all seats for this study hall
     const { data: seats, error: seatsError } = await supabase
       .from('seats')
-      .select('id, seat_id, row_name, seat_number, is_available')
+      .select('*')
       .eq('study_hall_id', studyHallId)
       .order('row_name')
       .order('seat_number');
@@ -87,78 +103,46 @@ const handler = async (req: Request): Promise<Response> => {
     if (seatsError) {
       console.error('Error fetching seats:', seatsError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch seat information' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to fetch seat information' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
-    // Fetch current bookings to determine real-time availability
-    const today = new Date().toISOString().split('T')[0];
-    const { data: activeBookings, error: bookingsError } = await supabase
-      .from('bookings')
-      .select('seat_id, start_date, end_date')
-      .eq('study_hall_id', studyHallId)
-      .in('status', ['active', 'confirmed', 'pending'])
-      .gte('end_date', today);
+    // Get available seats count
+    const availableSeats = seats?.filter(seat => seat.is_available).length || 0;
 
-    if (bookingsError) {
-      console.error('Error fetching bookings:', bookingsError);
-    }
-
-    // Calculate real-time seat availability
-    const availabilityMap = new Map();
-    seats?.forEach(seat => {
-      availabilityMap.set(seat.id, seat.is_available);
-    });
-
-    // Mark seats as unavailable if they have active bookings
-    activeBookings?.forEach(booking => {
-      const startDate = new Date(booking.start_date);
-      const endDate = new Date(booking.end_date);
-      const currentDate = new Date();
-      
-      // If booking is active (current date is within booking period)
-      if (currentDate >= startDate && currentDate <= endDate) {
-        availabilityMap.set(booking.seat_id, false);
-      }
-    });
-
-    // Update seat availability
-    const updatedSeats = seats?.map(seat => ({
-      ...seat,
-      is_available: availabilityMap.get(seat.id) ?? false
-    }));
-
-    const response = {
-      studyHall: {
-        ...studyHall,
-        amenities: studyHall.amenities || []
-      },
-      seats: updatedSeats || [],
-      availableSeats: updatedSeats?.filter(seat => seat.is_available).length || 0,
-      totalSeats: studyHall.total_seats
-    };
+    console.log(`Found ${seats?.length || 0} total seats, ${availableSeats} available`);
 
     return new Response(
-      JSON.stringify(response),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: true,
+        studyHall,
+        seats: seats || [],
+        availableSeats
+      }),
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
 
   } catch (error: any) {
     console.error('Error in public-booking function:', error);
-    
-    // Check if it's a JSON parsing error
-    if (error.message?.includes('JSON') || error.name === 'SyntaxError') {
-      return new Response(
-        JSON.stringify({ error: 'Invalid request body format' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // General error handling
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 };

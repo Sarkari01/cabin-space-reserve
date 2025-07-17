@@ -56,12 +56,28 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
     }
   };
 
-  const downloadQRCode = () => {
-    if (studyHall.qr_code_url) {
+  const downloadQRCode = async () => {
+    if (!studyHall.qr_code_url) return;
+    
+    try {
+      const response = await fetch(studyHall.qr_code_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
       const link = document.createElement('a');
-      link.href = studyHall.qr_code_url;
-      link.download = `qr-code-${studyHall.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+      link.href = url;
+      link.download = `qr-code-${studyHall.name.replace(/\s+/g, '-').toLowerCase()}.svg`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download QR code. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

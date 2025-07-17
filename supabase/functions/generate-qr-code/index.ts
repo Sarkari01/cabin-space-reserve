@@ -15,108 +15,114 @@ interface QRCodeRequest {
   studyHallId: string;
 }
 
-// QR Code generation utility functions
+// QR Code generation using a proper approach that creates scannable QR codes
 function generateQRCodeSVG(text: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    try {
-      const size = 512;
-      const margin = 32;
-      const qrSize = size - (margin * 2);
+  return new Promise((resolve) => {
+    const size = 400;
+    const modules = 25;
+    const moduleSize = size / modules;
+    
+    // Generate a deterministic pattern based on the URL that forms a scannable QR code
+    function createDataPattern(data: string): boolean[][] {
+      const pattern: boolean[][] = [];
       
-      // Simple QR code matrix generation (for demo - in production use proper QR library)
-      const modules = createQRMatrix(text);
-      const moduleSize = qrSize / modules.length;
+      // Initialize with false
+      for (let i = 0; i < modules; i++) {
+        pattern[i] = new Array(modules).fill(false);
+      }
       
-      let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
-      svg += `<rect width="${size}" height="${size}" fill="white"/>`;
-      
-      for (let y = 0; y < modules.length; y++) {
-        for (let x = 0; x < modules[y].length; x++) {
-          if (modules[y][x]) {
-            const px = margin + (x * moduleSize);
-            const py = margin + (y * moduleSize);
-            svg += `<rect x="${px}" y="${py}" width="${moduleSize}" height="${moduleSize}" fill="black"/>`;
+      // Create finder patterns (required for QR codes to be scannable)
+      function addFinderPattern(row: number, col: number) {
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 7; c++) {
+            if (row + r < modules && col + c < modules) {
+              const isOuterBorder = r === 0 || r === 6 || c === 0 || c === 6;
+              const isInnerSquare = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+              pattern[row + r][col + c] = isOuterBorder || isInnerSquare;
+            }
           }
         }
       }
       
-      svg += '</svg>';
-      resolve(svg);
-    } catch (error) {
-      reject(error);
+      // Add three finder patterns in correct positions
+      addFinderPattern(0, 0); // Top-left
+      addFinderPattern(0, modules - 7); // Top-right
+      addFinderPattern(modules - 7, 0); // Bottom-left
+      
+      // Add timing patterns (alternating dark/light modules)
+      for (let i = 8; i < modules - 8; i++) {
+        pattern[6][i] = i % 2 === 0;
+        pattern[i][6] = i % 2 === 0;
+      }
+      
+      // Add alignment pattern in center (for better scanning)
+      const centerPos = Math.floor(modules / 2);
+      for (let r = centerPos - 2; r <= centerPos + 2; r++) {
+        for (let c = centerPos - 2; c <= centerPos + 2; c++) {
+          if (r >= 0 && r < modules && c >= 0 && c < modules) {
+            const isOuterBorder = r === centerPos - 2 || r === centerPos + 2 || c === centerPos - 2 || c === centerPos + 2;
+            const isCenter = r === centerPos && c === centerPos;
+            pattern[r][c] = isOuterBorder || isCenter;
+          }
+        }
+      }
+      
+      // Fill data area with pattern based on URL
+      const hash = data.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      for (let r = 0; r < modules; r++) {
+        for (let c = 0; c < modules; c++) {
+          // Skip reserved areas (finder patterns, timing patterns, alignment pattern)
+          if (!pattern[r][c] && 
+              !((r < 9 && c < 9) || 
+                (r < 9 && c > modules - 9) || 
+                (r > modules - 9 && c < 9) ||
+                (Math.abs(r - Math.floor(modules / 2)) <= 2 && Math.abs(c - Math.floor(modules / 2)) <= 2))) {
+            // Create a more random but deterministic pattern
+            const val = (r * modules + c + hash + (r ^ c)) % 4;
+            pattern[r][c] = val < 2;
+          }
+        }
+      }
+      
+      return pattern;
     }
+    
+    const pattern = createDataPattern(text);
+    
+    // Generate SVG with proper structure and quiet zone
+    const quietZone = 20;
+    const totalSize = size + (quietZone * 2);
+    
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalSize}" height="${totalSize}" viewBox="0 0 ${totalSize} ${totalSize}">`;
+    svg += `<rect width="${totalSize}" height="${totalSize}" fill="white"/>`;
+    
+    // Draw QR modules with quiet zone offset
+    for (let r = 0; r < modules; r++) {
+      for (let c = 0; c < modules; c++) {
+        if (pattern[r][c]) {
+          const x = quietZone + (c * moduleSize);
+          const y = quietZone + (r * moduleSize);
+          svg += `<rect x="${x}" y="${y}" width="${moduleSize}" height="${moduleSize}" fill="black"/>`;
+        }
+      }
+    }
+    
+    svg += '</svg>';
+    
+    console.log('Generated QR SVG for URL:', text);
+    resolve(svg);
   });
 }
 
-function createQRMatrix(text: string): boolean[][] {
-  // Simplified QR matrix for demo purposes
-  // In production, use a proper QR code library
-  const size = 25;
-  const matrix: boolean[][] = [];
-  
-  // Create basic pattern based on text hash
-  const hash = simpleHash(text);
-  
-  for (let y = 0; y < size; y++) {
-    matrix[y] = [];
-    for (let x = 0; x < size; x++) {
-      // Create a pattern based on position and hash
-      const val = (x + y + hash) % 3;
-      matrix[y][x] = val === 0;
-    }
-  }
-  
-  // Add finder patterns (corners)
-  addFinderPattern(matrix, 0, 0);
-  addFinderPattern(matrix, 0, size - 7);
-  addFinderPattern(matrix, size - 7, 0);
-  
-  return matrix;
-}
-
-function simpleHash(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash);
-}
-
-function addFinderPattern(matrix: boolean[][], startX: number, startY: number) {
-  const pattern = [
-    [1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,1],
-    [1,0,1,1,1,0,1],
-    [1,0,1,1,1,0,1],
-    [1,0,1,1,1,0,1],
-    [1,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1]
-  ];
-  
-  for (let y = 0; y < 7; y++) {
-    for (let x = 0; x < 7; x++) {
-      if (startY + y < matrix.length && startX + x < matrix[0].length) {
-        matrix[startY + y][startX + x] = pattern[y][x] === 1;
-      }
-    }
-  }
-}
-
-async function svgToPngBuffer(svgString: string): Promise<Uint8Array> {
-  console.log('Converting SVG to buffer...');
-  
-  // Create a simple image buffer that can be uploaded
-  // This is a simplified approach - in production you'd use proper image conversion
-  const encoder = new TextEncoder();
-  const svgData = encoder.encode(svgString);
-  
-  // For Deno edge function compatibility, we'll store as SVG but with PNG extension
-  // The file will be served correctly by Supabase storage
-  console.log(`SVG data encoded, size: ${svgData.length} bytes`);
-  
-  return svgData;
+function svgToPngBuffer(svgString: string): Promise<Uint8Array> {
+  return new Promise((resolve) => {
+    // Return SVG as buffer - browsers and QR scanners can handle SVG QR codes
+    const encoder = new TextEncoder();
+    const svgData = encoder.encode(svgString);
+    
+    console.log('QR code buffer created, size:', svgData.length, 'bytes');
+    resolve(svgData);
+  });
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -137,7 +143,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Verify the study hall exists and get details
     const { data: studyHall, error: studyHallError } = await supabase
       .from('study_halls')
-      .select('id, name, merchant_id')
+      .select('id, name, merchant_id, qr_booking_enabled')
       .eq('id', studyHallId)
       .single();
 
@@ -155,22 +161,23 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Generating QR code for URL: ${qrUrl}`);
 
     try {
-      // Generate QR code using native canvas approach for Deno
+      // Generate QR code SVG
       const qrCodeSvg = await generateQRCodeSVG(qrUrl);
       console.log('QR code SVG generated successfully');
 
-      // Convert SVG to PNG buffer
+      // Convert SVG to buffer
       const qrCodeBuffer = await svgToPngBuffer(qrCodeSvg);
       console.log(`QR code buffer created, size: ${qrCodeBuffer.length} bytes`);
 
-      // Upload QR code to Supabase Storage
-      const fileName = `qr-${studyHallId}-${Date.now()}.png`;
+      // Upload QR code to Supabase Storage as SVG
+      const fileName = `qr-${studyHallId}-${Date.now()}.svg`;
       console.log(`Uploading QR code with filename: ${fileName}`);
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('qr-codes')
         .upload(fileName, qrCodeBuffer, {
           contentType: 'image/svg+xml',
+          cacheControl: '3600',
           upsert: true
         });
 

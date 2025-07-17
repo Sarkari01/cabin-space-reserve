@@ -46,8 +46,10 @@ const amenityIcons = {
 };
 
 export default function PublicBooking() {
-  const { id: studyHallId } = useParams<{ id: string }>();
+  const { studyHallId } = useParams<{ studyHallId: string }>();
   const { toast } = useToast();
+  
+  console.log('PublicBooking - studyHallId from params:', studyHallId);
   
   const [studyHall, setStudyHall] = useState<StudyHallDetails | null>(null);
   const [seats, setSeats] = useState<Seat[]>([]);
@@ -63,16 +65,47 @@ export default function PublicBooking() {
   }, [studyHallId]);
 
   const fetchStudyHallData = async () => {
+    if (!studyHallId) {
+      toast({
+        title: "Error",
+        description: "Study hall ID is required",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(studyHallId)) {
+      toast({
+        title: "Error",
+        description: "Invalid study hall ID format",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
+      
+      console.log('Fetching data for study hall:', studyHallId);
       
       // Call the public booking edge function
       const response = await supabase.functions.invoke('public-booking', {
         body: { studyHallId }
       });
 
+      console.log('Function response:', response);
+
       if (response.error) {
+        console.error('Function error:', response.error);
         throw response.error;
+      }
+
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || 'Failed to load study hall data');
       }
 
       const { studyHall: hallData, seats: seatsData, availableSeats: available } = response.data;
@@ -84,7 +117,7 @@ export default function PublicBooking() {
       console.error('Error fetching study hall data:', error);
       toast({
         title: "Error",
-        description: "Failed to load study hall information. Please try again.",
+        description: error.message || "Failed to load study hall information. Please try again.",
         variant: "destructive",
       });
     } finally {
