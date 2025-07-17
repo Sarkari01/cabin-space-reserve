@@ -22,6 +22,18 @@ interface Seat {
   is_available: boolean;
 }
 
+// Enhanced interfaces for sectioned layouts
+interface SectionRow {
+  seats: number;
+  name?: string;
+}
+
+interface SeatSection {
+  name: string;
+  rows: Record<string, SectionRow>;
+  position: 'left' | 'right' | 'center';
+}
+
 interface StudyHall {
   id?: string;
   name: string;
@@ -40,8 +52,10 @@ interface StudyHall {
   latitude?: number;
   longitude?: number;
   formatted_address?: string;
-  layout_mode?: "fixed" | "custom";
+  layout_mode?: "fixed" | "custom" | "sectioned";
   row_seat_config?: Record<string, { seats: number }>;
+  seat_sections?: SeatSection[];
+  aisle_width?: number;
 }
 
 interface StudyHallModalProps {
@@ -77,6 +91,8 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
       formatted_address,
       layout_mode,
       row_seat_config,
+      seat_sections,
+      aisle_width,
       // Explicitly exclude non-database fields
       // incharges, owner, profiles, etc. are excluded by not being listed
     } = data;
@@ -101,6 +117,8 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
       formatted_address,
       layout_mode,
       row_seat_config,
+      seat_sections,
+      aisle_width,
     };
   };
   
@@ -121,7 +139,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     monthly_price: 1500,
     status: "active",
     layout_mode: "fixed",
-    row_seat_config: undefined
+    row_seat_config: undefined,
+    seat_sections: undefined,
+    aisle_width: 80
   });
 
   const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
@@ -189,7 +209,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     }
   };
 
-  const handleLayoutModeChange = (mode: "fixed" | "custom") => {
+  const handleLayoutModeChange = (mode: "fixed" | "custom" | "sectioned") => {
     setFormData(prev => {
       if (mode === "custom" && !prev.row_seat_config) {
         // Initialize custom layout with current row configuration
@@ -202,6 +222,42 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
           ...prev,
           layout_mode: mode,
           row_seat_config: config
+        };
+      }
+      
+      if (mode === "sectioned" && !prev.seat_sections) {
+        // Initialize sectioned layout with default theater-style configuration
+        const leftSection: SeatSection = {
+          name: "Left Section",
+          position: "left",
+          rows: {
+            "A": { seats: 8, name: "A" },
+            "B": { seats: 8, name: "B" },
+            "C": { seats: 10, name: "C" },
+            "D": { seats: 10, name: "D" }
+          }
+        };
+        
+        const rightSection: SeatSection = {
+          name: "Right Section", 
+          position: "right",
+          rows: {
+            "A": { seats: 8, name: "A" },
+            "B": { seats: 8, name: "B" },
+            "C": { seats: 10, name: "C" },
+            "D": { seats: 10, name: "D" }
+          }
+        };
+        
+        const totalSeats = Object.values(leftSection.rows).reduce((sum, row) => sum + row.seats, 0) +
+                          Object.values(rightSection.rows).reduce((sum, row) => sum + row.seats, 0);
+        
+        return {
+          ...prev,
+          layout_mode: mode,
+          seat_sections: [leftSection, rightSection],
+          total_seats: totalSeats,
+          aisle_width: 80
         };
       }
       
@@ -465,21 +521,25 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Layout Mode:</span>
-                      <Badge variant={formData.layout_mode === 'custom' ? 'default' : 'secondary'}>
-                        {formData.layout_mode === 'custom' ? 'Custom Layout' : 'Fixed Grid'}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Total Seats:</span>
-                      <span className="font-medium">
-                        {formData.layout_mode === 'custom' && formData.row_seat_config
-                          ? Object.values(formData.row_seat_config).reduce((total: number, config: any) => total + config.seats, 0)
-                          : formData.total_seats
-                        }
-                      </span>
-                    </div>
+                     <div className="flex justify-between">
+                       <span className="text-sm text-muted-foreground">Layout Mode:</span>
+                       <Badge variant={formData.layout_mode === 'fixed' ? 'secondary' : 'default'}>
+                         {formData.layout_mode === 'fixed' ? 'Fixed Grid' : 
+                          formData.layout_mode === 'custom' ? 'Custom Layout' : 'Sectioned Layout'}
+                       </Badge>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="text-sm text-muted-foreground">Total Seats:</span>
+                       <span className="font-medium">
+                         {formData.layout_mode === 'custom' && formData.row_seat_config
+                           ? Object.values(formData.row_seat_config).reduce((total: number, config: any) => total + config.seats, 0)
+                           : formData.layout_mode === 'sectioned' && formData.seat_sections
+                           ? formData.seat_sections.reduce((total, section) => 
+                               total + Object.values(section.rows).reduce((sum, row) => sum + row.seats, 0), 0)
+                           : formData.total_seats
+                         }
+                       </span>
+                     </div>
                     {formData.layout_mode === 'fixed' && (
                       <>
                         <div className="flex justify-between">
@@ -721,40 +781,52 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                   <Grid3X3 className="h-5 w-5" />
                   <h4 className="font-semibold">Study Hall Seat Layout</h4>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Choose between fixed grid layout or custom variable seats per row.
-                </p>
+                 <p className="text-sm text-muted-foreground">
+                   Choose between fixed grid, custom variable seats per row, or sectioned theater-style layout.
+                 </p>
               </div>
 
               {/* Layout Mode Selection */}
-              <div className="border rounded-lg p-4 bg-muted/30">
-                <h4 className="font-semibold mb-3">Layout Mode</h4>
-                <div className="flex space-x-4">
-                  <Button
-                    type="button"
-                    variant={formData.layout_mode === "fixed" ? "default" : "outline"}
-                    onClick={() => handleLayoutModeChange("fixed")}
-                    disabled={isReadOnly}
-                    className="flex-1"
-                  >
-                    Fixed Grid Layout
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={formData.layout_mode === "custom" ? "default" : "outline"}
-                    onClick={() => handleLayoutModeChange("custom")}
-                    disabled={isReadOnly}
-                    className="flex-1"
-                  >
-                    Custom Layout
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {formData.layout_mode === "fixed" 
-                    ? "All rows have the same number of seats" 
-                    : "Each row can have a different number of seats"}
-                </p>
-              </div>
+               <div className="border rounded-lg p-4 bg-muted/30">
+                 <h4 className="font-semibold mb-3">Layout Mode</h4>
+                 <div className="grid grid-cols-3 gap-3">
+                   <Button
+                     type="button"
+                     variant={formData.layout_mode === "fixed" ? "default" : "outline"}
+                     onClick={() => handleLayoutModeChange("fixed")}
+                     disabled={isReadOnly}
+                     className="flex-1"
+                   >
+                     Fixed Grid
+                   </Button>
+                   <Button
+                     type="button"
+                     variant={formData.layout_mode === "custom" ? "default" : "outline"}
+                     onClick={() => handleLayoutModeChange("custom")}
+                     disabled={isReadOnly}
+                     className="flex-1"
+                   >
+                     Custom Layout
+                   </Button>
+                   <Button
+                     type="button"
+                     variant={formData.layout_mode === "sectioned" ? "default" : "outline"}
+                     onClick={() => handleLayoutModeChange("sectioned")}
+                     disabled={isReadOnly}
+                     className="flex-1"
+                   >
+                     Sectioned Layout
+                   </Button>
+                 </div>
+                 <p className="text-xs text-muted-foreground mt-2">
+                   {formData.layout_mode === "fixed" 
+                     ? "All rows have the same number of seats" 
+                     : formData.layout_mode === "custom"
+                       ? "Each row can have a different number of seats"
+                       : "Theater-style layout with left and right sections separated by aisle"
+                   }
+                 </p>
+               </div>
 
               {/* Fixed Layout Controls */}
               {formData.layout_mode === "fixed" && (
@@ -896,7 +968,102 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                     </div>
                   </div>
                 </div>
-              )}
+               )}
+
+               {/* Sectioned Layout Controls */}
+               {formData.layout_mode === "sectioned" && formData.seat_sections && (
+                 <div className="border rounded-lg p-4 bg-muted/30">
+                   <div className="flex items-center justify-between mb-3">
+                     <h4 className="font-semibold">Theater-Style Sectioned Layout</h4>
+                     <div className="flex items-center space-x-2">
+                       <Label className="text-sm">Aisle Width:</Label>
+                       <Input
+                         type="number"
+                         value={formData.aisle_width || 80}
+                         onChange={(e) => setFormData(prev => ({ ...prev, aisle_width: Number(e.target.value) }))}
+                         className="w-20"
+                         min="40"
+                         max="200"
+                         disabled={isReadOnly}
+                       />
+                       <span className="text-xs text-muted-foreground">px</span>
+                     </div>
+                   </div>
+                   
+                   <div className="grid grid-cols-2 gap-6">
+                     {formData.seat_sections.map((section, sectionIndex) => (
+                       <div key={sectionIndex} className="border rounded-lg p-3 bg-background">
+                         <h5 className="font-medium mb-3 text-center">{section.name}</h5>
+                         <div className="space-y-2">
+                           {Object.entries(section.rows).map(([rowName, rowConfig]) => (
+                             <div key={rowName} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                               <span className="font-medium">{rowName}</span>
+                               <div className="flex items-center space-x-2">
+                                 {!isReadOnly && (
+                                   <Button
+                                     type="button"
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => {
+                                       const newSections = [...formData.seat_sections!];
+                                       const newRows = { ...newSections[sectionIndex].rows };
+                                       newRows[rowName] = { ...rowConfig, seats: Math.max(1, rowConfig.seats - 1) };
+                                       newSections[sectionIndex] = { ...newSections[sectionIndex], rows: newRows };
+                                       
+                                       const totalSeats = newSections.reduce((total, sect) => 
+                                         total + Object.values(sect.rows).reduce((sum, row) => sum + row.seats, 0), 0);
+                                       
+                                       setFormData(prev => ({ 
+                                         ...prev, 
+                                         seat_sections: newSections,
+                                         total_seats: totalSeats
+                                       }));
+                                     }}
+                                   >
+                                     <Minus className="h-3 w-3" />
+                                   </Button>
+                                 )}
+                                 <span className="w-8 text-center text-sm">{rowConfig.seats}</span>
+                                 {!isReadOnly && (
+                                   <Button
+                                     type="button"
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => {
+                                       const newSections = [...formData.seat_sections!];
+                                       const newRows = { ...newSections[sectionIndex].rows };
+                                       newRows[rowName] = { ...rowConfig, seats: Math.min(20, rowConfig.seats + 1) };
+                                       newSections[sectionIndex] = { ...newSections[sectionIndex], rows: newRows };
+                                       
+                                       const totalSeats = newSections.reduce((total, sect) => 
+                                         total + Object.values(sect.rows).reduce((sum, row) => sum + row.seats, 0), 0);
+                                       
+                                       setFormData(prev => ({ 
+                                         ...prev, 
+                                         seat_sections: newSections,
+                                         total_seats: totalSeats
+                                       }));
+                                     }}
+                                   >
+                                     <Plus className="h-3 w-3" />
+                                   </Button>
+                                 )}
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                   
+                   <div className="mt-4 p-3 bg-primary/5 rounded-lg">
+                     <div className="flex justify-between items-center">
+                       <span className="text-sm font-medium">Total Seats:</span>
+                       <span className="text-lg font-bold">{formData.total_seats}</span>
+                     </div>
+                   </div>
+                 </div>
+               )}
               
               <div className="bg-background border-2 border-dashed border-muted-foreground/20 rounded-xl p-8">
                 {/* Layout Controls */}
@@ -906,10 +1073,92 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                   </div>
                 </div>
                 
-                {/* Seat Grid */}
-                <div className="flex flex-col items-center space-y-3">
-                  {formData.layout_mode === "custom" && formData.row_seat_config 
-                    ? Object.entries(formData.row_seat_config).map(([rowName, config], rowIndex) => (
+                 {/* Seat Grid */}
+                 <div className="flex flex-col items-center space-y-3">
+                   {formData.layout_mode === "sectioned" && formData.seat_sections 
+                     ? (
+                       <div className="space-y-4">
+                         {Object.keys(formData.seat_sections[0]?.rows || {}).map((rowName) => (
+                           <div key={rowName} className="flex items-center justify-center space-x-4">
+                             {/* Left Section */}
+                             <div className="flex items-center space-x-2">
+                               <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
+                                 {rowName}
+                               </div>
+                               <div className="flex space-x-1">
+                                 {Array.from({ length: formData.seat_sections[0].rows[rowName]?.seats || 0 }, (_, seatIndex) => {
+                                   const seatId = `${rowName}L${seatIndex + 1}`;
+                                   return (
+                                     <div key={seatId} className="relative group">
+                                       <Button
+                                         type="button"
+                                         variant="outline"
+                                         size="sm"
+                                         className="w-10 h-10 p-0 border-blue-500 text-blue-700 hover:bg-blue-50"
+                                         disabled={true}
+                                       >
+                                         <div className="text-center">
+                                           <div className="text-xs font-medium">{seatIndex + 1}</div>
+                                         </div>
+                                       </Button>
+                                     </div>
+                                   );
+                                 })}
+                               </div>
+                             </div>
+                             
+                             {/* Center Aisle */}
+                             <div 
+                               className="bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 rounded-lg flex items-center justify-center text-xs text-muted-foreground"
+                               style={{ width: `${formData.aisle_width || 80}px`, height: '40px' }}
+                             >
+                               AISLE
+                             </div>
+                             
+                             {/* Right Section */}
+                             <div className="flex items-center space-x-2">
+                               <div className="flex space-x-1">
+                                 {Array.from({ length: formData.seat_sections[1]?.rows[rowName]?.seats || 0 }, (_, seatIndex) => {
+                                   const seatId = `${rowName}R${seatIndex + 1}`;
+                                   return (
+                                     <div key={seatId} className="relative group">
+                                       <Button
+                                         type="button"
+                                         variant="outline"
+                                         size="sm"
+                                         className="w-10 h-10 p-0 border-purple-500 text-purple-700 hover:bg-purple-50"
+                                         disabled={true}
+                                       >
+                                         <div className="text-center">
+                                           <div className="text-xs font-medium">{seatIndex + 1}</div>
+                                         </div>
+                                       </Button>
+                                     </div>
+                                   );
+                                 })}
+                               </div>
+                               <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
+                                 {rowName}
+                               </div>
+                             </div>
+                           </div>
+                         ))}
+                         
+                         {/* Section Labels */}
+                         <div className="flex justify-between pt-4 border-t">
+                           <div className="flex items-center space-x-2">
+                             <div className="w-4 h-4 border-2 border-blue-500 rounded"></div>
+                             <span className="text-sm text-muted-foreground">Left Section</span>
+                           </div>
+                           <div className="flex items-center space-x-2">
+                             <div className="w-4 h-4 border-2 border-purple-500 rounded"></div>
+                             <span className="text-sm text-muted-foreground">Right Section</span>
+                           </div>
+                         </div>
+                       </div>
+                     )
+                     : formData.layout_mode === "custom" && formData.row_seat_config 
+                     ? Object.entries(formData.row_seat_config).map(([rowName, config], rowIndex) => (
                       <div key={rowName} className="flex items-center space-x-3">
                         {/* Row Label */}
                         <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">

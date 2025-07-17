@@ -100,7 +100,7 @@ export const useStudyHalls = () => {
           amenities: Array.isArray(hall.amenities) ? hall.amenities : [],
           incharges: assignedIncharges
         };
-      }) as StudyHall[];
+      }) as any[];
       
       console.log('\n🏁 Final transformed data with incharges:', transformedData.map(h => ({
         name: h.name,
@@ -109,7 +109,7 @@ export const useStudyHalls = () => {
         inchargeNames: h.incharges?.map(i => i.full_name) || []
       })));
       
-      setStudyHalls(transformedData);
+      setStudyHalls(transformedData as any);
     } catch (error: any) {
       console.error('Error fetching study halls:', error);
       toast({
