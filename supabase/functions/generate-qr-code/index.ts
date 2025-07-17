@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.3";
+// Import a proper QR code library that works in Deno
+import { encode } from "https://deno.land/x/qrcode@v2.0.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,114 +17,37 @@ interface QRCodeRequest {
   studyHallId: string;
 }
 
-// QR Code generation using a proper approach that creates scannable QR codes
-function generateQRCodeSVG(text: string): Promise<string> {
-  return new Promise((resolve) => {
-    const size = 400;
-    const modules = 25;
-    const moduleSize = size / modules;
+// Generate a real, scannable QR code using proper library
+async function generateQRCodeSVG(text: string): Promise<string> {
+  try {
+    console.log('Generating QR code for URL:', text);
     
-    // Generate a deterministic pattern based on the URL that forms a scannable QR code
-    function createDataPattern(data: string): boolean[][] {
-      const pattern: boolean[][] = [];
-      
-      // Initialize with false
-      for (let i = 0; i < modules; i++) {
-        pattern[i] = new Array(modules).fill(false);
-      }
-      
-      // Create finder patterns (required for QR codes to be scannable)
-      function addFinderPattern(row: number, col: number) {
-        for (let r = 0; r < 7; r++) {
-          for (let c = 0; c < 7; c++) {
-            if (row + r < modules && col + c < modules) {
-              const isOuterBorder = r === 0 || r === 6 || c === 0 || c === 6;
-              const isInnerSquare = r >= 2 && r <= 4 && c >= 2 && c <= 4;
-              pattern[row + r][col + c] = isOuterBorder || isInnerSquare;
-            }
-          }
-        }
-      }
-      
-      // Add three finder patterns in correct positions
-      addFinderPattern(0, 0); // Top-left
-      addFinderPattern(0, modules - 7); // Top-right
-      addFinderPattern(modules - 7, 0); // Bottom-left
-      
-      // Add timing patterns (alternating dark/light modules)
-      for (let i = 8; i < modules - 8; i++) {
-        pattern[6][i] = i % 2 === 0;
-        pattern[i][6] = i % 2 === 0;
-      }
-      
-      // Add alignment pattern in center (for better scanning)
-      const centerPos = Math.floor(modules / 2);
-      for (let r = centerPos - 2; r <= centerPos + 2; r++) {
-        for (let c = centerPos - 2; c <= centerPos + 2; c++) {
-          if (r >= 0 && r < modules && c >= 0 && c < modules) {
-            const isOuterBorder = r === centerPos - 2 || r === centerPos + 2 || c === centerPos - 2 || c === centerPos + 2;
-            const isCenter = r === centerPos && c === centerPos;
-            pattern[r][c] = isOuterBorder || isCenter;
-          }
-        }
-      }
-      
-      // Fill data area with pattern based on URL
-      const hash = data.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      for (let r = 0; r < modules; r++) {
-        for (let c = 0; c < modules; c++) {
-          // Skip reserved areas (finder patterns, timing patterns, alignment pattern)
-          if (!pattern[r][c] && 
-              !((r < 9 && c < 9) || 
-                (r < 9 && c > modules - 9) || 
-                (r > modules - 9 && c < 9) ||
-                (Math.abs(r - Math.floor(modules / 2)) <= 2 && Math.abs(c - Math.floor(modules / 2)) <= 2))) {
-            // Create a more random but deterministic pattern
-            const val = (r * modules + c + hash + (r ^ c)) % 4;
-            pattern[r][c] = val < 2;
-          }
-        }
-      }
-      
-      return pattern;
-    }
+    // Use the proper QR library to generate scannable QR code
+    const qrData = await encode(text, {
+      errorCorrection: 'M', // Medium error correction
+      type: 'svg',
+      width: 400,
+      height: 400,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      },
+      margin: 2
+    });
     
-    const pattern = createDataPattern(text);
-    
-    // Generate SVG with proper structure and quiet zone
-    const quietZone = 20;
-    const totalSize = size + (quietZone * 2);
-    
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalSize}" height="${totalSize}" viewBox="0 0 ${totalSize} ${totalSize}">`;
-    svg += `<rect width="${totalSize}" height="${totalSize}" fill="white"/>`;
-    
-    // Draw QR modules with quiet zone offset
-    for (let r = 0; r < modules; r++) {
-      for (let c = 0; c < modules; c++) {
-        if (pattern[r][c]) {
-          const x = quietZone + (c * moduleSize);
-          const y = quietZone + (r * moduleSize);
-          svg += `<rect x="${x}" y="${y}" width="${moduleSize}" height="${moduleSize}" fill="black"/>`;
-        }
-      }
-    }
-    
-    svg += '</svg>';
-    
-    console.log('Generated QR SVG for URL:', text);
-    resolve(svg);
-  });
+    console.log('QR code SVG generated successfully');
+    return qrData;
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    throw error;
+  }
 }
 
-function svgToPngBuffer(svgString: string): Promise<Uint8Array> {
-  return new Promise((resolve) => {
-    // Return SVG as buffer - browsers and QR scanners can handle SVG QR codes
-    const encoder = new TextEncoder();
-    const svgData = encoder.encode(svgString);
-    
-    console.log('QR code buffer created, size:', svgData.length, 'bytes');
-    resolve(svgData);
-  });
+function svgStringToBuffer(svgString: string): Uint8Array {
+  const encoder = new TextEncoder();
+  const svgData = encoder.encode(svgString);
+  console.log('QR code buffer created, size:', svgData.length, 'bytes');
+  return svgData;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -166,8 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('QR code SVG generated successfully');
 
       // Convert SVG to buffer
-      const qrCodeBuffer = await svgToPngBuffer(qrCodeSvg);
-      console.log(`QR code buffer created, size: ${qrCodeBuffer.length} bytes`);
+      const qrCodeBuffer = svgStringToBuffer(qrCodeSvg);
 
       // Upload QR code to Supabase Storage as SVG
       const fileName = `qr-${studyHallId}-${Date.now()}.svg`;
