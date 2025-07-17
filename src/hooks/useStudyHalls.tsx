@@ -50,7 +50,7 @@ export const useStudyHalls = () => {
       console.log('Raw incharges data:', inchargesData);
       
       // Transform the data to include relevant incharges for each study hall
-      const transformedData = (studyHallsData || []).map(hall => {
+      const transformedData = (studyHallsData || []).map((hall: any) => {
         console.log(`\n=== Processing study hall: ${hall.name} (ID: ${hall.id}) ===`);
         
         // Find incharges assigned to this specific study hall
