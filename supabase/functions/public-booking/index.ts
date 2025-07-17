@@ -18,12 +18,23 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const body = await req.json();
-    const studyHallId = body.studyHallId;
-
+    let studyHallId: string;
+    
+    // Try to get studyHallId from request body first, then from URL path
+    try {
+      const body = await req.json();
+      studyHallId = body.studyHallId;
+    } catch (parseError) {
+      // If JSON parsing fails, try to extract from URL path
+      const url = new URL(req.url);
+      const pathParts = url.pathname.split('/');
+      studyHallId = pathParts[pathParts.length - 1];
+    }
+    
     if (!studyHallId) {
+      console.error('No study hall ID provided in request body or URL');
       return new Response(
-        JSON.stringify({ error: 'Study hall ID is required in request body' }),
+        JSON.stringify({ error: 'Study hall ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
