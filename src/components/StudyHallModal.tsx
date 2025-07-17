@@ -291,8 +291,16 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Calculate total seats if using custom layout
+    let finalFormData = { ...formData };
+    if (formData.layout_mode === 'custom' && formData.row_seat_config) {
+      const totalSeats = Object.values(formData.row_seat_config).reduce((sum, row) => sum + row.seats, 0);
+      finalFormData.total_seats = totalSeats;
+    }
+    
     // Clean the form data before saving to ensure only database fields are included
-    const cleanData = extractStudyHallFields(formData);
+    const cleanData = extractStudyHallFields(finalFormData);
     onSave(cleanData);
     onClose();
   };
@@ -449,81 +457,66 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>Rows</Label>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleLayoutChange('rows', Math.max(1, formData.rows - 1))}
-                      disabled={isReadOnly}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-8 text-center">{formData.rows}</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleLayoutChange('rows', Math.min(10, formData.rows + 1))}
-                      disabled={isReadOnly}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <Label>Seats per Row</Label>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleLayoutChange('seats_per_row', Math.max(1, formData.seats_per_row - 1))}
-                      disabled={isReadOnly}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-8 text-center">{formData.seats_per_row}</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleLayoutChange('seats_per_row', Math.min(20, formData.seats_per_row + 1))}
-                      disabled={isReadOnly}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <Label>Total Seats</Label>
-                  <div className="text-2xl font-bold text-center py-2">
-                    {formData.total_seats}
-                  </div>
-                </div>
-              </div>
-
-              {/* Custom Row Names */}
+              {/* Seat Layout Summary Section */}
               <div className="border rounded-lg p-4 bg-muted/30">
-                <h4 className="font-semibold mb-3">Custom Row Names</h4>
-                <div className="grid grid-cols-5 gap-2">
-                  {formData.custom_row_names.map((rowName, index) => (
-                    <div key={index}>
-                      <Label className="text-xs">Row {index + 1}</Label>
-                      <Input
-                        value={rowName}
-                        onChange={(e) => handleRowNameChange(index, e.target.value.toUpperCase())}
-                        disabled={isReadOnly}
-                        maxLength={2}
-                        className="text-center"
-                      />
+                <h4 className="font-semibold mb-3 flex items-center">
+                  <Grid3X3 className="h-4 w-4 mr-2" />
+                  Seat Layout Summary
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Layout Mode:</span>
+                      <Badge variant={formData.layout_mode === 'custom' ? 'default' : 'secondary'}>
+                        {formData.layout_mode === 'custom' ? 'Custom Layout' : 'Fixed Grid'}
+                      </Badge>
                     </div>
-                  ))}
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Total Seats:</span>
+                      <span className="font-medium">
+                        {formData.layout_mode === 'custom' && formData.row_seat_config
+                          ? Object.values(formData.row_seat_config).reduce((total: number, config: any) => total + config.seats, 0)
+                          : formData.total_seats
+                        }
+                      </span>
+                    </div>
+                    {formData.layout_mode === 'fixed' && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Rows:</span>
+                          <span className="font-medium">{formData.rows}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Seats per Row:</span>
+                          <span className="font-medium">{formData.seats_per_row}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  {formData.layout_mode === 'custom' && formData.row_seat_config && (
+                    <div className="space-y-1">
+                      <span className="text-sm text-muted-foreground">Custom Rows:</span>
+                      <div className="space-y-1 max-h-20 overflow-y-auto">
+                        {Object.entries(formData.row_seat_config).map(([rowName, config]: [string, any]) => (
+                          <div key={rowName} className="flex justify-between text-xs">
+                            <span>{rowName}:</span>
+                            <span>{config.seats} seats</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+                
+                {!isReadOnly && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      To modify the seat layout, use the "Seat Layout" tab above.
+                    </p>
+                  </div>
+                 )}
+               </div>
             </TabsContent>
 
             <TabsContent value="location" className="space-y-4">
