@@ -51,9 +51,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Generating QR code for URL: ${qrUrl}`);
 
-    // Generate QR code as PNG buffer
-    const qrCodeBuffer = await QRCode.toBuffer(qrUrl, {
-      type: 'png',
+    // Generate QR code as data URL then convert to buffer
+    const qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
       width: 512,
       margin: 2,
       color: {
@@ -61,6 +60,10 @@ const handler = async (req: Request): Promise<Response> => {
         light: '#FFFFFF'
       }
     });
+
+    // Convert data URL to buffer
+    const base64Data = qrCodeDataUrl.split(',')[1];
+    const qrCodeBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
     // Upload QR code to Supabase Storage
     const fileName = `qr-${studyHallId}-${Date.now()}.png`;
