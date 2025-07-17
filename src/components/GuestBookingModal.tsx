@@ -12,7 +12,6 @@ import { format, addDays, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateBookingAmountWithFees } from "@/utils/feeCalculations";
 
 interface StudyHall {
   id: string;
@@ -62,31 +61,32 @@ export function GuestBookingModal({
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'ekqr'>('razorpay');
 
   const calculateAmount = () => {
-    if (!studyHall || !startDate || !endDate) {
-      return { 
-        baseAmount: 0, 
-        discountAmount: 0,
-        finalAmount: 0,
-        days: 0,
-        method: 'daily',
-        priceBreakdown: {
-          baseDaily: 0,
-          baseWeekly: 0,
-          baseMonthly: 0
-        }
-      };
+    if (!studyHall) return { amount: 0, period: 'daily' };
+    
+    const days = Math.max(1, differenceInDays(endDate, startDate) + 1);
+    
+    let amount = days * studyHall.daily_price;
+    let period = 'daily';
+    
+    // Check for better pricing
+    if (days >= 30) {
+      const monthlyTotal = Math.ceil(days / 30) * studyHall.monthly_price;
+      if (monthlyTotal < amount) {
+        amount = monthlyTotal;
+        period = 'monthly';
+      }
+    } else if (days >= 7) {
+      const weeklyTotal = Math.ceil(days / 7) * studyHall.weekly_price;
+      if (weeklyTotal < amount) {
+        amount = weeklyTotal;
+        period = 'weekly';
+      }
     }
     
-    return calculateBookingAmountWithFees(
-      format(startDate, 'yyyy-MM-dd'),
-      format(endDate, 'yyyy-MM-dd'),
-      studyHall.daily_price,
-      studyHall.weekly_price,
-      studyHall.monthly_price
-    );
+    return { amount, period };
   };
 
-  const calculation = calculateAmount();
+  const { amount, period } = calculateAmount();
 
   const handleNext = () => {
     if (!guestName.trim()) {
@@ -130,8 +130,6 @@ export function GuestBookingModal({
         seatId: selectedSeat.id,
         startDate: format(startDate, 'yyyy-MM-dd'),
         endDate: format(endDate, 'yyyy-MM-dd'),
-        totalAmount: calculation.finalAmount,
-        bookingPeriod: calculation.method,
         guestName: guestName.trim(),
         guestPhone: guestPhone.trim(),
         guestEmail: guestEmail.trim(),
@@ -412,23 +410,13 @@ export function GuestBookingModal({
             {/* Price Summary */}
             <Card>
               <CardContent className="pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Base Amount ({calculation.method}):</span>
-                    <span>₹{calculation.baseAmount}</span>
-                  </div>
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount:</span>
-                    <span>-₹{calculation.discountAmount}</span>
-                  </div>
-                  <div className="flex justify-between items-center font-bold text-lg border-t pt-2">
-                    <span>Final Amount:</span>
-                    <span>₹{calculation.finalAmount}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {calculation.days} day(s) • Best pricing automatically applied
-                  </p>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total Amount ({period}):</span>
+                  <span className="text-lg font-bold">₹{amount}</span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {differenceInDays(endDate, startDate) + 1} day(s)
+                </p>
               </CardContent>
             </Card>
 
@@ -457,7 +445,7 @@ export function GuestBookingModal({
                 </div>
                 <div className="flex justify-between font-bold border-t pt-2">
                   <span>Total:</span>
-                  <span>₹{calculation.finalAmount}</span>
+                  <span>₹{amount}</span>
                 </div>
               </CardContent>
             </Card>
@@ -493,7 +481,7 @@ export function GuestBookingModal({
                 Back
               </Button>
               <Button onClick={handleBooking} disabled={loading} className="flex-1">
-                {loading ? "Processing..." : `Pay ₹${calculation.finalAmount}`}
+                {loading ? "Processing..." : `Pay ₹${amount}`}
               </Button>
             </div>
           </div>
