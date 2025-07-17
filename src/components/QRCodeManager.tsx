@@ -58,30 +58,52 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
   };
 
   const downloadQRCode = async () => {
-    if (!studyHall.qr_code_url) return;
+    if (!studyHall.qr_code_url) {
+      toast({
+        title: "No QR Code",
+        description: "Please generate a QR code first.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
-      const response = await fetch(studyHall.qr_code_url);
+      // Add timestamp to prevent caching issues
+      const downloadUrl = `${studyHall.qr_code_url}?t=${Date.now()}`;
+      const response = await fetch(downloadUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const blob = await response.blob();
+      
+      // Verify it's a valid image
+      if (!blob.type.startsWith('image/')) {
+        throw new Error('Downloaded file is not a valid image');
+      }
+      
       const url = window.URL.createObjectURL(blob);
+      const fileName = `qr-code-${studyHall.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${Date.now()}.png`;
       
       const link = document.createElement('a');
       link.href = url;
-      link.download = `qr-code-${studyHall.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+      link.download = fileName;
+      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
       toast({
-        title: "Downloaded!",
-        description: "QR code image has been downloaded successfully.",
+        title: "Downloaded Successfully!",
+        description: `QR code image "${fileName}" has been downloaded.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error downloading QR code:', error);
       toast({
         title: "Download Failed",
-        description: "Failed to download QR code. Please try again.",
+        description: error.message || "Failed to download QR code. Please try again.",
         variant: "destructive",
       });
     }
@@ -139,16 +161,26 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
 
         {/* QR Code Status */}
         {studyHall.qr_code_url ? (
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-success/10 border border-success/20 rounded-lg">
             <div className="flex items-center gap-3">
-              <img
-                src={studyHall.qr_code_url}
-                alt="Scannable QR Code"
-                className="w-12 h-12 border rounded"
-              />
+              <div className="relative">
+                <img
+                  src={studyHall.qr_code_url}
+                  alt="Scannable QR Code"
+                  className="w-16 h-16 border-2 border-success/30 rounded-lg shadow-sm"
+                  onError={(e) => {
+                    console.error('QR code image failed to load');
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-success rounded-full border-2 border-background"></div>
+              </div>
               <div>
-                <p className="font-medium">Scannable QR Code Ready</p>
-                <p className="text-xs text-muted-foreground">PNG format - Click to preview or download</p>
+                <p className="font-semibold text-success-foreground">✓ Scannable QR Code Ready</p>
+                <p className="text-sm text-muted-foreground">PNG format • Click to test scan or download</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Size: 512x512px • High quality for printing
+                </p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -156,23 +188,30 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => setPreviewOpen(true)}
+                className="gap-1"
               >
                 <Eye className="h-4 w-4" />
+                Preview
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={downloadQRCode}
+                className="gap-1"
               >
                 <Download className="h-4 w-4" />
+                Download
               </Button>
             </div>
           </div>
         ) : (
-          <div className="text-center py-6 border-2 border-dashed border-muted-foreground/25 rounded-lg">
-            <QrCode className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
-            <p className="text-sm text-muted-foreground mb-4">
+          <div className="text-center py-8 border-2 border-dashed border-muted-foreground/25 rounded-lg">
+            <QrCode className="h-16 w-16 mx-auto text-muted-foreground/50 mb-3" />
+            <p className="text-sm text-muted-foreground mb-2">
               No scannable QR code generated yet
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Generate a high-quality QR code for guest bookings
             </p>
           </div>
         )}
@@ -229,28 +268,55 @@ export function QRCodeManager({ studyHall, onUpdate }: QRCodeManagerProps) {
 
       {/* QR Code Preview Modal */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Scannable QR Code for {studyHall.name}</DialogTitle>
+            <DialogTitle className="text-center">QR Code for {studyHall.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {studyHall.qr_code_url && (
               <div className="text-center">
-                <img
-                  src={studyHall.qr_code_url}
-                  alt="Scannable QR Code"
-                  className="w-full max-w-64 mx-auto border rounded-lg"
-                />
+                <div className="relative inline-block">
+                  <img
+                    src={studyHall.qr_code_url}
+                    alt="Scannable QR Code"
+                    className="w-72 h-72 mx-auto border-2 border-muted rounded-xl shadow-lg"
+                    onError={(e) => {
+                      console.error('QR code preview failed to load');
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
+                  />
+                  <div className="absolute top-2 right-2 bg-success text-success-foreground text-xs px-2 py-1 rounded-full font-medium">
+                    Scannable
+                  </div>
+                </div>
               </div>
             )}
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Scan this QR code with any QR scanner to book a seat at {studyHall.name}
-              </p>
-              <Button onClick={downloadQRCode} className="w-full">
-                <Download className="h-4 w-4 mr-2" />
-                Download PNG QR Code
-              </Button>
+            <div className="text-center space-y-4">
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">
+                  📱 <strong>How to use:</strong>
+                </p>
+                <ol className="text-xs text-muted-foreground text-left space-y-1">
+                  <li>1. Print this QR code or display on screen</li>
+                  <li>2. Guests scan with any QR scanner app</li>
+                  <li>3. They can book seats without creating account</li>
+                </ol>
+              </div>
+              
+              <div className="space-y-2">
+                <Button onClick={downloadQRCode} className="w-full">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download High-Quality PNG
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.open(getBookingUrl(), '_blank')}
+                  className="w-full"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Test Booking Page
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
