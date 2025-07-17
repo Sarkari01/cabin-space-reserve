@@ -133,16 +133,20 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (parseError: any) {
-    console.error('Error parsing request body:', parseError);
-    return new Response(
-      JSON.stringify({ error: 'Invalid request body' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error: any) {
     console.error('Error in public-booking function:', error);
+    
+    // Check if it's a JSON parsing error
+    if (error.message?.includes('JSON') || error.name === 'SyntaxError') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // General error handling
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
