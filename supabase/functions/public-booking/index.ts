@@ -17,17 +17,19 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const url = new URL(req.url);
-  const studyHallId = url.pathname.split('/').pop();
-
-  if (!studyHallId) {
-    return new Response(
-      JSON.stringify({ error: 'Study hall ID is required' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
   try {
+    const body = await req.json();
+    const studyHallId = body.studyHallId;
+
+    if (!studyHallId) {
+      return new Response(
+        JSON.stringify({ error: 'Study hall ID is required in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Fetching data for study hall: ${studyHallId}`);
+
     // Fetch study hall details with seat information
     const { data: studyHall, error: studyHallError } = await supabase
       .from('study_halls')
@@ -131,6 +133,12 @@ const handler = async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
+  } catch (parseError: any) {
+    console.error('Error parsing request body:', parseError);
+    return new Response(
+      JSON.stringify({ error: 'Invalid request body' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error: any) {
     console.error('Error in public-booking function:', error);
     return new Response(
