@@ -105,22 +105,18 @@ function addFinderPattern(matrix: boolean[][], startX: number, startY: number) {
 }
 
 async function svgToPngBuffer(svgString: string): Promise<Uint8Array> {
-  // For demo purposes, we'll create a simple PNG-like buffer
-  // In production, use proper SVG to PNG conversion
+  console.log('Converting SVG to buffer...');
+  
+  // Create a simple image buffer that can be uploaded
+  // This is a simplified approach - in production you'd use proper image conversion
   const encoder = new TextEncoder();
-  const svgBytes = encoder.encode(svgString);
+  const svgData = encoder.encode(svgString);
   
-  // Create a simple PNG header (this is a placeholder)
-  const pngHeader = new Uint8Array([
-    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
-  ]);
+  // For Deno edge function compatibility, we'll store as SVG but with PNG extension
+  // The file will be served correctly by Supabase storage
+  console.log(`SVG data encoded, size: ${svgData.length} bytes`);
   
-  // Combine header with SVG data (simplified approach)
-  const result = new Uint8Array(pngHeader.length + svgBytes.length);
-  result.set(pngHeader, 0);
-  result.set(svgBytes, pngHeader.length);
-  
-  return result;
+  return svgData;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -174,7 +170,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('qr-codes')
         .upload(fileName, qrCodeBuffer, {
-          contentType: 'image/png',
+          contentType: 'image/svg+xml',
           upsert: true
         });
 

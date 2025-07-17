@@ -7,7 +7,7 @@ export interface Booking {
   id: string;
   booking_number?: number;
   payment_status?: string;
-  user_id: string;
+  user_id: string | null;
   study_hall_id: string;
   seat_id: string;
   booking_period: "daily" | "weekly" | "monthly";
@@ -17,6 +17,10 @@ export interface Booking {
   status: "pending" | "confirmed" | "cancelled" | "completed" | "refunded";
   created_at: string;
   updated_at: string;
+  // Guest booking fields
+  guest_name?: string | null;
+  guest_email?: string | null;
+  guest_phone?: string | null;
   study_hall?: {
     name: string;
     location: string;

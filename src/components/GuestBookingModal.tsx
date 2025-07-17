@@ -146,19 +146,24 @@ export function GuestBookingModal({
       
       if (data.success) {
         // Handle payment gateway redirection based on payment method
-        if (paymentMethod === 'razorpay' && data.transaction?.payment_data?.razorpay_order_id) {
-          // Redirect to Razorpay
-          const razorpayData = data.transaction.payment_data;
-          initiateRazorpayPayment(razorpayData, data.booking);
-        } else if (paymentMethod === 'ekqr' && data.transaction?.payment_data?.qr_code_url) {
-          // Show QR code for EKQR payment
-          showEKQRPayment(data.transaction.payment_data, data.booking);
+        if (paymentMethod === 'razorpay' && data.razorpayData) {
+          // Open Razorpay payment in new tab
+          initiateRazorpayPayment(data.razorpayData, data.booking);
+        } else if (paymentMethod === 'ekqr' && data.ekqrData) {
+          // Show QR code for EKQR payment  
+          showEKQRPayment(data.ekqrData, data.booking);
         } else {
-          // Fallback: just show success message
+          // Fallback: booking created, redirect to complete payment
           toast({
             title: "Booking Created!",
-            description: `Your booking has been created. Booking ID: ${data.booking.bookingNumber}`,
+            description: `Your booking has been created. Please complete payment to confirm. Booking #${data.booking.booking_number}`,
           });
+          
+          // Redirect to payment page if available
+          if (data.paymentUrl) {
+            window.open(data.paymentUrl, '_blank');
+          }
+          
           onSuccess();
         }
       } else {
@@ -188,17 +193,36 @@ export function GuestBookingModal({
   };
 
   const initiateRazorpayPayment = (razorpayData: any, booking: any) => {
-    // Load Razorpay script and initiate payment
+    console.log('Initiating Razorpay payment:', razorpayData);
+    
+    // For now, redirect to Razorpay payment URL in new tab
+    if (razorpayData.payment_url) {
+      window.open(razorpayData.payment_url, '_blank');
+      
+      toast({
+        title: "Redirecting to Payment",
+        description: `Complete your payment to confirm booking #${booking.booking_number}`,
+      });
+      
+      // Close modal and refresh
+      setTimeout(() => {
+        onSuccess();
+      }, 2000);
+      
+      return;
+    }
+    
+    // Fallback: Load Razorpay script and initiate payment
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.onload = () => {
       const options = {
-        key: razorpayData.key_id,
+        key: razorpayData.key_id || razorpayData.razorpay_key_id,
         amount: razorpayData.amount,
-        currency: razorpayData.currency,
+        currency: razorpayData.currency || 'INR',
         name: studyHall?.name || 'Study Hall',
         description: `Seat booking for ${selectedSeat?.row_name}${selectedSeat?.seat_number}`,
-        order_id: razorpayData.razorpay_order_id,
+        order_id: razorpayData.razorpay_order_id || razorpayData.order_id,
         prefill: {
           name: guestName,
           email: guestEmail,
@@ -207,7 +231,7 @@ export function GuestBookingModal({
         handler: function (response: any) {
           toast({
             title: "Payment Successful!",
-            description: `Your booking has been confirmed. Booking ID: ${booking.bookingNumber}`,
+            description: `Your booking has been confirmed. Booking #${booking.booking_number}`,
           });
           onSuccess();
         },
@@ -225,22 +249,33 @@ export function GuestBookingModal({
       const razorpay = new (window as any).Razorpay(options);
       razorpay.open();
     };
+    script.onerror = () => {
+      toast({
+        title: "Payment Error", 
+        description: "Failed to load payment gateway. Please try again.",
+        variant: "destructive",
+      });
+    };
     document.head.appendChild(script);
   };
 
   const showEKQRPayment = (ekqrData: any, booking: any) => {
-    // For EKQR, you would typically show a QR code modal
-    // This is a simplified implementation
+    console.log('Showing EKQR payment:', ekqrData);
+    
+    // If there's a QR code URL, open it in a new tab
+    if (ekqrData.qr_code_url) {
+      window.open(ekqrData.qr_code_url, '_blank');
+    }
+    
     toast({
-      title: "Scan QR Code",
-      description: `Please scan the QR code to complete payment. Booking ID: ${booking.bookingNumber}`,
+      title: "Complete Payment",
+      description: `Scan the QR code or use the payment link to complete your booking #${booking.booking_number}`,
     });
     
-    // In a real implementation, you'd show a modal with the QR code
-    // and poll for payment status
+    // Close modal and refresh after showing the QR code
     setTimeout(() => {
       onSuccess();
-    }, 3000); // Simulate payment completion after 3 seconds
+    }, 2000);
   };
 
   const handleClose = () => {

@@ -142,7 +142,7 @@ export function BookingDetailModal({
               </CardContent>
             </Card>
 
-            {/* User Information (for merchants, admins, and incharges) */}
+            {/* Customer Information (for merchants, admins, and incharges) */}
             {(userRole === 'merchant' || userRole === 'admin' || userRole === 'incharge') && (
               <Card>
                 <CardContent className="p-4">
@@ -152,16 +152,26 @@ export function BookingDetailModal({
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
+                      <span className="text-muted-foreground">Type:</span>
+                      <span className="font-medium">{booking.user_id ? 'Registered User' : 'Guest'}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Name:</span>
-                      <span className="font-medium">{booking.user?.full_name || 'N/A'}</span>
+                      <span className="font-medium">
+                        {booking.user_id ? (booking.user?.full_name || 'N/A') : (booking.guest_name || 'N/A')}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Email:</span>
-                      <span className="font-medium">{booking.user?.email}</span>
+                      <span className="font-medium">
+                        {booking.user_id ? (booking.user?.email || 'N/A') : (booking.guest_email || 'Not provided')}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Phone:</span>
-                      <span className="font-medium">{booking.user?.phone || 'Not provided'}</span>
+                      <span className="font-medium">
+                        {booking.user_id ? (booking.user?.phone || 'Not provided') : (booking.guest_phone || 'Not provided')}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
