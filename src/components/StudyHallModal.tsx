@@ -22,17 +22,6 @@ interface Seat {
   is_available: boolean;
 }
 
-interface SectionRow {
-  seats: number;
-  startNum?: number;
-}
-
-interface SeatSection {
-  name: string;
-  rows: Record<string, SectionRow>;
-  position: 'left' | 'right' | 'center';
-}
-
 interface StudyHall {
   id?: string;
   name: string;
@@ -51,10 +40,8 @@ interface StudyHall {
   latitude?: number;
   longitude?: number;
   formatted_address?: string;
-  layout_mode?: "fixed" | "custom" | "sectioned";
+  layout_mode?: "fixed" | "custom";
   row_seat_config?: Record<string, { seats: number }>;
-  seat_sections?: SeatSection[];
-  aisle_width?: number;
 }
 
 interface StudyHallModalProps {
@@ -90,8 +77,6 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
       formatted_address,
       layout_mode,
       row_seat_config,
-      seat_sections,
-      aisle_width,
       // Explicitly exclude non-database fields
       // incharges, owner, profiles, etc. are excluded by not being listed
     } = data;
@@ -116,8 +101,6 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
       formatted_address,
       layout_mode,
       row_seat_config,
-      seat_sections,
-      aisle_width,
     };
   };
   
@@ -136,11 +119,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     daily_price: 100,
     weekly_price: 500,
     monthly_price: 1500,
-        status: "active",
-        layout_mode: "fixed",
-        row_seat_config: undefined,
-        seat_sections: undefined,
-        aisle_width: 24
+    status: "active",
+    layout_mode: "fixed",
+    row_seat_config: undefined
   });
 
   const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
@@ -208,7 +189,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     }
   };
 
-  const handleLayoutModeChange = (mode: "fixed" | "custom" | "sectioned") => {
+  const handleLayoutModeChange = (mode: "fixed" | "custom") => {
     setFormData(prev => {
       if (mode === "custom" && !prev.row_seat_config) {
         // Initialize custom layout with current row configuration
@@ -221,50 +202,6 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
           ...prev,
           layout_mode: mode,
           row_seat_config: config
-        };
-      }
-      
-      if (mode === "sectioned" && !prev.seat_sections) {
-        // Initialize sectioned layout with theater-style configuration
-        const leftSection: SeatSection = {
-          name: "Left Section",
-          position: "left",
-          rows: {
-            "A": { seats: 7 },
-            "B": { seats: 6 },
-            "C": { seats: 7 },
-            "D": { seats: 6 },
-            "E": { seats: 7 },
-            "F": { seats: 6 },
-            "G": { seats: 7 },
-            "H": { seats: 6 },
-          }
-        };
-        
-        const rightSection: SeatSection = {
-          name: "Right Section", 
-          position: "right",
-          rows: {
-            "A": { seats: 8 },
-            "B": { seats: 9 },
-            "C": { seats: 8 },
-            "D": { seats: 9 },
-            "E": { seats: 8 },
-            "F": { seats: 9 },
-            "G": { seats: 8 },
-            "H": { seats: 9 },
-          }
-        };
-        
-        const totalSeats = Object.values(leftSection.rows).reduce((sum, row) => sum + row.seats, 0) +
-                          Object.values(rightSection.rows).reduce((sum, row) => sum + row.seats, 0);
-        
-        return {
-          ...prev,
-          layout_mode: mode,
-          seat_sections: [leftSection, rightSection],
-          aisle_width: 24,
-          total_seats: totalSeats
         };
       }
       
@@ -792,44 +729,30 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
               {/* Layout Mode Selection */}
               <div className="border rounded-lg p-4 bg-muted/30">
                 <h4 className="font-semibold mb-3">Layout Mode</h4>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="flex space-x-4">
                   <Button
                     type="button"
                     variant={formData.layout_mode === "fixed" ? "default" : "outline"}
                     onClick={() => handleLayoutModeChange("fixed")}
                     disabled={isReadOnly}
-                    className="flex items-center space-x-2"
+                    className="flex-1"
                   >
-                    <Grid3X3 className="h-4 w-4" />
-                    <span>Fixed Grid</span>
+                    Fixed Grid Layout
                   </Button>
                   <Button
                     type="button"
                     variant={formData.layout_mode === "custom" ? "default" : "outline"}
                     onClick={() => handleLayoutModeChange("custom")}
                     disabled={isReadOnly}
-                    className="flex items-center space-x-2"
+                    className="flex-1"
                   >
-                    <Grid3X3 className="h-4 w-4" />
-                    <span>Custom Layout</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={formData.layout_mode === "sectioned" ? "default" : "outline"}
-                    onClick={() => handleLayoutModeChange("sectioned")}
-                    disabled={isReadOnly}
-                    className="flex items-center space-x-2"
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                    <span>Sectioned Layout</span>
+                    Custom Layout
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
                   {formData.layout_mode === "fixed" 
                     ? "All rows have the same number of seats" 
-                    : formData.layout_mode === "custom"
-                    ? "Each row can have a different number of seats"
-                    : "Theater-style layout with left/right sections and center aisle"}
+                    : "Each row can have a different number of seats"}
                 </p>
               </div>
 
@@ -891,104 +814,6 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                       <div className="text-2xl font-bold text-center py-2">
                         {formData.total_seats}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sectioned Layout Controls */}
-              {formData.layout_mode === "sectioned" && formData.seat_sections && (
-                <div className="border rounded-lg p-4 bg-muted/30">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-semibold">Sectioned Layout Configuration</h4>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <Label className="text-sm">Aisle Width (px):</Label>
-                        <Input
-                          type="number"
-                          value={formData.aisle_width || 24}
-                          onChange={(e) => setFormData(prev => ({ 
-                            ...prev, 
-                            aisle_width: Number(e.target.value) 
-                          }))}
-                          className="w-20"
-                          min="12"
-                          max="60"
-                          disabled={isReadOnly}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-6">
-                    {formData.seat_sections.map((section, sectionIndex) => (
-                      <div key={sectionIndex} className="space-y-3">
-                        <h5 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                          {section.name}
-                        </h5>
-                        {Object.entries(section.rows).map(([rowName, rowConfig]) => (
-                          <div key={rowName} className="flex items-center space-x-3 p-2 border rounded bg-background">
-                            <div className="w-8 h-8 bg-primary text-primary-foreground rounded flex items-center justify-center text-sm font-bold">
-                              {rowName}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2">
-                                {!isReadOnly && (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      const newSections = [...formData.seat_sections!];
-                                      newSections[sectionIndex].rows[rowName].seats = Math.max(1, rowConfig.seats - 1);
-                                      const totalSeats = newSections.reduce((sum, sec) => 
-                                        sum + Object.values(sec.rows).reduce((rowSum, row) => rowSum + row.seats, 0), 0);
-                                      setFormData(prev => ({ 
-                                        ...prev, 
-                                        seat_sections: newSections,
-                                        total_seats: totalSeats
-                                      }));
-                                    }}
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </Button>
-                                )}
-                                <span className="w-8 text-center font-medium">{rowConfig.seats}</span>
-                                {!isReadOnly && (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      const newSections = [...formData.seat_sections!];
-                                      newSections[sectionIndex].rows[rowName].seats = Math.min(15, rowConfig.seats + 1);
-                                      const totalSeats = newSections.reduce((sum, sec) => 
-                                        sum + Object.values(sec.rows).reduce((rowSum, row) => rowSum + row.seats, 0), 0);
-                                      setFormData(prev => ({ 
-                                        ...prev, 
-                                        seat_sections: newSections,
-                                        total_seats: totalSeats
-                                      }));
-                                    }}
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {rowName}1-{rowName}{rowConfig.seats}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-4 p-3 bg-primary/5 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Total Seats:</span>
-                      <span className="text-lg font-bold">{formData.total_seats}</span>
                     </div>
                   </div>
                 </div>
@@ -1082,119 +907,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 </div>
                 
                 {/* Seat Grid */}
-                <div className="flex flex-col items-center space-y-4">
-                  {formData.layout_mode === "sectioned" && formData.seat_sections ? (
-                    // Sectioned Layout Rendering
-                    <div className="w-full max-w-4xl">
-                      {/* Get all unique row names from all sections */}
-                      {Array.from(new Set(
-                        formData.seat_sections.flatMap(section => Object.keys(section.rows))
-                      )).sort().map(rowName => {
-                        const leftSection = formData.seat_sections!.find(s => s.position === 'left');
-                        const rightSection = formData.seat_sections!.find(s => s.position === 'right');
-                        const leftRowConfig = leftSection?.rows[rowName];
-                        const rightRowConfig = rightSection?.rows[rowName];
-                        
-                        if (!leftRowConfig && !rightRowConfig) return null;
-                        
-                        return (
-                          <div key={rowName} className="flex items-center justify-center space-x-4">
-                            {/* Row Label */}
-                            <div className="w-12 h-12 bg-muted/80 rounded-lg flex items-center justify-center text-sm font-bold text-muted-foreground">
-                              {rowName}
-                            </div>
-                            
-                            {/* Left Section Seats */}
-                            <div className="flex space-x-2">
-                              {leftRowConfig ? Array.from({ length: leftRowConfig.seats }, (_, seatIndex) => {
-                                const seatId = `${rowName}${seatIndex + 1}`;
-                                const seat = seats.find(s => s.seat_id === seatId);
-                                const isAvailable = seat?.is_available ?? true;
-                                
-                                return (
-                                  <div key={seatId} className="relative group">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className={`w-14 h-14 p-0 relative transition-all duration-200 border-2 ${
-                                        isAvailable 
-                                          ? "border-emerald-400 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-500" 
-                                          : "bg-red-50 border-red-300 text-red-700"
-                                      }`}
-                                      disabled={true}
-                                    >
-                                      <div className="text-center leading-tight">
-                                        <div className="text-xs font-bold">{seatIndex + 1}</div>
-                                        <div className="text-xs opacity-70">{rowName}</div>
-                                      </div>
-                                      {!isAvailable && (
-                                        <div className="absolute inset-0 bg-red-500/10 rounded" />
-                                      )}
-                                    </Button>
-                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
-                                      Seat {rowName}{seatIndex + 1} - {isAvailable ? "Available" : "Occupied"}
-                                    </div>
-                                  </div>
-                                );
-                              }) : null}
-                            </div>
-                            
-                            {/* Center Aisle */}
-                            <div 
-                              className="bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg flex items-center justify-center"
-                              style={{ width: `${formData.aisle_width || 24}px`, height: '32px' }}
-                            >
-                              <div className="w-full h-0.5 bg-muted-foreground/20 rounded"></div>
-                            </div>
-                            
-                            {/* Right Section Seats */}
-                            <div className="flex space-x-2">
-                              {rightRowConfig ? Array.from({ length: rightRowConfig.seats }, (_, seatIndex) => {
-                                const seatId = `${rowName}${seatIndex + 1 + (leftRowConfig?.seats || 0)}`;
-                                const seat = seats.find(s => s.seat_id === seatId);
-                                const isAvailable = seat?.is_available ?? true;
-                                
-                                return (
-                                  <div key={seatId} className="relative group">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className={`w-14 h-14 p-0 relative transition-all duration-200 border-2 ${
-                                        isAvailable 
-                                          ? "border-emerald-400 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-500" 
-                                          : "bg-red-50 border-red-300 text-red-700"
-                                      }`}
-                                      disabled={true}
-                                    >
-                                      <div className="text-center leading-tight">
-                                        <div className="text-xs font-bold">{seatIndex + 1 + (leftRowConfig?.seats || 0)}</div>
-                                        <div className="text-xs opacity-70">{rowName}</div>
-                                      </div>
-                                      {!isAvailable && (
-                                        <div className="absolute inset-0 bg-red-500/10 rounded" />
-                                      )}
-                                    </Button>
-                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
-                                      Seat {rowName}{seatIndex + 1 + (leftRowConfig?.seats || 0)} - {isAvailable ? "Available" : "Occupied"}
-                                    </div>
-                                  </div>
-                                );
-                              }) : null}
-                            </div>
-                            
-                            {/* Row Label */}
-                            <div className="w-12 h-12 bg-muted/80 rounded-lg flex items-center justify-center text-sm font-bold text-muted-foreground">
-                              {rowName}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : formData.layout_mode === "custom" && formData.row_seat_config ? (
-                    // Custom Layout Rendering
-                    Object.entries(formData.row_seat_config).map(([rowName, config], rowIndex) => (
+                <div className="flex flex-col items-center space-y-3">
+                  {formData.layout_mode === "custom" && formData.row_seat_config 
+                    ? Object.entries(formData.row_seat_config).map(([rowName, config], rowIndex) => (
                       <div key={rowName} className="flex items-center space-x-3">
                         {/* Row Label */}
                         <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
@@ -1245,9 +960,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                         </div>
                       </div>
                     ))
-                  ) : (
-                    // Fixed Layout Rendering
-                    Array.from({ length: formData.rows }, (_, rowIndex) => {
+                    : Array.from({ length: formData.rows }, (_, rowIndex) => {
                       const rowName = formData.custom_row_names[rowIndex] || String.fromCharCode(65 + rowIndex);
                       return (
                         <div key={rowIndex} className="flex items-center space-x-3">
@@ -1300,36 +1013,19 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                           </div>
                         </div>
                       );
-                    })
-                  )}
+                    })}
                 </div>
 
-                {/* Seat Status Legend and Layout Info */}
-                <div className="space-y-3 mt-6">
-                  <div className="flex justify-center space-x-6">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-emerald-400 rounded-md"></div>
-                      <span className="text-sm text-muted-foreground font-medium">Available</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 bg-red-50 border-2 border-red-300 rounded-md"></div>
-                      <span className="text-sm text-muted-foreground font-medium">Occupied</span>
-                    </div>
-                    {formData.layout_mode === "sectioned" && (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-5 h-2 bg-muted/50 rounded-full"></div>
-                        <span className="text-sm text-muted-foreground font-medium">Aisle</span>
-                      </div>
-                    )}
+                {/* Seat Status Legend */}
+                <div className="flex justify-center space-x-6 mt-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-green-500 rounded"></div>
+                    <span className="text-sm text-muted-foreground">Available</span>
                   </div>
-                  
-                  {formData.layout_mode === "sectioned" && (
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground">
-                        Theater-style sectioned layout with center aisle ({formData.aisle_width || 24}px width)
-                      </p>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+                    <span className="text-sm text-muted-foreground">Occupied</span>
+                  </div>
                 </div>
               </div>
 
