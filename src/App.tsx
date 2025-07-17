@@ -19,6 +19,7 @@ import InstitutionDashboard from "./pages/Institution/Dashboard";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { PolicyPage } from "./components/PolicyPage";
+import PublicBooking from "./pages/PublicBooking";
 import { ProtectedMaintenanceRoute } from "./components/ProtectedMaintenanceRoute";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -154,6 +155,9 @@ const App = () => (
                 
                 {/* Policy Pages Route */}
                 <Route path="/policies/:slug" element={<PolicyPage />} />
+                
+                {/* Public QR Booking Route */}
+                <Route path="/studyhall/:id/booking" element={<PublicBooking />} />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

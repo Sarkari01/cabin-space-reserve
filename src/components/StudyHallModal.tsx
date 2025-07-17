@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Minus, Grid3X3, DollarSign, Upload, X, Wifi, Snowflake, Car, Coffee, Printer, Monitor } from "lucide-react";
+import { QRCodeManager } from "@/components/QRCodeManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSeats } from "@/hooks/useStudyHalls";
@@ -319,11 +320,14 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="details">Basic Details</TabsTrigger>
               <TabsTrigger value="location">Location</TabsTrigger>
               <TabsTrigger value="amenities">Amenities</TabsTrigger>
               <TabsTrigger value="layout">Seat Layout</TabsTrigger>
+              {(mode === "edit" || mode === "view") && studyHall?.id && (
+                <TabsTrigger value="qr">QR Code</TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="details" className="space-y-4">
@@ -1062,6 +1066,26 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* QR Code Tab */}
+            {(mode === "edit" || mode === "view") && studyHall?.id && (
+              <TabsContent value="qr" className="space-y-4">
+                <QRCodeManager
+                  studyHall={{ 
+                    id: studyHall.id, 
+                    name: formData.name,
+                    qr_code_url: (studyHall as any)?.qr_code_url,
+                    qr_booking_enabled: (studyHall as any)?.qr_booking_enabled ?? true
+                  }}
+                  onUpdate={() => {
+                    // Refresh parent component if needed
+                    if (typeof (studyHall as any)?.onUpdate === 'function') {
+                      (studyHall as any).onUpdate();
+                    }
+                  }}
+                />
+              </TabsContent>
+            )}
           </Tabs>
 
           {!isReadOnly && (

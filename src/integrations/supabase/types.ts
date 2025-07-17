@@ -140,6 +140,9 @@ export type Database = {
           booking_period: Database["public"]["Enums"]["booking_period"]
           created_at: string
           end_date: string
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           payment_status: string | null
           seat_id: string
@@ -148,13 +151,16 @@ export type Database = {
           study_hall_id: string
           total_amount: number
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           booking_number?: number | null
           booking_period: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date: string
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           payment_status?: string | null
           seat_id: string
@@ -163,13 +169,16 @@ export type Database = {
           study_hall_id: string
           total_amount: number
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           booking_number?: number | null
           booking_period?: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date?: string
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           payment_status?: string | null
           seat_id?: string
@@ -178,7 +187,7 @@ export type Database = {
           study_hall_id?: string
           total_amount?: number
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2060,6 +2069,8 @@ export type Database = {
           merchant_id: string
           monthly_price: number
           name: string
+          qr_booking_enabled: boolean | null
+          qr_code_url: string | null
           row_seat_config: Json | null
           rows: number
           seats_per_row: number
@@ -2087,6 +2098,8 @@ export type Database = {
           merchant_id: string
           monthly_price?: number
           name: string
+          qr_booking_enabled?: boolean | null
+          qr_code_url?: string | null
           row_seat_config?: Json | null
           rows: number
           seats_per_row: number
@@ -2114,6 +2127,8 @@ export type Database = {
           merchant_id?: string
           monthly_price?: number
           name?: string
+          qr_booking_enabled?: boolean | null
+          qr_code_url?: string | null
           row_seat_config?: Json | null
           rows?: number
           seats_per_row?: number
