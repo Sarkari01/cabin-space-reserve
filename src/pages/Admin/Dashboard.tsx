@@ -73,6 +73,7 @@ const AdminDashboard = () => {
     students, 
     studyHalls, 
     loading, 
+    fetchData,
     createUser, 
     updateUserRole, 
     deleteUser, 
@@ -252,10 +253,17 @@ const AdminDashboard = () => {
   const handleSaveStudyHall = async (studyHallData: any) => {
     try {
       if (studyHallModalMode === "edit" && selectedStudyHall) {
+        // Extract only the fields that belong to the study_halls table
+        const {
+          incharges, // Remove incharges as it's not a study_halls column
+          owner,     // Remove owner as it's not a study_halls column  
+          ...updateData
+        } = studyHallData;
+
         const { error } = await supabase
           .from("study_halls")
           .update({
-            ...studyHallData,
+            ...updateData,
             updated_at: new Date().toISOString()
           })
           .eq("id", selectedStudyHall.id);
@@ -266,6 +274,9 @@ const AdminDashboard = () => {
           title: "Success",
           description: "Study hall updated successfully",
         });
+        
+        // Refresh the data to show updated information
+        await fetchData();
       }
       setStudyHallModalOpen(false);
       setSelectedStudyHall(null);

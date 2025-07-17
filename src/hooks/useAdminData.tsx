@@ -146,7 +146,8 @@ export const useAdminData = () => {
 
   const fetchStudyHalls = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch study halls with owner information
+      const { data: studyHallsData, error: studyHallsError } = await supabase
         .from('study_halls')
         .select(`
           *,
@@ -157,14 +158,41 @@ export const useAdminData = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (studyHallsError) throw studyHallsError;
 
-      const studyHallsWithOwner = (data || []).map(hall => ({
-        ...hall,
-        owner: hall.profiles,
-      }));
+      // Fetch incharges separately
+      const { data: inchargesData, error: inchargesError } = await supabase
+        .from('incharges')
+        .select('id, full_name, email, mobile, status, permissions, assigned_study_halls')
+        .eq('status', 'active');
 
-      setStudyHalls(studyHallsWithOwner);
+      if (inchargesError) throw inchargesError;
+
+      // Map incharges to study halls
+      const studyHallsWithOwnerAndIncharges = (studyHallsData || []).map(hall => {
+        // Find incharges assigned to this study hall
+        const hallIncharges = (inchargesData || []).filter(incharge => {
+          const assignedHalls = Array.isArray(incharge.assigned_study_halls) 
+            ? incharge.assigned_study_halls 
+            : [];
+          return assignedHalls.includes(hall.id);
+        }).map(incharge => ({
+          id: incharge.id,
+          full_name: incharge.full_name,
+          email: incharge.email,
+          mobile: incharge.mobile,
+          status: incharge.status,
+          permissions: incharge.permissions
+        }));
+
+        return {
+          ...hall,
+          owner: hall.profiles,
+          incharges: hallIncharges
+        };
+      });
+
+      setStudyHalls(studyHallsWithOwnerAndIncharges);
     } catch (error: any) {
       toast({
         title: "Error",
