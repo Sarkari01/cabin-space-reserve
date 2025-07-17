@@ -55,6 +55,55 @@ interface StudyHallModalProps {
 export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: StudyHallModalProps) {
   const { toast } = useToast();
   
+  // Helper function to extract only valid study hall database fields
+  const extractStudyHallFields = (data: any): StudyHall => {
+    const {
+      id,
+      name,
+      description,
+      location,
+      total_seats,
+      rows,
+      seats_per_row,
+      custom_row_names,
+      amenities,
+      daily_price,
+      weekly_price,
+      monthly_price,
+      image_url,
+      status,
+      latitude,
+      longitude,
+      formatted_address,
+      layout_mode,
+      row_seat_config,
+      // Explicitly exclude non-database fields
+      // incharges, owner, profiles, etc. are excluded by not being listed
+    } = data;
+    
+    return {
+      id,
+      name,
+      description,
+      location,
+      total_seats,
+      rows,
+      seats_per_row,
+      custom_row_names,
+      amenities,
+      daily_price,
+      weekly_price,
+      monthly_price,
+      image_url,
+      status,
+      latitude,
+      longitude,
+      formatted_address,
+      layout_mode,
+      row_seat_config,
+    };
+  };
+  
   const [formData, setFormData] = useState<StudyHall>({
     name: "",
     description: "",
@@ -79,7 +128,8 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
 
   useEffect(() => {
     if (studyHall) {
-      setFormData(studyHall);
+      // Clean the study hall data to exclude non-database fields
+      setFormData(extractStudyHallFields(studyHall));
       if (studyHall.id) {
         fetchSeats(studyHall.id);
       }
@@ -241,7 +291,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    // Clean the form data before saving to ensure only database fields are included
+    const cleanData = extractStudyHallFields(formData);
+    onSave(cleanData);
     onClose();
   };
 
