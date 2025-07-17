@@ -40,6 +40,8 @@ interface StudyHall {
   latitude?: number;
   longitude?: number;
   formatted_address?: string;
+  layout_mode?: "fixed" | "custom";
+  row_seat_config?: Record<string, { seats: number }>;
 }
 
 interface StudyHallModalProps {
@@ -68,7 +70,9 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     daily_price: 100,
     weekly_price: 500,
     monthly_price: 1500,
-    status: "active"
+    status: "active",
+    layout_mode: "fixed",
+    row_seat_config: undefined
   });
 
   const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
@@ -133,6 +137,86 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
         total_seats: prev.rows * value
       }));
     }
+  };
+
+  const handleLayoutModeChange = (mode: "fixed" | "custom") => {
+    setFormData(prev => {
+      if (mode === "custom" && !prev.row_seat_config) {
+        // Initialize custom layout with current row configuration
+        const config: Record<string, { seats: number }> = {};
+        prev.custom_row_names.forEach(rowName => {
+          config[rowName] = { seats: prev.seats_per_row };
+        });
+        
+        return {
+          ...prev,
+          layout_mode: mode,
+          row_seat_config: config
+        };
+      }
+      
+      return {
+        ...prev,
+        layout_mode: mode
+      };
+    });
+  };
+
+  const handleCustomRowSeatsChange = (rowName: string, seats: number) => {
+    setFormData(prev => {
+      const newConfig = { ...prev.row_seat_config };
+      newConfig[rowName] = { seats };
+      
+      // Calculate total seats from custom configuration
+      const totalSeats = Object.values(newConfig).reduce((sum, row) => sum + row.seats, 0);
+      
+      return {
+        ...prev,
+        row_seat_config: newConfig,
+        total_seats: totalSeats
+      };
+    });
+  };
+
+  const addCustomRow = () => {
+    if (!formData.row_seat_config) return;
+    
+    const existingRows = Object.keys(formData.row_seat_config);
+    const nextRowLetter = String.fromCharCode(65 + existingRows.length);
+    
+    setFormData(prev => {
+      const newConfig = { ...prev.row_seat_config };
+      newConfig[nextRowLetter] = { seats: 5 }; // Default 5 seats
+      
+      const newCustomRowNames = [...prev.custom_row_names, nextRowLetter];
+      const totalSeats = Object.values(newConfig).reduce((sum, row) => sum + row.seats, 0);
+      
+      return {
+        ...prev,
+        row_seat_config: newConfig,
+        custom_row_names: newCustomRowNames,
+        rows: newCustomRowNames.length,
+        total_seats: totalSeats
+      };
+    });
+  };
+
+  const removeCustomRow = (rowName: string) => {
+    setFormData(prev => {
+      const newConfig = { ...prev.row_seat_config };
+      delete newConfig[rowName];
+      
+      const newCustomRowNames = prev.custom_row_names.filter(name => name !== rowName);
+      const totalSeats = Object.values(newConfig).reduce((sum, row) => sum + row.seats, 0);
+      
+      return {
+        ...prev,
+        row_seat_config: newConfig,
+        custom_row_names: newCustomRowNames,
+        rows: newCustomRowNames.length,
+        total_seats: totalSeats
+      };
+    });
   };
 
   const handleRowNameChange = (index: number, newName: string) => {
@@ -593,9 +677,181 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                   <h4 className="font-semibold">Study Hall Seat Layout</h4>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Customize your seat layout. All seats use the pricing set in Basic Details.
+                  Choose between fixed grid layout or custom variable seats per row.
                 </p>
               </div>
+
+              {/* Layout Mode Selection */}
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <h4 className="font-semibold mb-3">Layout Mode</h4>
+                <div className="flex space-x-4">
+                  <Button
+                    type="button"
+                    variant={formData.layout_mode === "fixed" ? "default" : "outline"}
+                    onClick={() => handleLayoutModeChange("fixed")}
+                    disabled={isReadOnly}
+                    className="flex-1"
+                  >
+                    Fixed Grid Layout
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={formData.layout_mode === "custom" ? "default" : "outline"}
+                    onClick={() => handleLayoutModeChange("custom")}
+                    disabled={isReadOnly}
+                    className="flex-1"
+                  >
+                    Custom Layout
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {formData.layout_mode === "fixed" 
+                    ? "All rows have the same number of seats" 
+                    : "Each row can have a different number of seats"}
+                </p>
+              </div>
+
+              {/* Fixed Layout Controls */}
+              {formData.layout_mode === "fixed" && (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <h4 className="font-semibold mb-3">Fixed Grid Settings</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>Rows</Label>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLayoutChange('rows', Math.max(1, formData.rows - 1))}
+                          disabled={isReadOnly}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="w-8 text-center">{formData.rows}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLayoutChange('rows', Math.min(10, formData.rows + 1))}
+                          disabled={isReadOnly}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Seats per Row</Label>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLayoutChange('seats_per_row', Math.max(1, formData.seats_per_row - 1))}
+                          disabled={isReadOnly}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="w-8 text-center">{formData.seats_per_row}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLayoutChange('seats_per_row', Math.min(20, formData.seats_per_row + 1))}
+                          disabled={isReadOnly}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Total Seats</Label>
+                      <div className="text-2xl font-bold text-center py-2">
+                        {formData.total_seats}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Layout Controls */}
+              {formData.layout_mode === "custom" && formData.row_seat_config && (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold">Custom Row Configuration</h4>
+                    {!isReadOnly && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addCustomRow}
+                        className="flex items-center space-x-1"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add Row</span>
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {Object.entries(formData.row_seat_config).map(([rowName, config]) => (
+                      <div key={rowName} className="flex items-center space-x-3 p-3 border rounded-lg bg-background">
+                        <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center text-sm font-bold">
+                          {rowName}
+                        </div>
+                        
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground">Row {rowName} Seats</Label>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCustomRowSeatsChange(rowName, Math.max(1, config.seats - 1))}
+                              disabled={isReadOnly}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-8 text-center font-medium">{config.seats}</span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCustomRowSeatsChange(rowName, Math.min(30, config.seats + 1))}
+                              disabled={isReadOnly}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="text-sm text-muted-foreground">
+                          Seats: {rowName}1 to {rowName}{config.seats}
+                        </div>
+                        
+                        {!isReadOnly && Object.keys(formData.row_seat_config || {}).length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeCustomRow(rowName)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-primary/5 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Total Seats:</span>
+                      <span className="text-lg font-bold">{formData.total_seats}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="bg-background border-2 border-dashed border-muted-foreground/20 rounded-xl p-8">
                 {/* Layout Controls */}
@@ -607,18 +863,17 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 
                 {/* Seat Grid */}
                 <div className="flex flex-col items-center space-y-3">
-                  {Array.from({ length: formData.rows }, (_, rowIndex) => {
-                    const rowName = formData.custom_row_names[rowIndex] || String.fromCharCode(65 + rowIndex);
-                    return (
-                      <div key={rowIndex} className="flex items-center space-x-3">
+                  {formData.layout_mode === "custom" && formData.row_seat_config 
+                    ? Object.entries(formData.row_seat_config).map(([rowName, config], rowIndex) => (
+                      <div key={rowName} className="flex items-center space-x-3">
                         {/* Row Label */}
                         <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
                           {rowName}
                         </div>
                         
-                        {/* Seat Numbers */}
+                        {/* Seat Numbers - Variable per row */}
                         <div className="flex space-x-2">
-                          {Array.from({ length: formData.seats_per_row }, (_, seatIndex) => {
+                          {Array.from({ length: config.seats }, (_, seatIndex) => {
                             const seatId = `${rowName}${seatIndex + 1}`;
                             const seat = seats.find(s => s.seat_id === seatId);
                             const isAvailable = seat?.is_available ?? true;
@@ -646,7 +901,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                                     <div className="absolute inset-0 bg-red-500/20 rounded" />
                                   )}
                                 </Button>
-                                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                                   {isAvailable ? "Available" : "Occupied"}
                                 </div>
                               </div>
@@ -659,8 +914,61 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                           {rowName}
                         </div>
                       </div>
-                    );
-                  })}
+                    ))
+                    : Array.from({ length: formData.rows }, (_, rowIndex) => {
+                      const rowName = formData.custom_row_names[rowIndex] || String.fromCharCode(65 + rowIndex);
+                      return (
+                        <div key={rowIndex} className="flex items-center space-x-3">
+                          {/* Row Label */}
+                          <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
+                            {rowName}
+                          </div>
+                          
+                          {/* Seat Numbers - Fixed per row */}
+                          <div className="flex space-x-2">
+                            {Array.from({ length: formData.seats_per_row }, (_, seatIndex) => {
+                              const seatId = `${rowName}${seatIndex + 1}`;
+                              const seat = seats.find(s => s.seat_id === seatId);
+                              const isAvailable = seat?.is_available ?? true;
+                              
+                              return (
+                                <div key={seatId} className="relative group">
+                                  <Button
+                                    type="button"
+                                    variant={isAvailable ? "outline" : "secondary"}
+                                    size="sm"
+                                    className={`w-12 h-12 p-0 relative transition-colors ${
+                                      isAvailable 
+                                        ? "border-green-500 text-green-700 hover:bg-green-50" 
+                                        : "bg-red-100 border-red-300 text-red-700"
+                                    }`}
+                                    disabled={true}
+                                  >
+                                    <div className="text-center">
+                                      <div className="text-xs font-medium">{seatIndex + 1}</div>
+                                      <div className="text-xs">
+                                        {rowName}
+                                      </div>
+                                    </div>
+                                    {!isAvailable && (
+                                      <div className="absolute inset-0 bg-red-500/20 rounded" />
+                                    )}
+                                  </Button>
+                                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                    {isAvailable ? "Available" : "Occupied"}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* Row Number */}
+                          <div className="w-8 h-8 bg-muted rounded-md flex items-center justify-center text-sm font-bold text-muted-foreground">
+                            {rowName}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
 
                 {/* Seat Status Legend */}

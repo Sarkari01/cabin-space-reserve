@@ -2054,11 +2054,13 @@ export type Database = {
           id: string
           image_url: string | null
           latitude: number | null
+          layout_mode: string | null
           location: string
           longitude: number | null
           merchant_id: string
           monthly_price: number
           name: string
+          row_seat_config: Json | null
           rows: number
           seats_per_row: number
           status: string
@@ -2079,11 +2081,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           latitude?: number | null
+          layout_mode?: string | null
           location: string
           longitude?: number | null
           merchant_id: string
           monthly_price?: number
           name: string
+          row_seat_config?: Json | null
           rows: number
           seats_per_row: number
           status?: string
@@ -2104,11 +2108,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           latitude?: number | null
+          layout_mode?: string | null
           location?: string
           longitude?: number | null
           merchant_id?: string
           monthly_price?: number
           name?: string
+          row_seat_config?: Json | null
           rows?: number
           seats_per_row?: number
           status?: string
@@ -2565,6 +2571,10 @@ export type Database = {
       }
       calculate_distance: {
         Args: { lat1: number; lon1: number; lat2: number; lon2: number }
+        Returns: number
+      }
+      calculate_total_seats_from_config: {
+        Args: { row_seat_config: Json }
         Returns: number
       }
       check_seat_availability: {
