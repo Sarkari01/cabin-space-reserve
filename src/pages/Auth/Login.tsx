@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ const Login = () => {
     password: '',
     confirmPassword: '',
     fullName: '',
+    phone: '',
     role: 'student' as 'student' | 'merchant',
   });
 
@@ -71,8 +73,24 @@ const Login = () => {
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateSignupForm = () => {
+    if (!signupForm.email.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter your email",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!signupForm.password.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a password",
+        variant: "destructive",
+      });
+      return false;
+    }
     
     if (signupForm.password !== signupForm.confirmPassword) {
       toast({
@@ -80,18 +98,64 @@ const Login = () => {
         description: "Passwords do not match",
         variant: "destructive",
       });
+      return false;
+    }
+
+    if (!signupForm.fullName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter your full name",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!signupForm.phone.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!signupForm.role) {
+      toast({
+        title: "Error",
+        description: "Please select a role",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateSignupForm()) {
       return;
     }
 
     setLoading(true);
 
     try {
+      console.log('Calling signUp with:', {
+        email: signupForm.email,
+        role: signupForm.role,
+        hasPhone: !!signupForm.phone,
+        hasFullName: !!signupForm.fullName
+      });
+
       const { error } = await signUp(signupForm.email, signupForm.password, {
         full_name: signupForm.fullName,
+        phone: signupForm.phone,
         role: signupForm.role,
       });
       
       if (error) {
+        console.error('Registration error:', error);
         toast({
           title: "Error",
           description: error.message,
@@ -105,6 +169,7 @@ const Login = () => {
         description: "Account created successfully! Please check your email to verify your account.",
       });
     } catch (error: any) {
+      console.error('Registration error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -211,6 +276,20 @@ const Login = () => {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="Enter your phone number (e.g., +91XXXXXXXXXX)"
+                    value={signupForm.phone}
+                    onChange={(e) => setSignupForm({ ...signupForm, phone: e.target.value })}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Required for SMS notifications and account verification
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
                   <select
                     id="role"
@@ -219,7 +298,7 @@ const Login = () => {
                     onChange={(e) => setSignupForm({ ...signupForm, role: e.target.value as 'student' | 'merchant' })}
                   >
                     <option value="student">Student</option>
-                    <option value="merchant">Merchant</option>
+                    <option value="merchant">Study Hall Owner</option>
                   </select>
                 </div>
                 <div className="space-y-2">

@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBrandSettings } from '@/hooks/useBrandSettings';
-import { WelcomeSMSUpdater } from '@/components/registration/WelcomeSMSUpdater';
 
 export const Register = () => {
   const { signUp, user } = useAuth();
@@ -112,7 +111,6 @@ export const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <WelcomeSMSUpdater />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">

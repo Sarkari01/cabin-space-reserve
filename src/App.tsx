@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { NotificationProvider } from "@/components/NotificationProvider";
-import { WelcomeSMSUpdater } from "@/components/registration/WelcomeSMSUpdater";
 import { DashboardRedirect } from "@/components/DashboardRedirect";
 import Landing from "./pages/Landing";
 import Login from "./pages/Auth/Login";
@@ -34,7 +33,6 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <NotificationProvider>
-            <WelcomeSMSUpdater />
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
