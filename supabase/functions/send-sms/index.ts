@@ -118,8 +118,11 @@ serve(async (req) => {
     
     console.log(`SMS Response: ${smsResponseText}`);
 
-    // Parse response - SMSStriker typically returns "OK" for success
-    const isSuccess = smsResponseText.toLowerCase().includes('ok') || smsResponseText.toLowerCase().includes('success');
+    // Parse response - SMSStriker returns "Ack: Messages has been sent" for success
+    const isSuccess = smsResponseText.includes('Messages has been sent') || 
+                     smsResponseText.includes('Ack:') ||
+                     smsResponseText.toLowerCase().includes('ok') || 
+                     smsResponseText.toLowerCase().includes('success');
     const status = isSuccess ? 'sent' : 'failed';
 
     // Log SMS attempt

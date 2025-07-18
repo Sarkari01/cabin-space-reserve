@@ -69,6 +69,14 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/merchant/dashboard"
+                element={
+                  <ProtectedRoute requiredRole="merchant">
+                    <MerchantDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Student Routes */}
               <Route
