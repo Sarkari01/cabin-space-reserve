@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -24,34 +24,66 @@ export const Register = () => {
   });
 
   console.log('Register component rendered, form data:', formData);
+  console.log('Brand settings:', brandSettings);
 
   const handleInputChange = (field: string, value: string) => {
     console.log(`Form field ${field} changed to:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
+    if (!formData.email.trim()) {
+      alert('Please enter your email');
+      return false;
+    }
+    
+    if (!formData.password.trim()) {
+      alert('Please enter a password');
+      return false;
+    }
     
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match');
-      return;
+      return false;
+    }
+
+    if (!formData.fullName.trim()) {
+      alert('Please enter your full name');
+      return false;
+    }
+
+    if (!formData.phone.trim()) {
+      alert('Please enter your phone number');
+      return false;
     }
 
     if (!formData.role) {
       alert('Please select a role');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    console.log('Form submission started with data:', formData);
+    
+    if (!validateForm()) {
       return;
     }
 
-    if (!formData.phone) {
-      alert('Please enter your phone number');
-      return;
-    }
-
-    console.log('Submitting registration with data:', formData);
     setLoading(true);
 
     try {
+      console.log('Calling signUp with:', {
+        email: formData.email,
+        role: formData.role,
+        hasPhone: !!formData.phone,
+        hasFullName: !!formData.fullName
+      });
+
       const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.fullName,
         phone: formData.phone,
@@ -62,6 +94,7 @@ export const Register = () => {
         console.error('Registration error:', error);
         alert(error.message);
       } else {
+        console.log('Registration successful!');
         alert('Registration successful! Please check your email for verification.');
       }
     } catch (error) {
@@ -73,6 +106,7 @@ export const Register = () => {
   };
 
   if (user) {
+    console.log('User already authenticated, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -107,7 +141,7 @@ export const Register = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName">Full Name *</Label>
               <Input
                 id="fullName"
                 type="text"
@@ -115,11 +149,12 @@ export const Register = () => {
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                 required
+                className="w-full"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email Address *</Label>
               <Input
                 id="email"
                 type="email"
@@ -127,18 +162,20 @@ export const Register = () => {
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 required
+                className="w-full"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">Phone Number *</Label>
               <Input
                 id="phone"
                 type="tel"
-                placeholder="Enter your phone number"
+                placeholder="Enter your phone number (e.g., +91XXXXXXXXXX)"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 required
+                className="w-full"
               />
               <p className="text-xs text-muted-foreground">
                 Required for SMS notifications and account verification
@@ -146,9 +183,9 @@ export const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">I am a</Label>
+              <Label htmlFor="role">I am a *</Label>
               <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select your role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -159,7 +196,7 @@ export const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password *</Label>
               <Input
                 id="password"
                 type="password"
@@ -167,11 +204,12 @@ export const Register = () => {
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 required
+                className="w-full"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm Password *</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -179,12 +217,15 @@ export const Register = () => {
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                 required
+                className="w-full"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </Button>
+            <div className="pt-2">
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </Button>
+            </div>
           </form>
 
           <div className="mt-4 text-center text-sm">

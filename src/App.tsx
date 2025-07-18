@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { NotificationProvider } from "@/components/NotificationProvider";
 import { WelcomeSMSUpdater } from "@/components/registration/WelcomeSMSUpdater";
+import { DashboardRedirect } from "@/components/DashboardRedirect";
 import Landing from "./pages/Landing";
 import Login from "./pages/Auth/Login";
 import { Register } from "./pages/Auth/Register";
@@ -37,6 +39,16 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              
+              {/* Generic dashboard route that redirects based on role */}
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardRedirect />
+                  </ProtectedRoute>
+                } 
+              />
               
               <Route path="/maintenance" element={<MaintenancePage />} />
 

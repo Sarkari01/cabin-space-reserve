@@ -1,69 +1,24 @@
-import { useEffect } from "react";
+
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import { getRoleBasedDashboard } from "@/utils/roleRedirects";
-import { MerchantOnboardingGuard } from "@/components/merchant/MerchantOnboardingGuard";
-import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
+import { Navigate } from "react-router-dom";
+import { MerchantOnboardingGuard } from "./merchant/MerchantOnboardingGuard";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'merchant' | 'student' | 'incharge' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator' | 'institution';
-  allowMultipleRoles?: ('admin' | 'merchant' | 'student' | 'incharge' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator' | 'institution')[];
+  requiredRole?: string;
 }
 
-const ProtectedRoute = ({ 
-  children, 
-  requiredRole, 
-  allowMultipleRoles 
-}: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const { user, userRole, loading } = useAuth();
-  const { maintenanceStatus, loading: maintenanceLoading } = useMaintenanceMode();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (loading || maintenanceLoading) return;
+  console.log('ProtectedRoute: Checking access', {
+    user: !!user,
+    userRole,
+    requiredRole,
+    loading
+  });
 
-    // If not authenticated, redirect to login
-    if (!user) {
-      navigate("/login", { replace: true });
-      return;
-    }
-
-    // If user is authenticated but no role is set yet, wait
-    if (!userRole) {
-      return;
-    }
-
-    // Check maintenance mode - only admins can access during maintenance
-    if (maintenanceStatus.enabled && userRole !== 'admin') {
-      // Check if user's role is targeted by maintenance mode
-      const targetRoles = maintenanceStatus.targetRoles;
-      const isTargetedRole = !targetRoles || targetRoles.length === 0 || targetRoles.includes(userRole);
-      
-      if (isTargetedRole) {
-        navigate("/maintenance", { replace: true });
-        return;
-      }
-    }
-
-    // Check role permissions
-    if (requiredRole && userRole !== requiredRole) {
-      // Redirect to appropriate dashboard based on user's role
-      const dashboard = getRoleBasedDashboard(userRole);
-      navigate(dashboard, { replace: true });
-      return;
-    }
-
-    if (allowMultipleRoles && !allowMultipleRoles.includes(userRole)) {
-      // Redirect to appropriate dashboard based on user's role
-      const dashboard = getRoleBasedDashboard(userRole);
-      navigate(dashboard, { replace: true });
-      return;
-    }
-  }, [user, userRole, loading, maintenanceLoading, maintenanceStatus.enabled, navigate, requiredRole, allowMultipleRoles]);
-
-  // Show loading spinner while checking authentication and maintenance status
-  if (loading || maintenanceLoading || !user || !userRole) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -74,15 +29,44 @@ const ProtectedRoute = ({
     );
   }
 
-  // If role check is required and user doesn't have permission, don't render
+  if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+
   if (requiredRole && userRole !== requiredRole) {
-    return null;
+    console.log('ProtectedRoute: Role mismatch, redirecting to appropriate dashboard');
+    
+    // Redirect to appropriate dashboard based on user role
+    switch (userRole) {
+      case 'admin':
+        return <Navigate to="/admin" replace />;
+      case 'merchant':
+        return <Navigate to="/merchant" replace />;
+      case 'student':
+        return <Navigate to="/student" replace />;
+      case 'incharge':
+        return <Navigate to="/incharge" replace />;
+      case 'telemarketing_executive':
+        return <Navigate to="/telemarketing_executive" replace />;
+      case 'pending_payments_caller':
+        return <Navigate to="/pending_payments_caller" replace />;
+      case 'customer_care_executive':
+        return <Navigate to="/customer_care_executive" replace />;
+      case 'settlement_manager':
+        return <Navigate to="/settlement_manager" replace />;
+      case 'general_administrator':
+        return <Navigate to="/general_administrator" replace />;
+      case 'institution':
+        return <Navigate to="/institution" replace />;
+      default:
+        return <Navigate to="/login" replace />;
+    }
   }
 
-  if (allowMultipleRoles && !allowMultipleRoles.includes(userRole)) {
-    return null;
-  }
+  console.log('ProtectedRoute: Access granted, applying merchant onboarding guard');
 
+  // Apply merchant onboarding guard for all protected routes
   return (
     <MerchantOnboardingGuard>
       {children}
