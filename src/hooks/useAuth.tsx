@@ -1,7 +1,9 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { useSMS } from './useSMS';
 
 type UserProfile = Tables<'profiles'>;
 
@@ -24,6 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'merchant' | 'student' | 'incharge' | 'telemarketing_executive' | 'pending_payments_caller' | 'customer_care_executive' | 'settlement_manager' | 'general_administrator' | 'institution' | null>(null);
   const [loading, setLoading] = useState(true);
+  const { sendWelcomeUserSMS, sendWelcomeMerchantSMS } = useSMS();
 
   // Fetch user profile data
   const fetchUserProfile = async (userId: string) => {
@@ -103,7 +106,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, userData?: any) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -111,6 +114,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         data: userData,
       },
     });
+
+    // If signup was successful and we have user data, send welcome SMS
+    if (!error && data?.user && userData?.phone) {
+      console.log('Sending welcome SMS for new user:', userData);
+      
+      try {
+        // Wait a moment for the profile to be created via trigger
+        setTimeout(async () => {
+          if (userData.role === 'merchant') {
+            await sendWelcomeMerchantSMS(
+              userData.phone,
+              userData.full_name || 'User',
+              email,
+              'Please use your email and password to login', // Updated message
+              data.user.id
+            );
+          } else {
+            await sendWelcomeUserSMS(
+              userData.phone,
+              userData.full_name || 'User', 
+              email,
+              'Please use your email and password to login', // Updated message
+              data.user.id
+            );
+          }
+        }, 2000);
+      } catch (smsError) {
+        console.error('Failed to send welcome SMS:', smsError);
+        // Don't fail the entire signup process if SMS fails
+      }
+    }
+
     return { error };
   };
 

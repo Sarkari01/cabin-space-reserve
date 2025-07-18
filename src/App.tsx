@@ -3,173 +3,147 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { NotificationProvider } from "@/components/NotificationProvider";
+import { WelcomeSMSUpdater } from "@/components/registration/WelcomeSMSUpdater";
 import Landing from "./pages/Landing";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
-import StudentDashboard from "./pages/Student/Dashboard";
-import MerchantDashboard from "./pages/Merchant/Dashboard";
-import AdminDashboard from "./pages/Admin/Dashboard";
-import InchargeDashboard from "./pages/Incharge/Dashboard";
-import TelemarketingDashboard from "./pages/TelemarketingDashboard";
-import PaymentsCallerDashboard from "./pages/PaymentsCallerDashboard";
-import CustomerCareDashboard from "./pages/CustomerCareDashboard";
-import SettlementManagerDashboard from "./pages/SettlementManagerDashboard";
-import GeneralAdminDashboard from "./pages/GeneralAdminDashboard";
-import InstitutionDashboard from "./pages/Institution/Dashboard";
-import NotFound from "./pages/NotFound";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import { PolicyPage } from "./components/PolicyPage";
-import PublicBooking from "./pages/PublicBooking";
-import { ProtectedMaintenanceRoute } from "./components/ProtectedMaintenanceRoute";
-import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { PopupNotificationProvider } from "./components/PopupNotificationProvider";
-import { NotificationProvider } from "./components/NotificationProvider";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import MerchantDashboard from "./pages/Merchant/MerchantDashboard";
+import StudentDashboard from "./pages/Student/StudentDashboard";
+import InchargeDashboard from "./pages/Incharge/InchargeDashboard";
+import TelemarketingExecutiveDashboard from "./pages/TelemarketingExecutive/TelemarketingExecutiveDashboard";
+import PendingPaymentsCallerDashboard from "./pages/PendingPaymentsCaller/PendingPaymentsCallerDashboard";
+import CustomerCareExecutiveDashboard from "./pages/CustomerCareExecutive/CustomerCareExecutiveDashboard";
+import SettlementManagerDashboard from "./pages/SettlementManager/SettlementManagerDashboard";
+import GeneralAdministratorDashboard from "./pages/GeneralAdministrator/GeneralAdministratorDashboard";
+import InstitutionDashboard from "./pages/Institution/InstitutionDashboard";
+import MaintenancePage from "./pages/Maintenance";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ErrorBoundary>
-      <AuthProvider>
-        <PopupNotificationProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
           <NotificationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/maintenance" element={<ProtectedMaintenanceRoute />} />
-                <Route 
-                  path="/student/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="student">
-                      <ErrorBoundary>
-                        <StudentDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/merchant/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="merchant">
-                      <ErrorBoundary>
-                        <MerchantDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/admin/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <ErrorBoundary>
-                        <AdminDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/incharge/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="incharge">
-                      <ErrorBoundary>
-                        <InchargeDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/telemarketing/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="telemarketing_executive">
-                      <ErrorBoundary>
-                        <TelemarketingDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/payments-caller/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="pending_payments_caller">
-                      <ErrorBoundary>
-                        <PaymentsCallerDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/customer-care/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="customer_care_executive">
-                      <ErrorBoundary>
-                        <CustomerCareDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/settlement-manager/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="settlement_manager">
-                      <ErrorBoundary>
-                        <SettlementManagerDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/general-admin/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="general_administrator">
-                      <ErrorBoundary>
-                        <GeneralAdminDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/institution/dashboard" 
-                  element={
-                    <ProtectedRoute requiredRole="institution">
-                      <ErrorBoundary>
-                        <InstitutionDashboard />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/payment-success" 
-                  element={
-                    <ProtectedRoute allowMultipleRoles={['student', 'merchant']}>
-                      <ErrorBoundary>
-                        <PaymentSuccess />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* Policy Pages Route */}
-                <Route path="/policies/:slug" element={<PolicyPage />} />
-                
-                {/* Public QR Booking Route */}
-                <Route path="/studyhall/:studyHallId/booking" element={<PublicBooking />} />
-                
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+            <WelcomeSMSUpdater />
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              <Route path="/maintenance" element={<MaintenancePage />} />
+
+              {/* Admin Routes */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Merchant Routes */}
+              <Route
+                path="/merchant"
+                element={
+                  <ProtectedRoute requiredRole="merchant">
+                    <MerchantDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Student Routes */}
+              <Route
+                path="/student"
+                element={
+                  <ProtectedRoute requiredRole="student">
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Incharge Routes */}
+              <Route
+                path="/incharge"
+                element={
+                  <ProtectedRoute requiredRole="incharge">
+                    <InchargeDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Telemarketing Executive Routes */}
+              <Route
+                path="/telemarketing_executive"
+                element={
+                  <ProtectedRoute requiredRole="telemarketing_executive">
+                    <TelemarketingExecutiveDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Pending Payments Caller Routes */}
+              <Route
+                path="/pending_payments_caller"
+                element={
+                  <ProtectedRoute requiredRole="pending_payments_caller">
+                    <PendingPaymentsCallerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Customer Care Executive Routes */}
+              <Route
+                path="/customer_care_executive"
+                element={
+                  <ProtectedRoute requiredRole="customer_care_executive">
+                    <CustomerCareExecutiveDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Settlement Manager Routes */}
+              <Route
+                path="/settlement_manager"
+                element={
+                  <ProtectedRoute requiredRole="settlement_manager">
+                    <SettlementManagerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* General Administrator Routes */}
+              <Route
+                path="/general_administrator"
+                element={
+                  <ProtectedRoute requiredRole="general_administrator">
+                    <GeneralAdministratorDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Institution Routes */}
+              <Route
+                path="/institution"
+                element={
+                  <ProtectedRoute requiredRole="institution">
+                    <InstitutionDashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
           </NotificationProvider>
-        </PopupNotificationProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

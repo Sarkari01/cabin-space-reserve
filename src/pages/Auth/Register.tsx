@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,8 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: ""
+    role: "",
+    phone: ""
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -24,6 +26,11 @@ const Register = () => {
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const validatePhone = (phone: string) => {
+    const phoneRegex = /^[+]?[\d\s\-\(\)]{10,15}$/;
+    return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,12 +54,31 @@ const Register = () => {
       return;
     }
 
+    if (!formData.phone.trim()) {
+      toast({
+        title: "Phone number required",
+        description: "Please enter your phone number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validatePhone(formData.phone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid phone number",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     
     try {
       const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.name,
-        role: formData.role
+        role: formData.role,
+        phone: formData.phone
       });
 
       if (error) {
@@ -67,7 +93,7 @@ const Register = () => {
       
       toast({
         title: "Registration successful",
-        description: `Welcome to ${brandSettings.brand_name || "StudySpace Platform"}! Please check your email to verify your account.`
+        description: `Welcome to ${brandSettings.brand_name || "StudySpace Platform"}! Please check your email to verify your account.${formData.phone ? " You will also receive an SMS confirmation shortly." : ""}`
       });
       
       // Navigate to login page after successful registration
@@ -142,6 +168,21 @@ const Register = () => {
                   onChange={(e) => handleChange("email", e.target.value)}
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={formData.phone}
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Required for SMS notifications and account verification
+                </p>
               </div>
               
               <div className="space-y-2">
