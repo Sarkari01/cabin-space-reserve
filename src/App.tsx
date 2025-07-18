@@ -8,7 +8,7 @@ import { NotificationProvider } from "@/components/NotificationProvider";
 import { WelcomeSMSUpdater } from "@/components/registration/WelcomeSMSUpdater";
 import Landing from "./pages/Landing";
 import Login from "./pages/Auth/Login";
-import Register from "./pages/Auth/Register";
+import { Register } from "./pages/Auth/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/Admin/Dashboard";
 import MerchantDashboard from "./pages/Merchant/Dashboard";
