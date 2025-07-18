@@ -73,7 +73,7 @@ export const useSMS = () => {
     return await sendSMS({
       to: phone,
       template_purpose: 'user_created',
-      variables: { name, email, password },
+      variables: { name },
       user_id
     });
   };
@@ -82,7 +82,7 @@ export const useSMS = () => {
     return await sendSMS({
       to: phone,
       template_purpose: 'merchant_created',
-      variables: { name, email, password },
+      variables: { name },
       user_id
     });
   };
