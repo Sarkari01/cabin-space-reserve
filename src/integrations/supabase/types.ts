@@ -250,6 +250,15 @@ export type Database = {
           razorpay_key_secret_preview: string | null
           rewards_conversion_rate: number | null
           rewards_enabled: boolean | null
+          sms_booking_confirmations_enabled: boolean | null
+          sms_enabled: boolean | null
+          sms_login_credentials_enabled: boolean | null
+          sms_merchant_enabled: boolean | null
+          sms_otp_enabled: boolean | null
+          sms_password: string | null
+          sms_sender_id: string | null
+          sms_user_enabled: boolean | null
+          sms_username: string | null
           social_facebook: string | null
           social_instagram: string | null
           social_linkedin: string | null
@@ -302,6 +311,15 @@ export type Database = {
           razorpay_key_secret_preview?: string | null
           rewards_conversion_rate?: number | null
           rewards_enabled?: boolean | null
+          sms_booking_confirmations_enabled?: boolean | null
+          sms_enabled?: boolean | null
+          sms_login_credentials_enabled?: boolean | null
+          sms_merchant_enabled?: boolean | null
+          sms_otp_enabled?: boolean | null
+          sms_password?: string | null
+          sms_sender_id?: string | null
+          sms_user_enabled?: boolean | null
+          sms_username?: string | null
           social_facebook?: string | null
           social_instagram?: string | null
           social_linkedin?: string | null
@@ -354,6 +372,15 @@ export type Database = {
           razorpay_key_secret_preview?: string | null
           rewards_conversion_rate?: number | null
           rewards_enabled?: boolean | null
+          sms_booking_confirmations_enabled?: boolean | null
+          sms_enabled?: boolean | null
+          sms_login_credentials_enabled?: boolean | null
+          sms_merchant_enabled?: boolean | null
+          sms_otp_enabled?: boolean | null
+          sms_password?: string | null
+          sms_sender_id?: string | null
+          sms_user_enabled?: boolean | null
+          sms_username?: string | null
           social_facebook?: string | null
           social_instagram?: string | null
           social_linkedin?: string | null
@@ -1525,7 +1552,9 @@ export type Database = {
           id: string
           merchant_number: number | null
           phone: string | null
+          phone_verified: boolean | null
           role: Database["public"]["Enums"]["user_role"]
+          sms_notifications_enabled: boolean | null
           student_number: number | null
           updated_at: string
         }
@@ -1536,7 +1565,9 @@ export type Database = {
           id: string
           merchant_number?: number | null
           phone?: string | null
+          phone_verified?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
+          sms_notifications_enabled?: boolean | null
           student_number?: number | null
           updated_at?: string
         }
@@ -1547,7 +1578,9 @@ export type Database = {
           id?: string
           merchant_number?: number | null
           phone?: string | null
+          phone_verified?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
+          sms_notifications_enabled?: boolean | null
           student_number?: number | null
           updated_at?: string
         }
@@ -1928,6 +1961,92 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sms_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message: string
+          recipient_phone: string
+          response_data: Json | null
+          sent_at: string | null
+          status: string | null
+          template_id: string | null
+          template_purpose: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message: string
+          recipient_phone: string
+          response_data?: Json | null
+          sent_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          template_purpose?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message?: string
+          recipient_phone?: string
+          response_data?: Json | null
+          sent_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          template_purpose?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          message_template: string
+          purpose: string
+          template_id: string | null
+          template_name: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          message_template: string
+          purpose: string
+          template_id?: string | null
+          template_name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          message_template?: string
+          purpose?: string
+          template_id?: string | null
+          template_name?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
       }
       study_hall_images: {
         Row: {

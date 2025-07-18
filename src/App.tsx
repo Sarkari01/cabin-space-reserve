@@ -25,6 +25,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PopupNotificationProvider } from "./components/PopupNotificationProvider";
+import { NotificationProvider } from "./components/NotificationProvider";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
     <ErrorBoundary>
       <AuthProvider>
         <PopupNotificationProvider>
+          <NotificationProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -164,6 +166,7 @@ const App = () => (
               </Routes>
             </BrowserRouter>
           </TooltipProvider>
+          </NotificationProvider>
         </PopupNotificationProvider>
       </AuthProvider>
     </ErrorBoundary>

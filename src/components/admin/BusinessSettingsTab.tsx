@@ -17,6 +17,7 @@ import { BrandAssetUpload } from "@/components/BrandAssetUpload";
 import { APIKeysSection, APIKeysSectionRef } from "./APIKeysSection";
 
 import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key, AlertTriangle, Settings, MessageSquare } from "lucide-react";
+import { SMSTemplateManager } from "@/components/SMSTemplateManager";
 
 export const BusinessSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
@@ -67,6 +68,7 @@ export const BusinessSettingsTab = () => {
   const [trialSectionOpen, setTrialSectionOpen] = useState(false);
   const [apiKeysSectionOpen, setApiKeysSectionOpen] = useState(false);
   const [maintenanceSectionOpen, setMaintenanceSectionOpen] = useState(false);
+  const [smsTemplatesSectionOpen, setSmsTemplatesSectionOpen] = useState(false);
   const [saveProgress, setSaveProgress] = useState({
     step: '',
     progress: 0,
@@ -937,6 +939,28 @@ export const BusinessSettingsTab = () => {
       </Collapsible>
 
       <Separator />
+
+      {/* SMS Template Manager */}
+      {formData.sms_enabled && (
+        <>
+          <Collapsible open={smsTemplatesSectionOpen} onOpenChange={setSmsTemplatesSectionOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  <span className="text-lg font-medium">SMS Templates</span>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${smsTemplatesSectionOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-6 pt-4">
+              <SMSTemplateManager />
+            </CollapsibleContent>
+          </Collapsible>
+          
+          <Separator />
+        </>
+      )}
 
       {/* Maintenance Mode Section */}
       <Collapsible open={maintenanceSectionOpen} onOpenChange={setMaintenanceSectionOpen}>
