@@ -21,13 +21,13 @@ export const DashboardRedirect = () => {
   // Redirect to appropriate dashboard based on user role
   switch (userRole) {
     case 'admin':
-      return <Navigate to="/admin" replace />;
+      return <Navigate to="/admin/dashboard" replace />;
     case 'merchant':
-      return <Navigate to="/merchant" replace />;
+      return <Navigate to="/merchant/dashboard" replace />;
     case 'student':
-      return <Navigate to="/student" replace />;
+      return <Navigate to="/student/dashboard" replace />;
     case 'incharge':
-      return <Navigate to="/incharge" replace />;
+      return <Navigate to="/incharge/dashboard" replace />;
     case 'telemarketing_executive':
       return <Navigate to="/telemarketing_executive" replace />;
     case 'pending_payments_caller':

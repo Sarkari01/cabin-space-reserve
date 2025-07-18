@@ -59,6 +59,14 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Merchant Routes */}
               <Route
@@ -87,10 +95,26 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/student/dashboard"
+                element={
+                  <ProtectedRoute requiredRole="student">
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Incharge Routes */}
               <Route
                 path="/incharge"
+                element={
+                  <ProtectedRoute requiredRole="incharge">
+                    <InchargeDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/incharge/dashboard"
                 element={
                   <ProtectedRoute requiredRole="incharge">
                     <InchargeDashboard />
