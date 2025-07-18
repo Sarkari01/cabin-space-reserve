@@ -46,8 +46,8 @@ export const MerchantOnboardingGuard = ({ children }: MerchantOnboardingGuardPro
     );
   }
 
-  // If merchant hasn't completed onboarding, show the form
-  if (!profile?.is_onboarding_complete) {
+  // If no profile exists or onboarding is not complete, show the onboarding form
+  if (!profile || !profile.is_onboarding_complete) {
     console.log('MerchantOnboardingGuard: Onboarding not complete, showing MerchantOnboardingForm');
     return <MerchantOnboardingForm />;
   }

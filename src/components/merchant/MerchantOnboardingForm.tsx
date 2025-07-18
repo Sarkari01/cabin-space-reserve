@@ -18,7 +18,7 @@ export const MerchantOnboardingForm = () => {
   const { user } = useAuth();
   const { profile, updateProfile, completeOnboarding, refetch } = useMerchantProfile();
   const { brandSettings } = useBrandSettings();
-  const [currentStep, setCurrentStep] = useState(profile?.onboarding_step || 1);
+  const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
 
@@ -56,6 +56,14 @@ export const MerchantOnboardingForm = () => {
       component: KYCDocumentsStep,
     },
   ];
+
+  // Set current step based on profile data when it loads
+  useEffect(() => {
+    if (profile?.onboarding_step) {
+      console.log('MerchantOnboardingForm: Setting current step from profile:', profile.onboarding_step);
+      setCurrentStep(profile.onboarding_step);
+    }
+  }, [profile?.onboarding_step]);
 
   const currentStepData = steps.find(step => step.id === currentStep);
   const progress = ((currentStep - 1) / steps.length) * 100;
@@ -138,23 +146,24 @@ export const MerchantOnboardingForm = () => {
     setStepValidation(prev => ({ ...prev, [step]: isValid }));
   };
 
-  // Update current step when profile changes
-  useEffect(() => {
-    if (profile?.onboarding_step && profile.onboarding_step !== currentStep) {
-      console.log('MerchantOnboardingForm: Updating currentStep from profile', {
-        from: currentStep,
-        to: profile.onboarding_step
-      });
-      setCurrentStep(profile.onboarding_step);
-    }
-  }, [profile?.onboarding_step]);
-
   if (!user) {
     console.log('MerchantOnboardingForm: No user found, returning null');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Please log in to continue.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    console.log('MerchantOnboardingForm: No profile found, showing loading');
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </div>
     );
@@ -170,7 +179,7 @@ export const MerchantOnboardingForm = () => {
             Complete Your Merchant Profile
           </h1>
           <p className="text-muted-foreground">
-            Please provide the required information to start using {brandSettings.brand_name || 'CabinSpace'} as a merchant
+            Please provide the required information to start using {brandSettings?.brand_name || 'CabinSpace'} as a merchant
           </p>
         </div>
 
@@ -242,7 +251,7 @@ export const MerchantOnboardingForm = () => {
         </Card>
 
         <div className="text-center mt-6 text-sm text-muted-foreground">
-          <p>Need help? Contact our support team at {brandSettings.support_email || 'support@cabinspace.com'}</p>
+          <p>Need help? Contact our support team at {brandSettings?.support_email || 'support@cabinspace.com'}</p>
         </div>
       </div>
     </div>
