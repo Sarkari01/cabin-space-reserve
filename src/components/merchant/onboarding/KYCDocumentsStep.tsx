@@ -1,238 +1,163 @@
-import { useState, useEffect, useCallback } from "react";
+
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Upload, FileText, Check } from "lucide-react";
 import { MerchantProfile, useMerchantProfile } from "@/hooks/useMerchantProfile";
-import { DocumentUpload } from "./DocumentUpload";
 import { toast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-
-// Debounce utility function - moved outside component to prevent recreation
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
-  let timeout: NodeJS.Timeout;
-  return ((...args: any[]) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  }) as T;
-}
 
 interface KYCDocumentsStepProps {
   profile: MerchantProfile | null;
   updateProfile: (updates: Partial<MerchantProfile>) => Promise<any>;
-  onDataChange?: (isValid: boolean) => void;
+  onDataChange: (isValid: boolean) => void;
 }
 
 export const KYCDocumentsStep = ({ profile, updateProfile, onDataChange }: KYCDocumentsStepProps) => {
-  const { uploadDocument } = useMerchantProfile();
+  const { uploadDocument, documents } = useMerchantProfile();
+  const [uploading, setUploading] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    gstin_pan: profile?.gstin_pan || '',
-    business_email: profile?.business_email || '',
+    gstin_pan: profile?.gstin_pan || "",
+    trade_license_number: profile?.trade_license_number || "",
   });
 
-  // Debounced auto-save
-  const debouncedSave = useCallback(
-    debounce(async (data: typeof formData) => {
-      try {
-        await updateProfile(data);
-      } catch (error) {
-        console.error('Error auto-saving KYC details:', error);
-      }
-    }, 1000),
-    [updateProfile]
-  );
+  console.log('KYCDocumentsStep: Rendering with profile:', profile, 'documents:', documents);
 
-  const handleInputChange = (field: string, value: string) => {
-    const newData = { ...formData, [field]: value };
-    setFormData(newData);
-    
-    // Auto-save with debouncing
-    debouncedSave(newData);
-    
-    // Validate the step and notify parent
-    const isValid = validateStep(newData);
-    if (onDataChange) {
-      onDataChange(isValid);
-    }
-  };
-
-  // Validation function for the step
-  const validateStep = (data: typeof formData) => {
-    // Step is always valid as it's optional, but if data is provided, it should be valid
-    if (data.gstin_pan) {
-      return isValidGSTIN(data.gstin_pan) || isValidPAN(data.gstin_pan);
-    }
-    if (data.business_email) {
-      return isValidEmail(data.business_email);
-    }
-    return true; // Optional step is always valid if empty
-  };
-
-  // Update form data when profile changes
   useEffect(() => {
-    if (profile) {
-      const newData = {
-        gstin_pan: profile.gstin_pan || '',
-        business_email: profile.business_email || '',
-      };
-      setFormData(newData);
-      
-      // Initial validation check
-      if (onDataChange) {
-        onDataChange(validateStep(newData));
-      }
-    }
-  }, [profile, onDataChange]);
+    // This step is optional, so always mark as valid
+    onDataChange(true);
+  }, []);
 
-  const handleDocumentUpload = async (file: File) => {
-    console.log('KYC Document Upload - Starting upload for file:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      profileLoaded: !!profile
-    });
+  const handleChange = (field: string, value: string) => {
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    
+    // Auto-save after a short delay
+    const timeoutId = setTimeout(() => {
+      updateProfile({ [field]: value });
+    }, 1000);
 
-    if (!profile) {
-      console.error('KYC Document Upload - Profile not loaded');
-      toast({
-        title: "Upload failed",
-        description: "Profile not loaded. Please wait and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
+    return () => clearTimeout(timeoutId);
+  };
 
+  const handleFileUpload = async (file: File, documentType: string) => {
+    if (!file) return;
+
+    setUploading(documentType);
     try {
-      console.log('KYC Document Upload - Calling uploadDocument...');
-      const document = await uploadDocument(file, 'kyc_document');
-      console.log('KYC Document Upload - Success:', document);
-      
+      await uploadDocument(file, documentType);
       toast({
-        title: "Document uploaded successfully",
-        description: "Your KYC document has been uploaded and saved.",
+        title: "Upload Successful",
+        description: `${documentType} has been uploaded successfully.`,
       });
     } catch (error) {
-      console.error('KYC Document Upload - Error:', error);
-      
-      // More specific error messages
-      let errorMessage = "Failed to upload KYC document.";
-      if (error instanceof Error) {
-        if (error.message.includes('storage')) {
-          errorMessage = "Storage permission error. Please contact support.";
-        } else if (error.message.includes('size')) {
-          errorMessage = "File size too large. Please use a smaller file.";
-        } else if (error.message.includes('type')) {
-          errorMessage = "Invalid file type. Please use PDF, JPG, or PNG.";
-        } else {
-          errorMessage = `Upload failed: ${error.message}`;
-        }
-      }
-      
+      console.error('Upload error:', error);
       toast({
-        title: "Upload failed",
-        description: errorMessage,
+        title: "Upload Failed",
+        description: "Failed to upload document. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setUploading(null);
     }
   };
 
-  // Validate GSTIN
-  const isValidGSTIN = (gstin: string) => {
-    const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    return gstinRegex.test(gstin.toUpperCase());
+  const getDocumentStatus = (docType: string) => {
+    return documents?.find(doc => doc.document_type === docType);
   };
-
-  // Validate PAN
-  const isValidPAN = (pan: string) => {
-    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-    return panRegex.test(pan.toUpperCase());
-  };
-
-  // Validate email
-  const isValidEmail = (email: string) => {
-    if (!email) return true; // Email is optional
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email.trim());
-  };
-
 
   return (
     <div className="space-y-6">
-      <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
-        <div className="flex items-center gap-2 mb-2">
-          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-            Optional Step
-          </Badge>
-        </div>
-        <p className="text-sm text-green-800 dark:text-green-200">
-          This step is optional but recommended for faster verification and enhanced trust with customers.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="gstin_pan" className="text-sm font-medium">
-            GSTIN or PAN Number
-          </Label>
+          <Label htmlFor="gstin_pan">GSTIN/PAN Number</Label>
           <Input
             id="gstin_pan"
-            placeholder="Enter GSTIN (22AAAAA0000A1Z5) or PAN (AAAAA0000A)"
+            placeholder="Enter GSTIN or PAN number"
             value={formData.gstin_pan}
-            onChange={(e) => handleInputChange('gstin_pan', e.target.value.toUpperCase())}
-            className={
-              formData.gstin_pan && 
-              !isValidGSTIN(formData.gstin_pan) && 
-              !isValidPAN(formData.gstin_pan) ? 'border-destructive' : ''
-            }
+            onChange={(e) => handleChange('gstin_pan', e.target.value.toUpperCase())}
           />
-          {formData.gstin_pan && !isValidGSTIN(formData.gstin_pan) && !isValidPAN(formData.gstin_pan) && (
-            <p className="text-sm text-destructive">
-              Please enter a valid GSTIN (15 digits) or PAN (10 characters)
-            </p>
-          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="business_email" className="text-sm font-medium">
-            Business Email
-          </Label>
+          <Label htmlFor="trade_license_number">Trade License Number</Label>
           <Input
-            id="business_email"
-            type="email"
-            placeholder="Enter business email address"
-            value={formData.business_email}
-            onChange={(e) => handleInputChange('business_email', e.target.value)}
-            className={!isValidEmail(formData.business_email) && formData.business_email ? 'border-destructive' : ''}
+            id="trade_license_number"
+            placeholder="Enter trade license number"
+            value={formData.trade_license_number}
+            onChange={(e) => handleChange('trade_license_number', e.target.value)}
           />
-          {!isValidEmail(formData.business_email) && formData.business_email && (
-            <p className="text-sm text-destructive">Please enter a valid email address</p>
-          )}
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">
-          Additional KYC Documents
-        </Label>
-        <DocumentUpload
-          onUpload={handleDocumentUpload}
-          acceptedTypes={['image/*', 'application/pdf']}
-          maxSize={2 * 1024 * 1024} // 2MB
-          multiple={true}
-        />
-        <p className="text-xs text-muted-foreground">
-          Upload additional identity or business documents (PDF, JPG, PNG - max 2MB each)
-        </p>
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Document Uploads (Optional)</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { type: 'trade_license', label: 'Trade License' },
+            { type: 'gst_certificate', label: 'GST Certificate' },
+            { type: 'pan_card', label: 'PAN Card' },
+            { type: 'address_proof', label: 'Address Proof' }
+          ].map(({ type, label }) => {
+            const docStatus = getDocumentStatus(type);
+            const isUploaded = !!docStatus;
+            const isUploading = uploading === type;
+
+            return (
+              <div key={type} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">{label}</Label>
+                  {isUploaded && <Check className="h-4 w-4 text-green-500" />}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading}
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.pdf,.jpg,.jpeg,.png';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) handleFileUpload(file, type);
+                      };
+                      input.click();
+                    }}
+                  >
+                    {isUploading ? (
+                      <>Uploading...</>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {isUploaded ? 'Replace' : 'Upload'}
+                      </>
+                    )}
+                  </Button>
+                  
+                  {isUploaded && (
+                    <div className="flex items-center gap-1 text-sm text-green-600">
+                      <FileText className="h-4 w-4" />
+                      <span>Uploaded</span>
+                    </div>
+                  )}
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Accepted formats: PDF, JPG, PNG (Max 5MB)
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Recommended Documents:</h4>
-        <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-          <li>• Aadhaar Card or Passport</li>
-          <li>• Voter ID or Driving License</li>
-          <li>• Business Registration Certificate</li>
-          <li>• Shop & Establishment License</li>
-        </ul>
+      <div className="text-sm text-muted-foreground">
+        <p>Document uploads are optional but recommended for faster verification.</p>
+        <p>You can complete this step later from your dashboard if needed.</p>
       </div>
-
     </div>
   );
 };

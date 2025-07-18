@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,12 +13,25 @@ import { toast } from "@/hooks/use-toast";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 export const MerchantOnboardingForm = () => {
+  console.log('MerchantOnboardingForm: Component starting to render');
+  
   const { user } = useAuth();
   const { profile, updateProfile, completeOnboarding, refetch } = useMerchantProfile();
   const { brandSettings } = useBrandSettings();
   const [currentStep, setCurrentStep] = useState(profile?.onboarding_step || 1);
   const [loading, setLoading] = useState(false);
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
+
+  console.log('MerchantOnboardingForm: State initialized', {
+    user: user ? { id: user.id, email: user.email } : null,
+    profile: profile ? {
+      id: profile.id,
+      onboarding_step: profile.onboarding_step,
+      is_onboarding_complete: profile.is_onboarding_complete
+    } : null,
+    currentStep,
+    loading
+  });
 
   const steps = [
     {
@@ -46,7 +60,17 @@ export const MerchantOnboardingForm = () => {
   const currentStepData = steps.find(step => step.id === currentStep);
   const progress = ((currentStep - 1) / steps.length) * 100;
 
+  console.log('MerchantOnboardingForm: Current step data', {
+    currentStep,
+    currentStepData: currentStepData ? {
+      id: currentStepData.id,
+      title: currentStepData.title
+    } : null,
+    progress
+  });
+
   const handleNext = async () => {
+    console.log('MerchantOnboardingForm: handleNext called', { currentStep, stepsLength: steps.length });
     setLoading(true);
     try {
       if (currentStep < steps.length) {
@@ -54,7 +78,9 @@ export const MerchantOnboardingForm = () => {
         await updateProfile({ onboarding_step: nextStep });
         await refetch(); // Ensure profile is up to date
         setCurrentStep(nextStep);
+        console.log('MerchantOnboardingForm: Moved to step', nextStep);
       } else {
+        console.log('MerchantOnboardingForm: Completing onboarding');
         await completeOnboarding();
         toast({
           title: "Onboarding Complete!",
@@ -62,7 +88,7 @@ export const MerchantOnboardingForm = () => {
         });
       }
     } catch (error) {
-      console.error('Error progressing onboarding:', error);
+      console.error('MerchantOnboardingForm: Error progressing onboarding:', error);
       toast({
         title: "Error",
         description: "Failed to save your information. Please try again.",
@@ -74,14 +100,16 @@ export const MerchantOnboardingForm = () => {
   };
 
   const handlePrevious = async () => {
+    console.log('MerchantOnboardingForm: handlePrevious called', { currentStep });
     if (currentStep > 1) {
       const prevStep = currentStep - 1;
       try {
         await updateProfile({ onboarding_step: prevStep });
         await refetch(); // Ensure profile is up to date
         setCurrentStep(prevStep);
+        console.log('MerchantOnboardingForm: Moved to step', prevStep);
       } catch (error) {
-        console.error('Error going to previous step:', error);
+        console.error('MerchantOnboardingForm: Error going to previous step:', error);
       }
     }
   };
@@ -113,13 +141,26 @@ export const MerchantOnboardingForm = () => {
   // Update current step when profile changes
   useEffect(() => {
     if (profile?.onboarding_step && profile.onboarding_step !== currentStep) {
+      console.log('MerchantOnboardingForm: Updating currentStep from profile', {
+        from: currentStep,
+        to: profile.onboarding_step
+      });
       setCurrentStep(profile.onboarding_step);
     }
   }, [profile?.onboarding_step]);
 
   if (!user) {
-    return null;
+    console.log('MerchantOnboardingForm: No user found, returning null');
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Please log in to continue.</p>
+        </div>
+      </div>
+    );
   }
+
+  console.log('MerchantOnboardingForm: Rendering main form');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
@@ -168,12 +209,16 @@ export const MerchantOnboardingForm = () => {
           </CardHeader>
 
           <CardContent className="pt-6">
-            {currentStepData?.component && (
+            {currentStepData?.component ? (
               <currentStepData.component 
                 profile={profile} 
                 updateProfile={updateProfile} 
                 onDataChange={handleStepValidation(currentStep)}
               />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading step component...</p>
+              </div>
             )}
 
             <div className="flex justify-between mt-8 pt-6 border-t border-border">
