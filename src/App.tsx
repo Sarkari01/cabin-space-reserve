@@ -10,17 +10,17 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminDashboard from "./pages/Admin/AdminDashboard";
-import MerchantDashboard from "./pages/Merchant/MerchantDashboard";
-import StudentDashboard from "./pages/Student/StudentDashboard";
-import InchargeDashboard from "./pages/Incharge/InchargeDashboard";
-import TelemarketingExecutiveDashboard from "./pages/TelemarketingExecutive/TelemarketingExecutiveDashboard";
-import PendingPaymentsCallerDashboard from "./pages/PendingPaymentsCaller/PendingPaymentsCallerDashboard";
-import CustomerCareExecutiveDashboard from "./pages/CustomerCareExecutive/CustomerCareExecutiveDashboard";
-import SettlementManagerDashboard from "./pages/SettlementManager/SettlementManagerDashboard";
-import GeneralAdministratorDashboard from "./pages/GeneralAdministrator/GeneralAdministratorDashboard";
-import InstitutionDashboard from "./pages/Institution/InstitutionDashboard";
-import MaintenancePage from "./pages/Maintenance";
+import AdminDashboard from "./pages/Admin/Dashboard";
+import MerchantDashboard from "./pages/Merchant/Dashboard";
+import StudentDashboard from "./pages/Student/Dashboard";
+import InchargeDashboard from "./pages/Incharge/Dashboard";
+import TelemarketingExecutiveDashboard from "./pages/TelemarketingDashboard";
+import PendingPaymentsCallerDashboard from "./pages/PaymentsCallerDashboard";
+import CustomerCareExecutiveDashboard from "./pages/CustomerCareDashboard";
+import SettlementManagerDashboard from "./pages/SettlementManagerDashboard";
+import GeneralAdministratorDashboard from "./pages/GeneralAdminDashboard";
+import InstitutionDashboard from "./pages/Institution/Dashboard";
+import MaintenancePage from "./pages/MaintenancePage";
 
 const queryClient = new QueryClient();
 

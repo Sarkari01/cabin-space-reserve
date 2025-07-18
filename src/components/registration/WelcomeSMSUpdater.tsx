@@ -10,11 +10,13 @@ export const WelcomeSMSUpdater = () => {
         const templates = [
           {
             purpose: 'merchant_created',
+            template_name: 'Merchant Welcome',
             message_template: 'Welcome {name}! Your merchant account has been created successfully. Please check your email to verify your account and complete the setup process. - {brand_name}',
             variables: '["name", "brand_name"]'
           },
           {
-            purpose: 'user_created', 
+            purpose: 'user_created',
+            template_name: 'User Welcome', 
             message_template: 'Hi {name}! Your account has been created successfully. Please check your email to verify your account and start exploring study spaces. - {brand_name}',
             variables: '["name", "brand_name"]'
           }
