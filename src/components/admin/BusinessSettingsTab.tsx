@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BrandAssetUpload } from "@/components/BrandAssetUpload";
 import { APIKeysSection, APIKeysSectionRef } from "./APIKeysSection";
 
-import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key, AlertTriangle, Settings } from "lucide-react";
+import { Loader2, RefreshCw, ChevronDown, Building2, CreditCard, Gift, Key, AlertTriangle, Settings, MessageSquare } from "lucide-react";
 
 export const BusinessSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
@@ -37,6 +37,16 @@ export const BusinessSettingsTab = () => {
     tagline: '',
     business_address: '',
     copyright_text: '',
+    // SMS Settings
+    sms_enabled: false,
+    sms_username: 'lavetstechnologies',
+    sms_password: 'Password1!',
+    sms_sender_id: 'DUEDSK',
+    sms_merchant_enabled: true,
+    sms_user_enabled: true,
+    sms_otp_enabled: true,
+    sms_booking_confirmations_enabled: true,
+    sms_login_credentials_enabled: true,
     // Trial Plan Settings
     trial_plan_enabled: false,
     trial_duration_days: 14,
@@ -53,6 +63,7 @@ export const BusinessSettingsTab = () => {
   const [validating, setValidating] = useState(false);
   const [brandSectionOpen, setBrandSectionOpen] = useState(true);
   const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
+  const [smsSectionOpen, setSmsSectionOpen] = useState(false);
   const [trialSectionOpen, setTrialSectionOpen] = useState(false);
   const [apiKeysSectionOpen, setApiKeysSectionOpen] = useState(false);
   const [maintenanceSectionOpen, setMaintenanceSectionOpen] = useState(false);
@@ -79,6 +90,16 @@ export const BusinessSettingsTab = () => {
         tagline: settings.tagline || '',
         business_address: settings.business_address || '',
         copyright_text: settings.copyright_text || '',
+        // SMS Settings
+        sms_enabled: (settings as any).sms_enabled || false,
+        sms_username: (settings as any).sms_username || 'lavetstechnologies',
+        sms_password: (settings as any).sms_password || 'Password1!',
+        sms_sender_id: (settings as any).sms_sender_id || 'DUEDSK',
+        sms_merchant_enabled: (settings as any).sms_merchant_enabled ?? true,
+        sms_user_enabled: (settings as any).sms_user_enabled ?? true,
+        sms_otp_enabled: (settings as any).sms_otp_enabled ?? true,
+        sms_booking_confirmations_enabled: (settings as any).sms_booking_confirmations_enabled ?? true,
+        sms_login_credentials_enabled: (settings as any).sms_login_credentials_enabled ?? true,
         // Trial Plan Settings
         trial_plan_enabled: settings.trial_plan_enabled || false,
         trial_duration_days: settings.trial_duration_days || 14,
@@ -648,6 +669,175 @@ export const BusinessSettingsTab = () => {
           </CardContent>
         </Card>
           </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Separator />
+
+      {/* SMS Settings Section */}
+      <Collapsible open={smsSectionOpen} onOpenChange={setSmsSectionOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              <span className="text-lg font-medium">SMS Integration</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 transition-transform ${smsSectionOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle className="text-base">SMS Notifications</CardTitle>
+                <CardDescription>
+                  Enable SMS notifications via SMSStriker for user and merchant communications
+                </CardDescription>
+              </div>
+              <Switch
+                checked={formData.sms_enabled}
+                onCheckedChange={(checked) =>
+                  setFormData(prev => ({ ...prev, sms_enabled: checked }))
+                }
+              />
+            </CardHeader>
+            {formData.sms_enabled && (
+              <CardContent className="space-y-6">
+                {/* SMS Configuration */}
+                <div className="space-y-4">
+                  <h4 className="font-medium">SMS Configuration</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sms-username">Username</Label>
+                      <Input
+                        id="sms-username"
+                        value={formData.sms_username}
+                        onChange={(e) => setFormData(prev => ({ ...prev, sms_username: e.target.value }))}
+                        placeholder="lavetstechnologies"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="sms-password">Password</Label>
+                      <Input
+                        id="sms-password"
+                        type="password"
+                        value={formData.sms_password}
+                        onChange={(e) => setFormData(prev => ({ ...prev, sms_password: e.target.value }))}
+                        placeholder="Password1!"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="sms-sender-id">Sender ID</Label>
+                      <Input
+                        id="sms-sender-id"
+                        value={formData.sms_sender_id}
+                        onChange={(e) => setFormData(prev => ({ ...prev, sms_sender_id: e.target.value }))}
+                        placeholder="DUEDSK"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* SMS Types */}
+                <div className="space-y-4">
+                  <h4 className="font-medium">SMS Types</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Merchant SMS</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Welcome messages, approval notifications
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.sms_merchant_enabled}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({ ...prev, sms_merchant_enabled: checked }))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">User SMS</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Welcome messages, general notifications
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.sms_user_enabled}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({ ...prev, sms_user_enabled: checked }))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">OTP Messages</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Login and verification OTPs
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.sms_otp_enabled}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({ ...prev, sms_otp_enabled: checked }))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Booking Confirmations</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Booking success and alerts
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.sms_booking_confirmations_enabled}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({ ...prev, sms_booking_confirmations_enabled: checked }))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Login Credentials</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Password resets, account details
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.sms_login_credentials_enabled}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({ ...prev, sms_login_credentials_enabled: checked }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-medium text-blue-900 mb-2">SMS Templates Available</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Merchant Created: Welcome message with login credentials</li>
+                    <li>• User Created: Account activation with login details</li>
+                    <li>• Booking Confirmation: Booking details for users</li>
+                    <li>• OTP Verification: Security codes for verification</li>
+                    <li>• Password Reset: New password delivery</li>
+                    <li>• Merchant Approved: Account approval notification</li>
+                    <li>• Booking Alert: New booking notifications for merchants</li>
+                  </ul>
+                </div>
+              </CardContent>
+            )}
+          </Card>
         </CollapsibleContent>
       </Collapsible>
 
