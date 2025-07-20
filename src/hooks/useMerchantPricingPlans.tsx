@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
@@ -38,6 +39,7 @@ export const useMerchantPricingPlans = () => {
         throw error;
       }
 
+      console.log('Retrieved pricing plan:', data);
       return data || null;
     } catch (error: any) {
       console.error('Error fetching pricing plan:', error);
@@ -191,51 +193,60 @@ export const useMerchantPricingPlans = () => {
     const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
     console.log(`Calculating amount with merchant pricing for ${days} days from ${startDate} to ${endDate}`);
+    console.log('Pricing plan:', pricingPlan);
 
-    // Calculate available pricing options
+    // Calculate available pricing options - only include enabled ones with valid prices
     const availableOptions: { method: string; amount: number; basePrice: number }[] = [];
     const priceBreakdown: any = {};
     const availableMethods: string[] = [];
 
-    // Daily pricing
-    if (pricingPlan.daily_enabled && pricingPlan.daily_price) {
-      const baseDailyPrice = pricingPlan.daily_price - 100;
+    // Daily pricing - only if enabled and has valid price
+    if (pricingPlan.daily_enabled && pricingPlan.daily_price && pricingPlan.daily_price > 0) {
+      const baseDailyPrice = pricingPlan.daily_price;
       const dailyTotal = days * baseDailyPrice;
       availableOptions.push({ method: 'daily', amount: dailyTotal, basePrice: baseDailyPrice });
       priceBreakdown.baseDaily = baseDailyPrice;
       availableMethods.push('daily');
+      console.log(`Daily option: ${days} days × ₹${baseDailyPrice} = ₹${dailyTotal}`);
     }
 
-    // Weekly pricing (only if 7+ days and enabled)
-    if (days >= 7 && pricingPlan.weekly_enabled && pricingPlan.weekly_price) {
-      const baseWeeklyPrice = pricingPlan.weekly_price - 100;
-      const weeklyTotal = Math.ceil(days / 7) * baseWeeklyPrice;
+    // Weekly pricing - only if 7+ days, enabled and has valid price
+    if (days >= 7 && pricingPlan.weekly_enabled && pricingPlan.weekly_price && pricingPlan.weekly_price > 0) {
+      const baseWeeklyPrice = pricingPlan.weekly_price;
+      const weeks = Math.ceil(days / 7);
+      const weeklyTotal = weeks * baseWeeklyPrice;
       availableOptions.push({ method: 'weekly', amount: weeklyTotal, basePrice: baseWeeklyPrice });
       priceBreakdown.baseWeekly = baseWeeklyPrice;
       availableMethods.push('weekly');
+      console.log(`Weekly option: ${weeks} weeks × ₹${baseWeeklyPrice} = ₹${weeklyTotal}`);
     }
 
-    // Monthly pricing (only if 30+ days and enabled)
-    if (days >= 30 && pricingPlan.monthly_enabled && pricingPlan.monthly_price) {
-      const baseMonthlyPrice = pricingPlan.monthly_price - 100;
-      const monthlyTotal = Math.ceil(days / 30) * baseMonthlyPrice;
+    // Monthly pricing - only if 30+ days, enabled and has valid price
+    if (days >= 30 && pricingPlan.monthly_enabled && pricingPlan.monthly_price && pricingPlan.monthly_price > 0) {
+      const baseMonthlyPrice = pricingPlan.monthly_price;
+      const months = Math.ceil(days / 30);
+      const monthlyTotal = months * baseMonthlyPrice;
       availableOptions.push({ method: 'monthly', amount: monthlyTotal, basePrice: baseMonthlyPrice });
       priceBreakdown.baseMonthly = baseMonthlyPrice;
       availableMethods.push('monthly');
+      console.log(`Monthly option: ${months} months × ₹${baseMonthlyPrice} = ₹${monthlyTotal}`);
     }
 
     // Choose the most cost-effective available option
     if (availableOptions.length === 0) {
-      throw new Error('No pricing plans are enabled for this study hall');
+      console.error('No valid pricing options found for merchant pricing plan');
+      throw new Error('No pricing plans are enabled or configured for this study hall');
     }
 
     const bestOption = availableOptions.reduce((min, option) => 
       option.amount < min.amount ? option : min
     );
 
+    console.log(`Best option: ${bestOption.method} at ₹${bestOption.amount}`);
+
     const baseAmount = bestOption.amount;
-    const discountAmount = Math.round(baseAmount * 0.02);
-    const finalAmount = baseAmount + discountAmount;
+    const discountAmount = 0; // No automatic discount in merchant pricing
+    const finalAmount = baseAmount;
 
     return { 
       amount: finalAmount, 
