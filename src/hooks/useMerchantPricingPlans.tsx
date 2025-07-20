@@ -33,9 +33,9 @@ export const useMerchantPricingPlans = () => {
         .from('merchant_pricing_plans')
         .select('*')
         .eq('study_hall_id', studyHallId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error) {
         throw error;
       }
 
