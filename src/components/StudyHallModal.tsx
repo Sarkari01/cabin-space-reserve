@@ -7,13 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Minus, Grid3X3, DollarSign, Upload, X, Wifi, Snowflake, Car, Coffee, Printer, Monitor } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Minus, Grid3X3, DollarSign, Upload, X, Wifi, Snowflake, Car, Coffee, Printer, Monitor, Settings } from "lucide-react";
 import { QRCodeManager } from "@/components/QRCodeManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSeats } from "@/hooks/useStudyHalls";
 import { LocationPicker } from "@/components/maps/LocationPicker";
 import { MultiImageUpload } from "@/components/MultiImageUpload";
+import { useMerchantPricingPlans, type MerchantPricingPlan } from "@/hooks/useMerchantPricingPlans";
 
 interface Seat {
   id: string;
@@ -55,6 +57,7 @@ interface StudyHallModalProps {
 
 export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: StudyHallModalProps) {
   const { toast } = useToast();
+  const { getPricingPlan, savePricingPlan, loading: pricingLoading } = useMerchantPricingPlans();
   
   // Helper function to extract only valid study hall database fields
   const extractStudyHallFields = (data: any): StudyHall => {
@@ -126,6 +129,17 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
   });
 
   const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
+  
+  // Pricing plans state
+  const [pricingPlan, setPricingPlan] = useState<MerchantPricingPlan | null>(null);
+  const [pricingFormData, setPricingFormData] = useState({
+    daily_enabled: true,
+    daily_price: 100,
+    weekly_enabled: true,
+    weekly_price: 500,
+    monthly_enabled: true,
+    monthly_price: 1500,
+  });
 
   useEffect(() => {
     if (studyHall) {
@@ -133,6 +147,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
       setFormData(extractStudyHallFields(studyHall));
       if (studyHall.id) {
         fetchSeats(studyHall.id);
+        loadPricingPlan(studyHall.id);
       }
     } else {
       setFormData({
@@ -152,8 +167,38 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
         monthly_price: 1500,
         status: "active"
       });
+      // Reset pricing plan for new study halls
+      setPricingPlan(null);
+      setPricingFormData({
+        daily_enabled: true,
+        daily_price: 100,
+        weekly_enabled: true,
+        weekly_price: 500,
+        monthly_enabled: true,
+        monthly_price: 1500,
+      });
     }
   }, [studyHall, isOpen]);
+
+  // Load pricing plan for existing study halls
+  const loadPricingPlan = async (studyHallId: string) => {
+    try {
+      const plan = await getPricingPlan(studyHallId);
+      if (plan) {
+        setPricingPlan(plan);
+        setPricingFormData({
+          daily_enabled: plan.daily_enabled,
+          daily_price: plan.daily_price || 100,
+          weekly_enabled: plan.weekly_enabled,
+          weekly_price: plan.weekly_price || 500,
+          monthly_enabled: plan.monthly_enabled,
+          monthly_price: plan.monthly_price || 1500,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading pricing plan:', error);
+    }
+  };
 
   // Remove old image upload functions as they're now handled by MultiImageUpload
 
@@ -290,7 +335,7 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Calculate total seats if using custom layout
@@ -302,6 +347,30 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
     
     // Clean the form data before saving to ensure only database fields are included
     const cleanData = extractStudyHallFields(finalFormData);
+    
+    // For existing study halls, save pricing plan separately
+    if (mode === "edit" && studyHall?.id) {
+      try {
+        // Get current user ID from auth
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await savePricingPlan({
+            merchant_id: user.id,
+            study_hall_id: studyHall.id,
+            daily_enabled: pricingFormData.daily_enabled,
+            daily_price: pricingFormData.daily_enabled ? pricingFormData.daily_price : undefined,
+            weekly_enabled: pricingFormData.weekly_enabled,
+            weekly_price: pricingFormData.weekly_enabled ? pricingFormData.weekly_price : undefined,
+            monthly_enabled: pricingFormData.monthly_enabled,
+            monthly_price: pricingFormData.monthly_enabled ? pricingFormData.monthly_price : undefined,
+          });
+        }
+      } catch (error) {
+        console.error('Error saving pricing plan:', error);
+        // Don't block the main save operation
+      }
+    }
+    
     onSave(cleanData);
     onClose();
   };
@@ -320,11 +389,14 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="details">Basic Details</TabsTrigger>
               <TabsTrigger value="location">Location</TabsTrigger>
               <TabsTrigger value="amenities">Amenities</TabsTrigger>
               <TabsTrigger value="layout">Seat Layout</TabsTrigger>
+              {(mode === "edit" || mode === "view") && studyHall?.id && (
+                <TabsTrigger value="pricing">Pricing Plans</TabsTrigger>
+              )}
               {(mode === "edit" || mode === "view") && studyHall?.id && (
                 <TabsTrigger value="qr">QR Code</TabsTrigger>
               )}
@@ -1066,6 +1138,183 @@ export function StudyHallModal({ isOpen, onClose, onSave, studyHall, mode }: Stu
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Pricing Plans Tab */}
+            {(mode === "edit" || mode === "view") && studyHall?.id && (
+              <TabsContent value="pricing" className="space-y-4">
+                <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Settings className="h-5 w-5" />
+                    <h4 className="font-semibold">Custom Pricing Plans</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Control which pricing options are available for this study hall and set custom prices.
+                  </p>
+                </div>
+
+                <div className="grid gap-6">
+                  {/* Daily Pricing */}
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={pricingFormData.daily_enabled}
+                          onCheckedChange={(checked) => setPricingFormData(prev => ({ ...prev, daily_enabled: checked }))}
+                          disabled={isReadOnly}
+                        />
+                        <div>
+                          <h5 className="font-medium">Daily Pricing</h5>
+                          <p className="text-sm text-muted-foreground">Allow customers to book by day</p>
+                        </div>
+                      </div>
+                      <Badge variant={pricingFormData.daily_enabled ? "default" : "secondary"}>
+                        {pricingFormData.daily_enabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </div>
+                    
+                    {pricingFormData.daily_enabled && (
+                      <div className="space-y-2">
+                        <Label htmlFor="customDailyPrice">Daily Price (₹)</Label>
+                        <Input
+                          id="customDailyPrice"
+                          type="number"
+                          value={pricingFormData.daily_price}
+                          onChange={(e) => setPricingFormData(prev => ({ 
+                            ...prev, 
+                            daily_price: Number(e.target.value)
+                          }))}
+                          placeholder="100"
+                          min="1"
+                          disabled={isReadOnly}
+                          required={pricingFormData.daily_enabled}
+                        />
+                        <div className="text-xs text-muted-foreground">
+                          Customer sees: ₹{Math.round((pricingFormData.daily_price - 100) * 1.02)} (includes 2% processing fee)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Weekly Pricing */}
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={pricingFormData.weekly_enabled}
+                          onCheckedChange={(checked) => setPricingFormData(prev => ({ ...prev, weekly_enabled: checked }))}
+                          disabled={isReadOnly}
+                        />
+                        <div>
+                          <h5 className="font-medium">Weekly Pricing</h5>
+                          <p className="text-sm text-muted-foreground">Allow customers to book by week (7+ days)</p>
+                        </div>
+                      </div>
+                      <Badge variant={pricingFormData.weekly_enabled ? "default" : "secondary"}>
+                        {pricingFormData.weekly_enabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </div>
+                    
+                    {pricingFormData.weekly_enabled && (
+                      <div className="space-y-2">
+                        <Label htmlFor="customWeeklyPrice">Weekly Price (₹)</Label>
+                        <Input
+                          id="customWeeklyPrice"
+                          type="number"
+                          value={pricingFormData.weekly_price}
+                          onChange={(e) => setPricingFormData(prev => ({ 
+                            ...prev, 
+                            weekly_price: Number(e.target.value)
+                          }))}
+                          placeholder="500"
+                          min="1"
+                          disabled={isReadOnly}
+                          required={pricingFormData.weekly_enabled}
+                        />
+                        <div className="text-xs text-muted-foreground">
+                          Customer sees: ₹{Math.round((pricingFormData.weekly_price - 100) * 1.02)} (includes 2% processing fee)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Monthly Pricing */}
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={pricingFormData.monthly_enabled}
+                          onCheckedChange={(checked) => setPricingFormData(prev => ({ ...prev, monthly_enabled: checked }))}
+                          disabled={isReadOnly}
+                        />
+                        <div>
+                          <h5 className="font-medium">Monthly Pricing</h5>
+                          <p className="text-sm text-muted-foreground">Allow customers to book by month (30+ days)</p>
+                        </div>
+                      </div>
+                      <Badge variant={pricingFormData.monthly_enabled ? "default" : "secondary"}>
+                        {pricingFormData.monthly_enabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </div>
+                    
+                    {pricingFormData.monthly_enabled && (
+                      <div className="space-y-2">
+                        <Label htmlFor="customMonthlyPrice">Monthly Price (₹)</Label>
+                        <Input
+                          id="customMonthlyPrice"
+                          type="number"
+                          value={pricingFormData.monthly_price}
+                          onChange={(e) => setPricingFormData(prev => ({ 
+                            ...prev, 
+                            monthly_price: Number(e.target.value)
+                          }))}
+                          placeholder="1500"
+                          min="1"
+                          disabled={isReadOnly}
+                          required={pricingFormData.monthly_enabled}
+                        />
+                        <div className="text-xs text-muted-foreground">
+                          Customer sees: ₹{Math.round((pricingFormData.monthly_price - 100) * 1.02)} (includes 2% processing fee)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pricing Summary */}
+                  <div className="border rounded-lg p-4 bg-primary/5">
+                    <h5 className="font-medium mb-3">Available Pricing Options</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {pricingFormData.daily_enabled && (
+                        <div className="text-center p-3 bg-background rounded-lg border">
+                          <div className="text-sm text-muted-foreground">Daily</div>
+                          <div className="font-bold text-lg">₹{Math.round((pricingFormData.daily_price - 100) * 1.02)}</div>
+                          <div className="text-xs text-muted-foreground">per day</div>
+                        </div>
+                      )}
+                      {pricingFormData.weekly_enabled && (
+                        <div className="text-center p-3 bg-background rounded-lg border">
+                          <div className="text-sm text-muted-foreground">Weekly</div>
+                          <div className="font-bold text-lg">₹{Math.round((pricingFormData.weekly_price - 100) * 1.02)}</div>
+                          <div className="text-xs text-muted-foreground">per week</div>
+                        </div>
+                      )}
+                      {pricingFormData.monthly_enabled && (
+                        <div className="text-center p-3 bg-background rounded-lg border">
+                          <div className="text-sm text-muted-foreground">Monthly</div>
+                          <div className="font-bold text-lg">₹{Math.round((pricingFormData.monthly_price - 100) * 1.02)}</div>
+                          <div className="text-xs text-muted-foreground">per month</div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {!pricingFormData.daily_enabled && !pricingFormData.weekly_enabled && !pricingFormData.monthly_enabled && (
+                      <div className="text-center text-muted-foreground py-4">
+                        <p>⚠️ At least one pricing plan must be enabled</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            )}
 
             {/* QR Code Tab */}
             {(mode === "edit" || mode === "view") && studyHall?.id && (
