@@ -82,11 +82,9 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   const { checkSeatAvailability, getSeatAvailabilityMap, calculateBookingAmount } = useBookingAvailability();
   const { getPricingPlan, calculateBookingAmountWithMerchantPlans } = useMerchantPricingPlans();
   
-  // Merchant pricing state with better initialization
+  // Merchant pricing state
   const [merchantPricingPlan, setMerchantPricingPlan] = useState<any>(null);
   const [availablePeriods, setAvailablePeriods] = useState<string[]>(["daily"]);
-  const [pricingPlanLoading, setPricingPlanLoading] = useState(false);
-  const [pricingPlanError, setPricingPlanError] = useState<string>("");
 
   // Filter seats based on date-specific availability
   const getAvailableSeats = () => {
@@ -102,77 +100,58 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   useEffect(() => {
     const loadMerchantPricing = async () => {
       if (!studyHall?.id) {
-        console.log('No study hall ID, using default periods');
         setAvailablePeriods(["daily", "weekly", "monthly"]);
-        setMerchantPricingPlan(null);
-        setPricingPlanError("");
         return;
       }
       
-      setPricingPlanLoading(true);
-      setPricingPlanError("");
-      
       try {
-        console.log('🔍 Loading merchant pricing for study hall:', studyHall.id);
+        console.log('Loading merchant pricing for study hall:', studyHall.id);
         const plan = await getPricingPlan(studyHall.id);
-        console.log('📋 Retrieved pricing plan:', plan);
-        
+        console.log('Loaded merchant pricing plan:', plan);
         setMerchantPricingPlan(plan);
         
+        // Update available periods based on plan - ONLY include enabled periods with valid prices
         if (plan) {
-          // Only include enabled periods with valid prices > 0
           const periods: string[] = [];
           
-          console.log('🧮 Evaluating pricing periods:');
-          console.log('  Daily:', { enabled: plan.daily_enabled, price: plan.daily_price });
-          console.log('  Weekly:', { enabled: plan.weekly_enabled, price: plan.weekly_price });
-          console.log('  Monthly:', { enabled: plan.monthly_enabled, price: plan.monthly_price });
-          
+          // Only add daily if enabled AND has a valid price
           if (plan.daily_enabled && plan.daily_price && plan.daily_price > 0) {
             periods.push("daily");
-            console.log('  ✅ Daily pricing enabled');
           }
           
+          // Only add weekly if enabled AND has a valid price
           if (plan.weekly_enabled && plan.weekly_price && plan.weekly_price > 0) {
             periods.push("weekly");
-            console.log('  ✅ Weekly pricing enabled');
           }
           
+          // Only add monthly if enabled AND has a valid price
           if (plan.monthly_enabled && plan.monthly_price && plan.monthly_price > 0) {
             periods.push("monthly");
-            console.log('  ✅ Monthly pricing enabled');
           }
           
-          console.log('🎯 Final available periods:', periods);
+          console.log('Available periods after filtering:', periods);
+          setAvailablePeriods(periods);
           
+          // Set default period to first available, or fallback to daily
           if (periods.length > 0) {
-            setAvailablePeriods(periods);
-            
-            // Set default period to first available, or update current if not available
             if (!periods.includes(bookingPeriod)) {
-              const newPeriod = periods[0] as "daily" | "weekly" | "monthly";
-              console.log('🔄 Updating booking period from', bookingPeriod, 'to', newPeriod);
-              setBookingPeriod(newPeriod);
+              setBookingPeriod(periods[0] as any);
+              console.log('Updated booking period to:', periods[0]);
             }
           } else {
-            console.warn('⚠️ No pricing periods enabled for this study hall');
+            // If no periods are enabled, fallback to daily but show error
+            console.warn('No pricing periods enabled for this study hall');
             setAvailablePeriods(["daily"]);
             setBookingPeriod("daily");
-            setPricingPlanError("No pricing plans are enabled for this study hall");
           }
         } else {
-          // No merchant pricing plan found, use study hall default pricing
-          console.log('📝 No merchant pricing plan found, using study hall default pricing');
+          // No merchant pricing plan, use all periods
+          console.log('No merchant pricing plan found, using default periods');
           setAvailablePeriods(["daily", "weekly", "monthly"]);
         }
-      } catch (error: any) {
-        console.error('❌ Error loading merchant pricing:', error);
-        setPricingPlanError(`Failed to load pricing: ${error.message}`);
-        // Fallback to default periods on error
+      } catch (error) {
+        console.error('Error loading merchant pricing:', error);
         setAvailablePeriods(["daily", "weekly", "monthly"]);
-        setMerchantPricingPlan(null);
-      } finally {
-        setPricingPlanLoading(false);
       }
     };
 
@@ -331,35 +310,26 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
   // Get the correct price for display based on merchant pricing
   const getPriceForPeriod = (period: string) => {
-    console.log('💰 Getting price for period:', period, 'with merchant plan:', merchantPricingPlan);
-    
     if (merchantPricingPlan) {
       switch (period) {
         case "daily":
-          const dailyPrice = merchantPricingPlan.daily_enabled && merchantPricingPlan.daily_price 
+          return merchantPricingPlan.daily_enabled && merchantPricingPlan.daily_price 
             ? merchantPricingPlan.daily_price 
             : null;
-          console.log('  Daily price:', dailyPrice);
-          return dailyPrice;
         case "weekly":
-          const weeklyPrice = merchantPricingPlan.weekly_enabled && merchantPricingPlan.weekly_price 
+          return merchantPricingPlan.weekly_enabled && merchantPricingPlan.weekly_price 
             ? merchantPricingPlan.weekly_price 
             : null;
-          console.log('  Weekly price:', weeklyPrice);
-          return weeklyPrice;
         case "monthly":
-          const monthlyPrice = merchantPricingPlan.monthly_enabled && merchantPricingPlan.monthly_price 
+          return merchantPricingPlan.monthly_enabled && merchantPricingPlan.monthly_price 
             ? merchantPricingPlan.monthly_price 
             : null;
-          console.log('  Monthly price:', monthlyPrice);
-          return monthlyPrice;
         default:
           return null;
       }
     }
     
     // Fallback to study hall pricing
-    console.log('  Using study hall fallback pricing');
     switch (period) {
       case "daily":
         return studyHall?.daily_price || 0;
@@ -504,20 +474,6 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </Alert>
           )}
 
-          {pricingPlanError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>Pricing Error: {pricingPlanError}</AlertDescription>
-            </Alert>
-          )}
-
-          {pricingPlanLoading && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>Loading pricing plans...</AlertDescription>
-            </Alert>
-          )}
-
           {checkingAvailability && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
@@ -593,21 +549,14 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
           <div className="space-y-2">
             <Label htmlFor="period">Booking Period</Label>
-            <Select 
-              value={bookingPeriod} 
-              onValueChange={(value: "daily" | "weekly" | "monthly") => setBookingPeriod(value)}
-              disabled={pricingPlanLoading}
-            >
+            <Select value={bookingPeriod} onValueChange={(value: "daily" | "weekly" | "monthly") => setBookingPeriod(value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {availablePeriods.map((period) => {
                   const price = getPriceForPeriod(period);
-                  if (price === null || price <= 0) {
-                    console.log('⏭️ Skipping period', period, 'due to invalid price:', price);
-                    return null;
-                  }
+                  if (price === null || price <= 0) return null;
                   
                   return (
                     <SelectItem key={period} value={period}>
@@ -620,9 +569,6 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                 })}
               </SelectContent>
             </Select>
-            {availablePeriods.length === 0 && (
-              <p className="text-xs text-red-600">No pricing periods available</p>
-            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
