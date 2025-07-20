@@ -1576,9 +1576,12 @@ const MerchantDashboard = () => {
         )}
 
         <StudyHallModal
-          isOpen={studyHallModalOpen}
-          onClose={() => setStudyHallModalOpen(false)}
-          onSave={handleSaveStudyHall}
+          open={studyHallModalOpen}
+          onOpenChange={setStudyHallModalOpen}
+          onSuccess={() => {
+            // Modal handles save internally, just refresh data
+            // The hooks should automatically refetch
+          }}
           studyHall={selectedStudyHall}
           mode={studyHallModalMode}
         />

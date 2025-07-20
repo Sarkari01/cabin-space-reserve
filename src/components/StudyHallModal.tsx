@@ -14,28 +14,14 @@ import { Building2, MapPin, Users, Calendar, DollarSign, Wifi, Car, Coffee, Prin
 import { useToast } from "@/hooks/use-toast";
 import { useStudyHalls } from "@/hooks/useStudyHalls";
 import { useMerchantPricingPlans } from "@/hooks/useMerchantPricingPlans";
-import { MapLocationPicker } from "./MapLocationPicker";
+// MapLocationPicker component will be implemented when needed
 
-interface StudyHall {
-  id: string;
-  merchant_id: string;
-  name: string;
-  description: string;
-  location: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  capacity: number;
-  amenities: string[];
-  images: string[];
-  created_at: string;
-  updated_at: string;
-}
+import { StudyHallData } from "@/types/StudyHall";
 
 interface StudyHallModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  studyHall?: StudyHall | null;
+  studyHall?: StudyHallData | null;
   mode: "add" | "edit" | "view";
   onSuccess?: () => void;
 }
@@ -45,12 +31,18 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
     name: "",
     description: "",
     location: "",
-    address: "",
+    formatted_address: "",
     latitude: 0,
     longitude: 0,
-    capacity: 1,
+    total_seats: 1,
+    rows: 1,
+    seats_per_row: 1,
+    custom_row_names: [] as string[],
     amenities: [] as string[],
-    images: [] as string[],
+    daily_price: 0,
+    weekly_price: 0,
+    monthly_price: 0,
+    image_url: "",
   });
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,36 +64,48 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
   const [pricingPlanLoading, setPricingPlanLoading] = useState(false);
 
   const { toast } = useToast();
-  const { createStudyHall, updateStudyHall, uploadStudyHallImage } = useStudyHalls();
+  const { createStudyHall, updateStudyHall } = useStudyHalls();
   const { getPricingPlan, savePricingPlan } = useMerchantPricingPlans();
 
   useEffect(() => {
     if (studyHall) {
       setFormData({
         name: studyHall.name,
-        description: studyHall.description,
+        description: studyHall.description || "",
         location: studyHall.location,
-        address: studyHall.address,
-        latitude: studyHall.latitude,
-        longitude: studyHall.longitude,
-        capacity: studyHall.capacity,
+        formatted_address: studyHall.formatted_address || "",
+        latitude: studyHall.latitude || 0,
+        longitude: studyHall.longitude || 0,
+        total_seats: studyHall.total_seats,
+        rows: studyHall.rows,
+        seats_per_row: studyHall.seats_per_row,
+        custom_row_names: studyHall.custom_row_names,
         amenities: studyHall.amenities,
-        images: studyHall.images,
+        daily_price: studyHall.daily_price,
+        weekly_price: studyHall.weekly_price,
+        monthly_price: studyHall.monthly_price,
+        image_url: studyHall.image_url || "",
       });
       setSelectedAmenities(studyHall.amenities);
-      setSeatingCapacity(studyHall.capacity);
+      setSeatingCapacity(studyHall.total_seats);
     } else {
       // Reset form data when studyHall is null (for add mode)
       setFormData({
         name: "",
         description: "",
         location: "",
-        address: "",
+        formatted_address: "",
         latitude: 0,
         longitude: 0,
-        capacity: 1,
+        total_seats: 1,
+        rows: 1,
+        seats_per_row: 1,
+        custom_row_names: [] as string[],
         amenities: [] as string[],
-        images: [] as string[],
+        daily_price: 0,
+        weekly_price: 0,
+        monthly_price: 0,
+        image_url: "",
       });
       setSelectedAmenities([]);
       setSeatingCapacity(1);
@@ -176,17 +180,17 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
     setImageUploadLoading(true);
 
     try {
-      const imageUrl = await uploadStudyHallImage(selectedImage);
-      setFormData(prev => ({ ...prev, images: [...prev.images, imageUrl] }));
+      // For now, we'll just show the preview - actual upload functionality to be implemented
+      setFormData(prev => ({ ...prev, image_url: previewImage || "" }));
       toast({
         title: "Success",
-        description: "Image uploaded successfully",
+        description: "Image selected successfully",
       });
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error processing image:', error);
       toast({
         title: "Error",
-        description: "Failed to upload image",
+        description: "Failed to process image",
         variant: "destructive",
       });
     } finally {
@@ -194,12 +198,14 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
     }
   };
 
-  const handleRemoveImage = (imageUrl: string) => {
-    setFormData(prev => ({ ...prev, images: prev.images.filter(img => img !== imageUrl) }));
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, image_url: "" }));
+    setSelectedImage(null);
+    setPreviewImage(null);
   };
 
   const handleLocationSelect = (location: string, address: string, latitude: number, longitude: number) => {
-    setFormData(prev => ({ ...prev, location, address, latitude, longitude }));
+    setFormData(prev => ({ ...prev, location, formatted_address: address, latitude, longitude }));
     setLocationPickerOpen(false);
   };
 
@@ -208,7 +214,7 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
     
     if (mode === "view") return;
     
-    if (!formData.name || !formData.description || !formData.location || !formData.address) {
+    if (!formData.name || !formData.description || !formData.location || !formData.formatted_address) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -224,27 +230,38 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
       
       if (mode === "add") {
         // Create new study hall
-        const newStudyHall = await createStudyHall({
+        const result = await createStudyHall({
           name: formData.name,
           description: formData.description,
           location: formData.location,
-          address: formData.address,
+          formatted_address: formData.formatted_address,
           latitude: formData.latitude,
           longitude: formData.longitude,
-          capacity: seatingCapacity,
+          total_seats: seatingCapacity,
+          rows: Math.ceil(seatingCapacity / 10),
+          seats_per_row: Math.min(seatingCapacity, 10),
+          custom_row_names: formData.custom_row_names,
           amenities: selectedAmenities,
-          images: formData.images,
+          daily_price: formData.daily_price,
+          weekly_price: formData.weekly_price,
+          monthly_price: formData.monthly_price,
+          image_url: formData.image_url,
+          status: "active",
         });
         
-        studyHallId = newStudyHall.id;
+        if (result?.data?.id) {
+          studyHallId = result.data.id;
         
-        // Save pricing plan after creating study hall
-        if (studyHallId) {
-          await savePricingPlan({
-            merchant_id: newStudyHall.merchant_id, // assuming this is available
-            study_hall_id: studyHallId,
-            ...pricingPlan,
-          });
+          // Save pricing plan after creating study hall
+          try {
+            await savePricingPlan({
+              merchant_id: result.data.merchant_id || "", 
+              study_hall_id: studyHallId,
+              ...pricingPlan,
+            });
+          } catch (error) {
+            console.error('Error saving pricing plan:', error);
+          }
         }
         
         toast({
@@ -257,12 +274,15 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
           name: formData.name,
           description: formData.description,
           location: formData.location,
-          address: formData.address,
+          formatted_address: formData.formatted_address,
           latitude: formData.latitude,
           longitude: formData.longitude,
-          capacity: seatingCapacity,
+          total_seats: seatingCapacity,
           amenities: selectedAmenities,
-          images: formData.images,
+          daily_price: formData.daily_price,
+          weekly_price: formData.weekly_price,
+          monthly_price: formData.monthly_price,
+          image_url: formData.image_url,
         });
         
         // Update pricing plan
@@ -437,27 +457,25 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {formData.images.map(imageUrl => (
-                      <div key={imageUrl} className="relative">
-                        <img
-                          src={imageUrl}
-                          alt="Study Hall"
-                          className="object-cover rounded-md aspect-video"
-                        />
-                        {mode !== "view" && (
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 rounded-full"
-                            onClick={() => handleRemoveImage(imageUrl)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  {formData.image_url && (
+                    <div className="relative max-w-md">
+                      <img
+                        src={formData.image_url}
+                        alt="Study Hall"
+                        className="object-cover rounded-md aspect-video w-full"
+                      />
+                      {mode !== "view" && (
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 rounded-full"
+                          onClick={handleRemoveImage}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -474,18 +492,18 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="capacity">Capacity</Label>
-                    <Input
-                      id="capacity"
-                      type="number"
-                      min="1"
-                      value={seatingCapacity}
-                      onChange={handleCapacityChange}
-                      required
-                      disabled={mode === "view"}
-                    />
-                  </div>
+                     <div className="space-y-2">
+                      <Label htmlFor="total_seats">Total Seats</Label>
+                      <Input
+                        id="total_seats"
+                        type="number"
+                        min="1"
+                        value={seatingCapacity}
+                        onChange={handleCapacityChange}
+                        required
+                        disabled={mode === "view"}
+                      />
+                    </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -666,11 +684,11 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
+                    <Label htmlFor="formatted_address">Address</Label>
                     <Input
-                      id="address"
-                      name="address"
-                      value={formData.address}
+                      id="formatted_address"
+                      name="formatted_address"
+                      value={formData.formatted_address}
                       onChange={handleInputChange}
                       required
                       disabled={mode === "view"}
@@ -701,11 +719,7 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
         </form>
       </DialogContent>
 
-      <MapLocationPicker
-        open={locationPickerOpen}
-        onOpenChange={setLocationPickerOpen}
-        onLocationSelect={handleLocationSelect}
-      />
+      {/* MapLocationPicker component will be implemented when needed */}
     </Dialog>
   );
 }

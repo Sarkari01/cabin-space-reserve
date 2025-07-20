@@ -1483,12 +1483,15 @@ const AdminDashboard = () => {
       />
 
       <StudyHallModal
-        isOpen={studyHallModalOpen}
-        onClose={() => {
-          setStudyHallModalOpen(false);
-          setSelectedStudyHall(null);
+        open={studyHallModalOpen}
+        onOpenChange={(open) => {
+          setStudyHallModalOpen(open);
+          if (!open) setSelectedStudyHall(null);
         }}
-        onSave={handleSaveStudyHall}
+        onSuccess={() => {
+          // Modal handles save internally, just refresh data
+          // The useAdminData hook should automatically refetch
+        }}
         studyHall={selectedStudyHall}
         mode={studyHallModalMode}
       />
