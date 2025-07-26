@@ -1175,51 +1175,6 @@ export type Database = {
           },
         ]
       }
-      merchant_pricing_plans: {
-        Row: {
-          created_at: string
-          id: string
-          merchant_id: string
-          monthly_enabled: boolean
-          monthly_price: number | null
-          study_hall_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          merchant_id: string
-          monthly_enabled?: boolean
-          monthly_price?: number | null
-          study_hall_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          merchant_id?: string
-          monthly_enabled?: boolean
-          monthly_price?: number | null
-          study_hall_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "merchant_pricing_plans_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "merchant_pricing_plans_study_hall_id_fkey"
-            columns: ["study_hall_id"]
-            isOneToOne: false
-            referencedRelation: "study_halls"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       merchant_profiles: {
         Row: {
           account_holder_name: string | null
@@ -2740,51 +2695,7 @@ export type Database = {
       }
     }
     Views: {
-      monthly_pricing_view: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          merchant_id: string | null
-          monthly_enabled: boolean | null
-          monthly_price: number | null
-          study_hall_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          merchant_id?: string | null
-          monthly_enabled?: boolean | null
-          monthly_price?: number | null
-          study_hall_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          merchant_id?: string | null
-          monthly_enabled?: boolean | null
-          monthly_price?: number | null
-          study_hall_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "merchant_pricing_plans_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "merchant_pricing_plans_study_hall_id_fkey"
-            columns: ["study_hall_id"]
-            isOneToOne: false
-            referencedRelation: "study_halls"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       activate_trial_subscription: {
