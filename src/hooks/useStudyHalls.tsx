@@ -199,6 +199,23 @@ export const useStudyHalls = () => {
       }
 
       // Proceed with creation if limits check passes
+      console.log('Creating study hall with data:', { ...studyHallData, merchant_id: user.id });
+      console.log('Session token exists:', !!sessionData.session?.access_token);
+      console.log('User ID in session:', sessionData.session?.user?.id);
+      
+      // Test database connectivity and RLS with a simple query first
+      const { data: testQuery, error: testError } = await supabase
+        .from('study_halls')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        console.error('Test query failed - RLS/Auth issue:', testError);
+        throw new Error(`Database access denied. This appears to be an authentication issue: ${testError.message}`);
+      }
+      
+      console.log('Test query successful, proceeding with insert...');
+      
       const { data, error } = await supabase
         .from('study_halls')
         .insert([{
@@ -208,7 +225,16 @@ export const useStudyHalls = () => {
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
       
       await fetchStudyHalls();
       toast({

@@ -166,18 +166,27 @@ const MerchantDashboard = () => {
     setStudyHallModalOpen(true);
   };
 
-  const handleSaveStudyHall = async (studyHallData: any): Promise<{ success: boolean; data?: any }> => {
+  const handleSaveStudyHall = async (studyHallData: any): Promise<{ success: boolean; data?: any; error?: any }> => {
     try {
       if (studyHallModalMode === "add") {
         const result = await createStudyHall(studyHallData);
+        if (result.error) {
+          console.error('Create study hall error:', result.error);
+          return { success: false, error: result.error };
+        }
         return { success: true, data: result.data };
       } else if (studyHallModalMode === "edit") {
         const result = await updateStudyHall(studyHallData.id, studyHallData);
+        if (result.error) {
+          console.error('Update study hall error:', result.error);
+          return { success: false, error: result.error };
+        }
         return { success: true, data: result.data };
       }
       return { success: false };
     } catch (error) {
-      return { success: false };
+      console.error('handleSaveStudyHall error:', error);
+      return { success: false, error };
     }
   };
 
