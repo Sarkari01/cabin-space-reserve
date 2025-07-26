@@ -194,7 +194,7 @@ export const TelemarketingStudyHallsTab = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{studyHalls.length > 0 ? Math.round(studyHalls.reduce((sum, hall) => sum + (hall.daily_price || 0), 0) / studyHalls.length) : 0}
+              ₹{studyHalls.length > 0 ? Math.round(studyHalls.reduce((sum, hall) => sum + (hall.monthly_price || 0), 0) / studyHalls.length) : 0}
             </div>
           </CardContent>
         </Card>

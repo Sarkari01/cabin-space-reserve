@@ -68,7 +68,7 @@ const PaymentSuccess = () => {
               amount: booking.total_amount,
               startDate: booking.start_date,
               endDate: booking.end_date,
-              period: booking.booking_period,
+              period: '1_month',
               status: booking.status
             };
 
@@ -132,7 +132,7 @@ const PaymentSuccess = () => {
                 amount: transaction.booking.total_amount,
                 startDate: transaction.booking.start_date,
                 endDate: transaction.booking.end_date,
-                period: transaction.booking.booking_period,
+                period: '1_month',
                 status: transaction.booking.status
               };
             } else if (transaction.payment_method === 'ekqr' && transaction.status === 'pending') {
@@ -173,7 +173,7 @@ const PaymentSuccess = () => {
                       amount: newBooking.total_amount,
                       startDate: newBooking.start_date,
                       endDate: newBooking.end_date,
-                      period: newBooking.booking_period,
+                      period: '1_month',
                       status: newBooking.status
                     };
                     

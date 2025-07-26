@@ -154,14 +154,6 @@ const StudyHallDetailModalComponent = ({
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex justify-between">
-                      <span>Daily Rate:</span>
-                      <span className="font-medium">₹{studyHall.daily_price}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Weekly Rate:</span>
-                      <span className="font-medium">₹{studyHall.weekly_price}</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span>Monthly Rate:</span>
                       <span className="font-medium">₹{studyHall.monthly_price}</span>
                     </div>
@@ -432,7 +424,11 @@ const StudyHallDetailModalComponent = ({
       <BookingModal
         open={bookingModalOpen}
         onOpenChange={setBookingModalOpen}
-        studyHall={studyHall}
+        studyHall={{
+          ...studyHall,
+          daily_price: studyHall.monthly_price,
+          weekly_price: studyHall.monthly_price
+        } as any}
         seats={seats}
         onSuccess={() => {
           setBookingModalOpen(false);

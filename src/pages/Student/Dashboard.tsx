@@ -346,7 +346,7 @@ const StudentDashboard = () => {
                           {studyHall.rows} rows • {studyHall.seats_per_row} seats per row
                         </p>
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold">₹{studyHall.daily_price}/day</span>
+                          <span className="font-semibold">₹{studyHall.monthly_price}/month</span>
                           <div className="space-x-2">
                             <Button 
                               size="sm" 
@@ -541,7 +541,7 @@ const StudentDashboard = () => {
                           {favorite.study_halls?.location}
                         </p>
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold">₹{favorite.study_halls?.daily_price}/day</span>
+                          <span className="font-semibold">₹{favorite.study_halls.monthly_price}/month</span>
                           <div className="space-x-2">
                             <Button 
                               size="sm" 

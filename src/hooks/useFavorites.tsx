@@ -12,7 +12,7 @@ export interface Favorite {
     id: string;
     name: string;
     location: string;
-    daily_price: number;
+    monthly_price: number;
     image_url?: string;
   };
 }
@@ -39,7 +39,7 @@ export const useFavorites = () => {
             id,
             name,
             location,
-            daily_price,
+            monthly_price,
             image_url
           )
         `)

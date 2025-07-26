@@ -461,7 +461,7 @@ const MerchantDashboard = () => {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Daily Rate</p>
-                        <p className="font-semibold">₹{studyHall.daily_price}</p>
+                        <p className="font-semibold">₹{studyHall.monthly_price}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Layout</p>
@@ -1376,7 +1376,7 @@ const MerchantDashboard = () => {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Daily Rate</p>
-                        <p className="font-semibold">₹{studyHall.daily_price}</p>
+                        <p className="font-semibold">₹{studyHall.monthly_price}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Layout</p>
