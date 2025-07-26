@@ -16,6 +16,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
+  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,28 +55,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state change:', event, 'Session exists:', !!session, 'User ID:', session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          console.log('Fetching profile for user:', session.user.id);
-          // Fetch user profile when user is authenticated
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 0);
-        } else {
-          // Clear profile data when user logs out
-          setUserProfile(null);
-          setUserRole(null);
-        }
-        
-        setLoading(false);
+  // Set up auth state listener
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (event, session) => {
+      console.log('Auth state change:', event, 'Session exists:', !!session, 'User ID:', session?.user?.id);
+      
+      // Explicitly sync session with Supabase client
+      if (session) {
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        });
       }
-    );
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        console.log('Fetching profile for user:', session.user.id);
+        // Fetch user profile when user is authenticated
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
+      } else {
+        // Clear profile data when user logs out
+        setUserProfile(null);
+        setUserRole(null);
+      }
+      
+      setLoading(false);
+    }
+  );
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -154,6 +164,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
+  // Session refresh utility
+  const refreshSession = async () => {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      console.error('Failed to refresh session:', error);
+      return false;
+    }
+    return true;
+  };
+
   const value = {
     user,
     session,
@@ -163,6 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signIn,
     signUp,
     signOut,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
