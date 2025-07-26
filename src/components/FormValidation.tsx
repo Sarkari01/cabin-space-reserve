@@ -8,7 +8,7 @@ export const bookingSchema = z.object({
   seat_id: z.string().min(1, "Seat selection is required"),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
-  booking_period: z.enum(["daily", "weekly", "monthly"]),
+  booking_period: z.enum(["1_month", "2_months", "3_months", "6_months", "12_months"]),
 }).refine((data) => {
   const start = new Date(data.start_date);
   const end = new Date(data.end_date);
@@ -30,21 +30,9 @@ export const studyHallSchema = z.object({
   name: z.string().min(1, "Study hall name is required").max(100, "Name too long"),
   location: z.string().min(1, "Location is required").max(200, "Location too long"),
   description: z.string().max(500, "Description too long").optional(),
-  daily_price: z.number().min(1, "Daily price must be greater than 0"),
-  weekly_price: z.number().min(1, "Weekly price must be greater than 0"),
   monthly_price: z.number().min(1, "Monthly price must be greater than 0"),
   rows: z.number().min(1, "Must have at least 1 row").max(10, "Maximum 10 rows"),
   seats_per_row: z.number().min(1, "Must have at least 1 seat per row").max(20, "Maximum 20 seats per row"),
-}).refine((data) => {
-  return data.weekly_price < data.daily_price * 7;
-}, {
-  message: "Weekly price should be less than 7 times daily price",
-  path: ["weekly_price"]
-}).refine((data) => {
-  return data.monthly_price < data.daily_price * 30;
-}, {
-  message: "Monthly price should be less than 30 times daily price",
-  path: ["monthly_price"]
 });
 
 export const profileSchema = z.object({

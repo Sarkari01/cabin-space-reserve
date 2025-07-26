@@ -33,7 +33,7 @@ export function BookingModificationModal({
     seat_id: booking?.seat_id || "",
     start_date: booking?.start_date || "",
     end_date: booking?.end_date || "",
-    booking_period: booking?.booking_period || "daily",
+    booking_period: booking?.booking_period || "1_month",
   });
 
   const handleSubmit = async (data: any) => {
@@ -145,9 +145,11 @@ export function BookingModificationModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="1_month">1 Month</SelectItem>
+                <SelectItem value="2_months">2 Months</SelectItem>
+                <SelectItem value="3_months">3 Months</SelectItem>
+                <SelectItem value="6_months">6 Months</SelectItem>
+                <SelectItem value="12_months">12 Months</SelectItem>
               </SelectContent>
             </Select>
           </div>

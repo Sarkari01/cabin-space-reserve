@@ -26,7 +26,7 @@ export function BookingEditModal({
     start_date: '',
     end_date: '',
     status: 'pending' as 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'refunded',
-    booking_period: 'daily' as 'daily' | 'weekly' | 'monthly'
+    booking_period: '1_month' as '1_month' | '2_months' | '3_months' | '6_months' | '12_months'
   });
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export function BookingEditModal({
             <Label htmlFor="booking_period">Booking Period</Label>
             <Select 
               value={formData.booking_period} 
-              onValueChange={(value: 'daily' | 'weekly' | 'monthly') => 
+              onValueChange={(value: '1_month' | '2_months' | '3_months' | '6_months' | '12_months') => 
                 setFormData(prev => ({ ...prev, booking_period: value }))
               }
             >
@@ -105,9 +105,11 @@ export function BookingEditModal({
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="1_month">1 Month</SelectItem>
+                <SelectItem value="2_months">2 Months</SelectItem>
+                <SelectItem value="3_months">3 Months</SelectItem>
+                <SelectItem value="6_months">6 Months</SelectItem>
+                <SelectItem value="12_months">12 Months</SelectItem>
               </SelectContent>
             </Select>
           </div>
