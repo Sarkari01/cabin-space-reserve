@@ -1896,6 +1896,30 @@ export type Database = {
           },
         ]
       }
+      security_audit_log: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       settlement_transactions: {
         Row: {
           booking_id: string
@@ -2955,6 +2979,10 @@ export type Database = {
       is_trial_expired: {
         Args: { subscription_id: string }
         Returns: boolean
+      }
+      log_security_event: {
+        Args: { p_event_type: string; p_user_id: string; p_details?: Json }
+        Returns: undefined
       }
       progress_booking_statuses: {
         Args: Record<PropertyKey, never>
