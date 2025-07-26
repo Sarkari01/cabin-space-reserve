@@ -264,12 +264,73 @@ export const useAdminData = () => {
 
   const updateUserRole = async (userId: string, newRole: 'admin' | 'merchant' | 'student') => {
     try {
+      // Enhanced security validation
+      if (!userId || !newRole) {
+        throw new Error('Invalid parameters provided');
+      }
+
+      // Verify current user is admin
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      // Check if the target user exists
+      const { data: targetUser, error: fetchError } = await supabase
+        .from('profiles')
+        .select('id, role, email')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError || !targetUser) {
+        throw new Error('Target user not found');
+      }
+
+      // Prevent role change if user doesn't exist or is the same user changing their own role to non-admin
+      if (session.user.id === userId && newRole !== 'admin') {
+        throw new Error('Cannot remove admin privileges from your own account');
+      }
+
+      // Log security event before role change
+      await supabase.functions.invoke('log-security-event', {
+        body: {
+          event_type: 'role_change_attempt',
+          details: {
+            target_user_id: userId,
+            target_user_email: targetUser.email,
+            old_role: targetUser.role,
+            new_role: newRole,
+            admin_user_id: session.user.id
+          }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        }
+      });
+
       const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
         .eq('id', userId);
 
       if (error) throw error;
+
+      // Log successful role change
+      await supabase.functions.invoke('log-security-event', {
+        body: {
+          event_type: 'role_change_success',
+          details: {
+            target_user_id: userId,
+            target_user_email: targetUser.email,
+            old_role: targetUser.role,
+            new_role: newRole,
+            admin_user_id: session.user.id
+          }
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        }
+      });
 
       await fetchUsers();
       toast({
@@ -279,6 +340,29 @@ export const useAdminData = () => {
 
       return { error: null };
     } catch (error: any) {
+      // Log failed role change attempt
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.functions.invoke('log-security-event', {
+            body: {
+              event_type: 'role_change_failed',
+              details: {
+                target_user_id: userId,
+                attempted_role: newRole,
+                admin_user_id: session.user.id,
+                error_message: error.message
+              }
+            },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            }
+          });
+        }
+      } catch (logError) {
+        console.error('Failed to log security event:', logError);
+      }
+
       toast({
         title: "Error",
         description: error.message || "Failed to update user role",
