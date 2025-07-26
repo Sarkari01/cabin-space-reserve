@@ -16,6 +16,8 @@ import { useSeats } from "@/hooks/useStudyHalls";
 import { LocationPicker } from "@/components/maps/LocationPicker";
 import { MultiImageUpload } from "@/components/MultiImageUpload";
 import { useMonthlyPricing, type MonthlyPricingPlan } from "@/hooks/useMonthlyPricing";
+import { SeatLayoutPreview } from "@/components/SeatLayoutPreview";
+import { CustomLayoutEditor } from "@/components/CustomLayoutEditor";
 
 interface Seat {
   id: string;
@@ -74,7 +76,7 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
     monthly_price: 1500,
     status: "active",
     layout_mode: "fixed",
-    row_seat_config: undefined
+    row_seat_config: {}
   });
 
   const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
@@ -138,7 +140,7 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
         monthly_price: 1500,
         status: "active",
         layout_mode: "fixed",
-        row_seat_config: undefined
+        row_seat_config: {}
       });
 
       setPricingFormData({
@@ -463,20 +465,25 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Define custom rows with varying seat counts:
-                    </p>
-                    {/* Custom layout editor would go here */}
-                    <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
-                      <p className="text-gray-500">Custom layout editor - Coming soon</p>
-                    </div>
-                  </div>
+                  <CustomLayoutEditor
+                    rowSeatConfig={formData.row_seat_config || {}}
+                    onConfigChange={(config) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        row_seat_config: config,
+                        total_seats: Object.values(config).reduce((sum, row) => sum + row.seats, 0)
+                      }));
+                    }}
+                  />
                 )}
 
-                <div className="space-y-2">
-                  <Label>Total Seats: <span className="font-bold">{formData.total_seats}</span></Label>
-                </div>
+                <SeatLayoutPreview
+                  layoutMode={formData.layout_mode || "fixed"}
+                  rows={formData.rows}
+                  seatsPerRow={formData.seats_per_row}
+                  customRowNames={formData.custom_row_names}
+                  rowSeatConfig={formData.row_seat_config}
+                />
               </div>
             </TabsContent>
 
