@@ -166,11 +166,16 @@ const MerchantDashboard = () => {
     setStudyHallModalOpen(true);
   };
 
-  const handleSaveStudyHall = async (studyHallData: any) => {
-    if (studyHallModalMode === "add") {
-      await createStudyHall(studyHallData);
-    } else if (studyHallModalMode === "edit") {
-      await updateStudyHall(studyHallData.id, studyHallData);
+  const handleSaveStudyHall = async (studyHallData: any): Promise<boolean> => {
+    try {
+      if (studyHallModalMode === "add") {
+        await createStudyHall(studyHallData);
+      } else if (studyHallModalMode === "edit") {
+        await updateStudyHall(studyHallData.id, studyHallData);
+      }
+      return true;
+    } catch (error) {
+      return false;
     }
   };
 
@@ -1576,11 +1581,10 @@ const MerchantDashboard = () => {
         )}
 
         <StudyHallModal
-          isOpen={studyHallModalOpen}
-          onClose={() => setStudyHallModalOpen(false)}
+          open={studyHallModalOpen}
+          onOpenChange={setStudyHallModalOpen}
           onSave={handleSaveStudyHall}
           studyHall={selectedStudyHall}
-          mode={studyHallModalMode}
         />
 
         {/* Booking Detail Modal */}

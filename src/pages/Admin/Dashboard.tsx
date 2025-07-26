@@ -250,7 +250,7 @@ const AdminDashboard = () => {
     setStudyHallModalOpen(true);
   };
 
-  const handleSaveStudyHall = async (studyHallData: any) => {
+  const handleSaveStudyHall = async (studyHallData: any): Promise<boolean> => {
     try {
       if (studyHallModalMode === "edit" && selectedStudyHall) {
         // Extract only the fields that belong to the study_halls table
@@ -280,12 +280,14 @@ const AdminDashboard = () => {
       }
       setStudyHallModalOpen(false);
       setSelectedStudyHall(null);
+      return true;
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to update study hall",
         variant: "destructive",
       });
+      return false;
     }
   };
 
@@ -1483,14 +1485,13 @@ const AdminDashboard = () => {
       />
 
       <StudyHallModal
-        isOpen={studyHallModalOpen}
-        onClose={() => {
-          setStudyHallModalOpen(false);
-          setSelectedStudyHall(null);
+        open={studyHallModalOpen}
+        onOpenChange={(open) => {
+          setStudyHallModalOpen(open);
+          if (!open) setSelectedStudyHall(null);
         }}
         onSave={handleSaveStudyHall}
         studyHall={selectedStudyHall}
-        mode={studyHallModalMode}
       />
     </>
   );
