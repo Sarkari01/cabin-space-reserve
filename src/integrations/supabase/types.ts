@@ -1178,42 +1178,30 @@ export type Database = {
       merchant_pricing_plans: {
         Row: {
           created_at: string
-          daily_enabled: boolean
-          daily_price: number | null
           id: string
           merchant_id: string
           monthly_enabled: boolean
           monthly_price: number | null
           study_hall_id: string
           updated_at: string
-          weekly_enabled: boolean
-          weekly_price: number | null
         }
         Insert: {
           created_at?: string
-          daily_enabled?: boolean
-          daily_price?: number | null
           id?: string
           merchant_id: string
           monthly_enabled?: boolean
           monthly_price?: number | null
           study_hall_id: string
           updated_at?: string
-          weekly_enabled?: boolean
-          weekly_price?: number | null
         }
         Update: {
           created_at?: string
-          daily_enabled?: boolean
-          daily_price?: number | null
           id?: string
           merchant_id?: string
           monthly_enabled?: boolean
           monthly_price?: number | null
           study_hall_id?: string
           updated_at?: string
-          weekly_enabled?: boolean
-          weekly_price?: number | null
         }
         Relationships: [
           {
@@ -2752,7 +2740,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      monthly_pricing_view: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          merchant_id: string | null
+          monthly_enabled: boolean | null
+          monthly_price: number | null
+          study_hall_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          merchant_id?: string | null
+          monthly_enabled?: boolean | null
+          monthly_price?: number | null
+          study_hall_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          merchant_id?: string | null
+          monthly_enabled?: boolean | null
+          monthly_price?: number | null
+          study_hall_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_pricing_plans_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_pricing_plans_study_hall_id_fkey"
+            columns: ["study_hall_id"]
+            isOneToOne: false
+            referencedRelation: "study_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       activate_trial_subscription: {
@@ -2791,20 +2823,6 @@ export type Database = {
           released_booking_ids: string[]
         }[]
       }
-      calculate_booking_amount: {
-        Args: {
-          p_start_date: string
-          p_end_date: string
-          p_daily_price: number
-          p_weekly_price: number
-          p_monthly_price: number
-        }
-        Returns: {
-          amount: number
-          days: number
-          method: string
-        }[]
-      }
       calculate_distance: {
         Args: { lat1: number; lon1: number; lat2: number; lon2: number }
         Returns: number
@@ -2823,6 +2841,31 @@ export type Database = {
           amount: number
           months: number
           period_type: string
+        }[]
+      }
+      calculate_monthly_only_booking_amount: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+          p_monthly_price: number
+        }
+        Returns: {
+          amount: number
+          days: number
+          months: number
+          method: string
+        }[]
+      }
+      calculate_simple_booking_amount: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+          p_monthly_price: number
+        }
+        Returns: {
+          amount: number
+          days: number
+          months: number
         }[]
       }
       calculate_total_seats_from_config: {
@@ -2950,6 +2993,27 @@ export type Database = {
           amenities: Json
           image_url: string
           merchant_id: string
+        }[]
+      }
+      get_nearby_study_halls_with_monthly_pricing: {
+        Args: { p_latitude: number; p_longitude: number; p_radius_km?: number }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          location: string
+          formatted_address: string
+          latitude: number
+          longitude: number
+          monthly_price: number
+          image_url: string
+          amenities: string[]
+          merchant_id: string
+          status: string
+          total_seats: number
+          average_rating: number
+          total_reviews: number
+          distance_km: number
         }[]
       }
       get_trial_plan_settings: {

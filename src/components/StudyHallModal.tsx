@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSeats } from "@/hooks/useStudyHalls";
 import { LocationPicker } from "@/components/maps/LocationPicker";
 import { MultiImageUpload } from "@/components/MultiImageUpload";
-import { useMonthlyPricingPlans, type MonthlyPricingPlan } from "@/hooks/useMonthlyPricingPlans";
+import { useMonthlyPricing, type MonthlyPricingPlan } from "@/hooks/useMonthlyPricing";
 
 interface Seat {
   id: string;
@@ -56,7 +56,7 @@ interface StudyHallModalProps {
 export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading }: StudyHallModalProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { getPricingPlan, savePricingPlan } = useMonthlyPricingPlans();
+  const { getPricingPlan, savePricingPlan } = useMonthlyPricing();
 
   // Main form data
   const [formData, setFormData] = useState<StudyHall>({

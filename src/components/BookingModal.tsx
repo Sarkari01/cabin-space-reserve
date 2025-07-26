@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, AlertCircle } from "lucide-react";
 import { useBookingAvailability } from "@/hooks/useBookingAvailability";
-import { useMonthlyPricingPlans } from "@/hooks/useMonthlyPricingPlans";
+import { useMonthlyPricing } from "@/hooks/useMonthlyPricing";
 import { PaymentProcessor } from "./PaymentProcessor";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
@@ -69,7 +69,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
   const { toast } = useToast();
   const { checkSeatAvailability, getSeatAvailabilityMap } = useBookingAvailability();
-  const { getPricingPlan, calculateMonthlyBookingAmount } = useMonthlyPricingPlans();
+  const { getPricingPlan, calculateMonthlyBookingAmount } = useMonthlyPricing();
   
   // Monthly pricing state
   const [monthlyPricingPlan, setMonthlyPricingPlan] = useState<any>(null);
