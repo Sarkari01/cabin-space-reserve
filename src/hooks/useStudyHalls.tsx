@@ -7,12 +7,34 @@ import { StudyHallData as StudyHall, Seat } from '@/types/StudyHall';
 export const useStudyHalls = () => {
   const [studyHalls, setStudyHalls] = useState<StudyHall[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
 
   const fetchStudyHalls = async () => {
     try {
       setLoading(true);
+      
+      // Ensure we have an authenticated session
+      if (!session || !user) {
+        console.log('No authenticated session available for study halls fetch');
+        setStudyHalls([]);
+        return;
+      }
+
+      // Verify session is still valid
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        console.error('Session validation failed:', sessionError);
+        toast({
+          title: "Authentication Error",
+          description: "Please log in again to continue",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Fetching study halls with authenticated user:', user.id);
+      
       let query = supabase
         .from('study_halls')
         .select('*');
@@ -123,7 +145,15 @@ export const useStudyHalls = () => {
   };
 
   const createStudyHall = async (studyHallData: Omit<StudyHall, 'id' | 'merchant_id' | 'created_at' | 'updated_at'>) => {
-    if (!user) throw new Error('User not authenticated');
+    if (!session || !user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Verify session is still valid before creating
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      throw new Error('Session expired. Please log in again.');
+    }
     
     // Check subscription limits before creating
     try {
@@ -280,8 +310,10 @@ export const useStudyHalls = () => {
   };
 
   useEffect(() => {
-    fetchStudyHalls();
-  }, [user]);
+    if (session && user) {
+      fetchStudyHalls();
+    }
+  }, [user, session]);
 
   return {
     studyHalls,
