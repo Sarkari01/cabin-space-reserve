@@ -4,6 +4,51 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { StudyHallData as StudyHall, Seat } from '@/types/StudyHall';
 
+// Utility function to wait for authentication context to be established
+const waitForAuth = async (maxAttempts = 5, delay = 1000) => {
+  for (let i = 0; i < maxAttempts; i++) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session?.access_token) {
+      console.log(`Authentication context established after ${i + 1} attempts`);
+      return sessionData.session;
+    }
+    console.log(`Waiting for auth context, attempt ${i + 1}/${maxAttempts}`);
+    if (i < maxAttempts - 1) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Failed to establish authentication context after maximum attempts');
+};
+
+// Utility function to test RLS access with retry logic
+const testRLSAccess = async (retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const { data, error } = await supabase
+        .from('study_halls')
+        .select('id')
+        .limit(1);
+      
+      if (error) {
+        if (error.message.includes('relation') && error.message.includes('does not exist')) {
+          throw new Error('Authentication context not properly established - RLS access denied');
+        }
+        throw error;
+      }
+      
+      console.log(`RLS access test successful on attempt ${i + 1}`);
+      return true;
+    } catch (error) {
+      console.log(`RLS access test failed, attempt ${i + 1}/${retries}:`, error);
+      if (i === retries - 1) throw error;
+      
+      // Wait before retry and refresh session
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      await supabase.auth.refreshSession();
+    }
+  }
+};
+
 export const useStudyHalls = () => {
   const [studyHalls, setStudyHalls] = useState<StudyHall[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,18 +190,45 @@ export const useStudyHalls = () => {
   };
 
   const createStudyHall = async (studyHallData: Omit<StudyHall, 'id' | 'merchant_id' | 'created_at' | 'updated_at'>) => {
-    if (!session || !user) {
-      throw new Error('User not authenticated');
-    }
-
-    // Verify session is still valid before creating
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !sessionData.session) {
-      throw new Error('Session expired. Please log in again.');
-    }
-    
-    // Check subscription limits before creating
     try {
+      // First, ensure we have basic authentication
+      if (!session || !user) {
+        throw new Error('User not authenticated');
+      }
+
+      console.log('🔐 Starting study hall creation with enhanced auth validation...');
+      
+      // Step 1: Wait for proper authentication context to be established
+      console.log('⏳ Waiting for authentication context...');
+      let validSession;
+      try {
+        validSession = await waitForAuth(5, 1000);
+        console.log('✅ Authentication context established:', {
+          hasToken: !!validSession.access_token,
+          userId: validSession.user?.id,
+          expiresAt: validSession.expires_at
+        });
+      } catch (authError) {
+        console.error('❌ Authentication context failed:', authError);
+        throw new Error('Failed to establish authentication context. Please refresh the page and try again.');
+      }
+
+      // Step 2: Test RLS access with retry logic
+      console.log('🔒 Testing RLS access...');
+      try {
+        await testRLSAccess(3);
+        console.log('✅ RLS access confirmed');
+      } catch (rlsError) {
+        console.error('❌ RLS access failed:', rlsError);
+        // If it's the misleading "relation does not exist" error, provide better context
+        if (rlsError.message.includes('relation') && rlsError.message.includes('does not exist')) {
+          throw new Error('Authentication context lost. Please refresh the page and try again.');
+        }
+        throw rlsError;
+      }
+
+      // Step 3: Check subscription limits
+      console.log('📋 Checking subscription limits...');
       const { data: limitsData, error: limitsError } = await supabase
         .rpc('get_merchant_subscription_limits', {
           p_merchant_id: user.id
@@ -164,12 +236,7 @@ export const useStudyHalls = () => {
 
       if (limitsError) {
         console.error('Error checking subscription limits:', limitsError);
-        toast({
-          title: "Error",
-          description: "Failed to verify subscription limits",
-          variant: "destructive"
-        });
-        return { data: null, error: limitsError };
+        throw new Error('Failed to verify subscription limits. Please try again.');
       }
 
       const limits = limitsData?.[0];
@@ -198,24 +265,8 @@ export const useStudyHalls = () => {
         return { data: null, error: { message } };
       }
 
-      // Proceed with creation if limits check passes
-      console.log('Creating study hall with data:', { ...studyHallData, merchant_id: user.id });
-      console.log('Session token exists:', !!sessionData.session?.access_token);
-      console.log('User ID in session:', sessionData.session?.user?.id);
-      
-      // Test database connectivity and RLS with a simple query first
-      const { data: testQuery, error: testError } = await supabase
-        .from('study_halls')
-        .select('id')
-        .limit(1);
-      
-      if (testError) {
-        console.error('Test query failed - RLS/Auth issue:', testError);
-        throw new Error(`Database access denied. This appears to be an authentication issue: ${testError.message}`);
-      }
-      
-      console.log('Test query successful, proceeding with insert...');
-      
+      // Step 4: Proceed with creation
+      console.log('🏗️ Creating study hall with validated context...');
       const { data, error } = await supabase
         .from('study_halls')
         .insert([{
@@ -226,29 +277,46 @@ export const useStudyHalls = () => {
         .single();
         
       if (error) {
-        console.error('Database insert error:', error);
-        console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
+        console.error('❌ Database insert error:', error);
+        
+        // Provide better error messages for common issues
+        if (error.message.includes('relation') && error.message.includes('does not exist')) {
+          throw new Error('Authentication session expired during creation. Please refresh the page and try again.');
+        }
+        
+        throw new Error(error.message || 'Failed to create study hall');
       }
       
+      console.log('✅ Study hall created successfully:', data);
+      
+      // Refresh the study halls list
       await fetchStudyHalls();
+      
       toast({
         title: "Success",
         description: "Study hall created successfully",
       });
       
       return { data, error: null };
+      
     } catch (error: any) {
+      console.error('🚨 Study hall creation failed:', error);
+      
+      // Provide user-friendly error messages
+      let errorMessage = error.message || "Failed to create study hall";
+      
+      if (error.message.includes('authentication') || error.message.includes('session')) {
+        errorMessage = "Authentication issue detected. Please refresh the page and try again.";
+      } else if (error.message.includes('RLS') || error.message.includes('access denied')) {
+        errorMessage = "Database access denied. Please log out and log in again.";
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to create study hall",
+        description: errorMessage,
         variant: "destructive",
       });
+      
       return { data: null, error };
     }
   };
