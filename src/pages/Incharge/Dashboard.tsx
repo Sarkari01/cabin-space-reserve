@@ -260,7 +260,7 @@ const InchargeDashboard = () => {
                     <h3 className="font-medium">{hall.name}</h3>
                     <p className="text-sm text-muted-foreground">{hall.location}</p>
                     <div className="flex justify-between items-center mt-2 text-xs">
-                      <span>Daily: ₹{hall.daily_price}</span>
+                      <span>Monthly: ₹{hall.monthly_price}</span>
                       <Badge variant="outline">{hall.status}</Badge>
                     </div>
                   </div>

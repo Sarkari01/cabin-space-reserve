@@ -368,8 +368,7 @@ const AdminDashboard = () => {
       title: 'Pricing',
       render: (value: any, studyHall: any) => (
         <div className="text-sm">
-          <div>₹{studyHall?.daily_price}/day</div>
-          <div className="text-muted-foreground">₹{studyHall?.monthly_price}/month</div>
+          <div>₹{studyHall?.monthly_price}/month</div>
         </div>
       ),
       mobileHidden: true

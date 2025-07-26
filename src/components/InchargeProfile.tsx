@@ -193,7 +193,7 @@ export function InchargeProfile({ inchargeData, assignedStudyHalls }: InchargePr
                     {hall.location}
                   </p>
                   <div className="flex justify-between items-center mt-2 text-xs">
-                    <span>Daily: ₹{hall.daily_price}</span>
+                    <span>Monthly: ₹{hall.monthly_price}</span>
                     <Badge variant="outline">{hall.status}</Badge>
                   </div>
                 </div>

@@ -84,10 +84,7 @@ export const TelemarketingStudyHallsTab = () => {
         <div className="space-y-1">
           <div className="flex items-center text-sm">
             <DollarSign className="h-3 w-3 mr-1" />
-            ₹{hall?.daily_price || 0}/day
-          </div>
-          <div className="text-xs text-muted-foreground">
-            ₹{hall?.weekly_price || 0}/week | ₹{hall?.monthly_price || 0}/month
+            ₹{hall?.monthly_price || 0}/month
           </div>
         </div>
       )
@@ -189,7 +186,7 @@ export const TelemarketingStudyHallsTab = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Daily Price</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Monthly Price</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

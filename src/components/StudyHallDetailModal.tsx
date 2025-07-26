@@ -426,8 +426,6 @@ const StudyHallDetailModalComponent = ({
         onOpenChange={setBookingModalOpen}
         studyHall={{
           ...studyHall,
-          daily_price: studyHall.monthly_price,
-          weekly_price: studyHall.monthly_price
         } as any}
         seats={seats}
         onSuccess={() => {

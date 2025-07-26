@@ -94,7 +94,6 @@ export const AdminReportsTab: React.FC = () => {
           { key: 'merchant.full_name', title: 'Owner' },
           { key: 'location', title: 'Location' },
           { key: 'total_seats', title: 'Capacity' },
-          { key: 'daily_price', title: 'Daily Price', format: formatCurrency },
           { key: 'monthly_price', title: 'Monthly Price', format: formatCurrency },
           { key: 'status', title: 'Status' },
           { key: 'created_at', title: 'Created', format: formatDate }
@@ -283,8 +282,8 @@ export const AdminReportsTab: React.FC = () => {
             )
           },
           {
-            key: 'daily_price',
-            title: 'Daily Price',
+            key: 'monthly_price',
+            title: 'Monthly Price',
             render: (value: number) => formatCurrency(value || 0)
           },
           {
