@@ -14,10 +14,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSeats } from "@/hooks/useStudyHalls";
 import { LocationPicker } from "@/components/maps/LocationPicker";
-import { MultiImageUpload } from "@/components/MultiImageUpload";
+import { MultiImageUpload, type UploadedImage } from "@/components/MultiImageUpload";
 import { useMonthlyPricing, type MonthlyPricingPlan } from "@/hooks/useMonthlyPricing";
 import { SeatLayoutPreview } from "@/components/SeatLayoutPreview";
 import { CustomLayoutEditor } from "@/components/CustomLayoutEditor";
+import { useStudyHallImages } from "@/hooks/useStudyHallImages";
 
 interface Seat {
   id: string;
@@ -80,6 +81,10 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
   });
 
   const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
+  const { images, loading: imagesLoading } = useStudyHallImages(studyHall?.id);
+  
+  // Image upload state
+  const [newImages, setNewImages] = useState<UploadedImage[]>([]);
   
   // Pricing plans state
   const [pricingPlan, setPricingPlan] = useState<MonthlyPricingPlan | null>(null);
@@ -214,9 +219,10 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
       const success = await onSave(studyHallData);
       
       if (success) {
+        const studyHallId = studyHallData.id || studyHall!.id!;
+        
         // Save pricing plan after study hall is saved
-        if (studyHallData.id || studyHall?.id) {
-          const studyHallId = studyHallData.id || studyHall!.id!;
+        if (studyHallId) {
           const pricingSuccess = await savePricingPlan({
             ...pricingFormData,
             study_hall_id: studyHallId,
@@ -224,13 +230,53 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
 
           if (!pricingSuccess) {
             toast({
-              title: "Warning",
+              title: "Warning", 
               description: "Study hall saved but pricing plan failed to save",
               variant: "destructive",
             });
           }
         }
 
+        // Upload new images if any
+        if (newImages.length > 0 && studyHallId) {
+          try {
+            const { data, error } = await supabase.functions.invoke('upload-study-hall-images', {
+              body: {
+                studyHallId,
+                images: await Promise.all(newImages.map(async (img, index) => ({
+                  fileData: await fileToBase64(img.file),
+                  fileName: img.file.name,
+                  isMain: img.isMain,
+                  displayOrder: index
+                })))
+              }
+            });
+
+            if (error) {
+              console.error('Image upload error:', error);
+              toast({
+                title: "Warning",
+                description: "Study hall saved but image upload failed",
+                variant: "destructive",
+              });
+            } else {
+              toast({
+                title: "Success",
+                description: "Study hall and images saved successfully",
+              });
+            }
+          } catch (error) {
+            console.error('Image upload error:', error);
+            toast({
+              title: "Warning",
+              description: "Study hall saved but image upload failed", 
+              variant: "destructive",
+            });
+          }
+        }
+
+        // Clear new images state
+        setNewImages([]);
         onOpenChange(false);
       }
     } catch (error) {
@@ -241,6 +287,22 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
         variant: "destructive",
       });
     }
+  };
+
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result.split(',')[1]); // Remove data:image/jpeg;base64, prefix
+        } else {
+          reject(new Error('Failed to convert file to base64'));
+        }
+      };
+      reader.onerror = error => reject(error);
+    });
   };
 
   const availableAmenities = [
@@ -263,10 +325,11 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
 
         <form onSubmit={handleSubmit}>
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
               <TabsTrigger value="pricing">Monthly Pricing</TabsTrigger>
               <TabsTrigger value="layout">Seat Layout</TabsTrigger>
+              <TabsTrigger value="images">Images</TabsTrigger>
               <TabsTrigger value="amenities">Amenities</TabsTrigger>
             </TabsList>
 
@@ -484,6 +547,41 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
                   customRowNames={formData.custom_row_names}
                   rowSeatConfig={formData.row_seat_config}
                 />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="images" className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Study Hall Images</Label>
+                  {images.length > 0 && (
+                    <Badge variant="secondary">
+                      {images.length} existing image{images.length !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Upload multiple images to showcase your study hall. The first image will be set as the main image.
+                </p>
+                
+                <MultiImageUpload
+                  studyHallId={studyHall?.id}
+                  existingImages={images.map(img => ({
+                    id: img.id,
+                    image_url: img.image_url,
+                    is_main: img.is_main,
+                    display_order: img.display_order
+                  }))}
+                  onImagesChange={setNewImages}
+                  disabled={loading || imagesLoading}
+                  maxImages={10}
+                />
+                
+                {newImages.length > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    Note: New images will be uploaded after the study hall is saved.
+                  </div>
+                )}
               </div>
             </TabsContent>
 
