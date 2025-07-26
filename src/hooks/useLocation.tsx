@@ -74,10 +74,10 @@ export const useLocation = (): UseLocationReturn => {
     }
 
     try {
-      const { data, error } = await supabase.rpc('get_nearby_study_halls', {
-        user_lat: coordinates.latitude,
-        user_lon: coordinates.longitude,
-        radius_km: radius,
+      const { data, error } = await supabase.rpc('get_nearby_study_halls_with_monthly_pricing', {
+        p_latitude: coordinates.latitude,
+        p_longitude: coordinates.longitude,
+        p_radius_km: radius,
       });
 
       if (error) throw error;
