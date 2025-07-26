@@ -250,7 +250,7 @@ const AdminDashboard = () => {
     setStudyHallModalOpen(true);
   };
 
-  const handleSaveStudyHall = async (studyHallData: any): Promise<boolean> => {
+  const handleSaveStudyHall = async (studyHallData: any): Promise<{ success: boolean; data?: any }> => {
     try {
       if (studyHallModalMode === "edit" && selectedStudyHall) {
         // Extract only the fields that belong to the study_halls table
@@ -260,13 +260,15 @@ const AdminDashboard = () => {
           ...updateData
         } = studyHallData;
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("study_halls")
           .update({
             ...updateData,
             updated_at: new Date().toISOString()
           })
-          .eq("id", selectedStudyHall.id);
+          .eq("id", selectedStudyHall.id)
+          .select()
+          .single();
 
         if (error) throw error;
 
@@ -277,17 +279,20 @@ const AdminDashboard = () => {
         
         // Refresh the data to show updated information
         await fetchData();
+        setStudyHallModalOpen(false);
+        setSelectedStudyHall(null);
+        return { success: true, data };
       }
       setStudyHallModalOpen(false);
       setSelectedStudyHall(null);
-      return true;
+      return { success: true };
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to update study hall",
         variant: "destructive",
       });
-      return false;
+      return { success: false };
     }
   };
 

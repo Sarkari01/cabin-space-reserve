@@ -166,16 +166,18 @@ const MerchantDashboard = () => {
     setStudyHallModalOpen(true);
   };
 
-  const handleSaveStudyHall = async (studyHallData: any): Promise<boolean> => {
+  const handleSaveStudyHall = async (studyHallData: any): Promise<{ success: boolean; data?: any }> => {
     try {
       if (studyHallModalMode === "add") {
-        await createStudyHall(studyHallData);
+        const result = await createStudyHall(studyHallData);
+        return { success: true, data: result.data };
       } else if (studyHallModalMode === "edit") {
-        await updateStudyHall(studyHallData.id, studyHallData);
+        const result = await updateStudyHall(studyHallData.id, studyHallData);
+        return { success: true, data: result.data };
       }
-      return true;
+      return { success: false };
     } catch (error) {
-      return false;
+      return { success: false };
     }
   };
 

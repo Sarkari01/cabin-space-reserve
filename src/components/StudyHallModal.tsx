@@ -52,7 +52,7 @@ interface StudyHallModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   studyHall?: StudyHall | null;
-  onSave: (studyHall: StudyHall) => Promise<boolean>;
+  onSave: (studyHall: StudyHall) => Promise<{ success: boolean; data?: any }>;
   loading?: boolean;
 }
 
@@ -216,10 +216,10 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
           : formData.rows * formData.seats_per_row
       };
 
-      const success = await onSave(studyHallData);
+      const result = await onSave(studyHallData);
       
-      if (success) {
-        const studyHallId = studyHallData.id || studyHall!.id!;
+      if (result.success) {
+        const studyHallId = studyHallData.id || result.data?.id || studyHall?.id;
         
         // Save pricing plan after study hall is saved
         if (studyHallId) {
