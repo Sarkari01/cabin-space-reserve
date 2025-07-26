@@ -47,8 +47,6 @@ const handler = async (req: Request): Promise<Response> => {
         description,
         location,
         formatted_address,
-        daily_price,
-        weekly_price,
         monthly_price,
         amenities,
         image_url,
