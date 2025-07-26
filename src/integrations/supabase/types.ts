@@ -137,7 +137,6 @@ export type Database = {
       bookings: {
         Row: {
           booking_number: number | null
-          booking_period: Database["public"]["Enums"]["booking_period"]
           created_at: string
           end_date: string
           guest_email: string | null
@@ -155,7 +154,6 @@ export type Database = {
         }
         Insert: {
           booking_number?: number | null
-          booking_period: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date: string
           guest_email?: string | null
@@ -173,7 +171,6 @@ export type Database = {
         }
         Update: {
           booking_number?: number | null
-          booking_period?: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date?: string
           guest_email?: string | null
@@ -1378,6 +1375,60 @@ export type Database = {
           },
         ]
       }
+      monthly_pricing_plans: {
+        Row: {
+          created_at: string | null
+          id: string
+          merchant_id: string
+          months_1_enabled: boolean | null
+          months_1_price: number | null
+          months_12_enabled: boolean | null
+          months_12_price: number | null
+          months_2_enabled: boolean | null
+          months_2_price: number | null
+          months_3_enabled: boolean | null
+          months_3_price: number | null
+          months_6_enabled: boolean | null
+          months_6_price: number | null
+          study_hall_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          merchant_id: string
+          months_1_enabled?: boolean | null
+          months_1_price?: number | null
+          months_12_enabled?: boolean | null
+          months_12_price?: number | null
+          months_2_enabled?: boolean | null
+          months_2_price?: number | null
+          months_3_enabled?: boolean | null
+          months_3_price?: number | null
+          months_6_enabled?: boolean | null
+          months_6_price?: number | null
+          study_hall_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          merchant_id?: string
+          months_1_enabled?: boolean | null
+          months_1_price?: number | null
+          months_12_enabled?: boolean | null
+          months_12_price?: number | null
+          months_2_enabled?: boolean | null
+          months_2_price?: number | null
+          months_3_enabled?: boolean | null
+          months_3_price?: number | null
+          months_6_enabled?: boolean | null
+          months_6_price?: number | null
+          study_hall_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       news_posts: {
         Row: {
           content: string
@@ -2232,7 +2283,6 @@ export type Database = {
           average_rating: number | null
           created_at: string
           custom_row_names: string[]
-          daily_price: number
           description: string | null
           formatted_address: string | null
           hall_number: number | null
@@ -2254,14 +2304,12 @@ export type Database = {
           total_reviews: number | null
           total_seats: number
           updated_at: string
-          weekly_price: number
         }
         Insert: {
           amenities?: Json | null
           average_rating?: number | null
           created_at?: string
           custom_row_names?: string[]
-          daily_price?: number
           description?: string | null
           formatted_address?: string | null
           hall_number?: number | null
@@ -2283,14 +2331,12 @@ export type Database = {
           total_reviews?: number | null
           total_seats: number
           updated_at?: string
-          weekly_price?: number
         }
         Update: {
           amenities?: Json | null
           average_rating?: number | null
           created_at?: string
           custom_row_names?: string[]
-          daily_price?: number
           description?: string | null
           formatted_address?: string | null
           hall_number?: number | null
@@ -2312,7 +2358,6 @@ export type Database = {
           total_reviews?: number | null
           total_seats?: number
           updated_at?: string
-          weekly_price?: number
         }
         Relationships: [
           {
@@ -2764,6 +2809,22 @@ export type Database = {
         Args: { lat1: number; lon1: number; lat2: number; lon2: number }
         Returns: number
       }
+      calculate_monthly_booking_amount: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+          p_months_1_price: number
+          p_months_2_price: number
+          p_months_3_price: number
+          p_months_6_price?: number
+          p_months_12_price?: number
+        }
+        Returns: {
+          amount: number
+          months: number
+          period_type: string
+        }[]
+      }
       calculate_total_seats_from_config: {
         Args: { row_seat_config: Json }
         Returns: number
@@ -2959,7 +3020,12 @@ export type Database = {
     Enums: {
       banner_status: "active" | "inactive"
       banner_target_audience: "user" | "merchant" | "both"
-      booking_period: "daily" | "weekly" | "monthly"
+      booking_period:
+        | "1_month"
+        | "2_months"
+        | "3_months"
+        | "6_months"
+        | "12_months"
       creator_type: "admin" | "institution" | "telemarketing_executive"
       news_visibility: "user" | "merchant" | "both"
       review_status: "approved" | "pending" | "hidden"
@@ -3103,7 +3169,13 @@ export const Constants = {
     Enums: {
       banner_status: ["active", "inactive"],
       banner_target_audience: ["user", "merchant", "both"],
-      booking_period: ["daily", "weekly", "monthly"],
+      booking_period: [
+        "1_month",
+        "2_months",
+        "3_months",
+        "6_months",
+        "12_months",
+      ],
       creator_type: ["admin", "institution", "telemarketing_executive"],
       news_visibility: ["user", "merchant", "both"],
       review_status: ["approved", "pending", "hidden"],

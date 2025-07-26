@@ -5,7 +5,7 @@ import { useBookingAvailability } from "@/hooks/useBookingAvailability";
 interface BookingIntent {
   study_hall_id: string;
   seat_id: string;
-  booking_period: "daily" | "weekly" | "monthly";
+  booking_period: "1_month" | "2_months" | "3_months" | "6_months" | "12_months";
   start_date: string;
   end_date: string;
   total_amount: number;
@@ -74,7 +74,7 @@ export const createBookingFromIntent = async (
     console.log('Validating payment amount...');
     const { data: studyHall, error: hallError } = await supabase
       .from('study_halls')
-      .select('daily_price, weekly_price, monthly_price')
+      .select('monthly_price')
       .eq('id', bookingIntent.study_hall_id)
       .single();
 
@@ -89,17 +89,8 @@ export const createBookingFromIntent = async (
     const timeDiff = end.getTime() - start.getTime();
     const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
-    const dailyTotal = days * studyHall.daily_price;
-    const weeklyTotal = Math.ceil(days / 7) * studyHall.weekly_price;
-    const monthlyTotal = Math.ceil(days / 30) * studyHall.monthly_price;
-
-    let expectedAmount = dailyTotal;
-    if (days >= 7 && weeklyTotal < expectedAmount) {
-      expectedAmount = weeklyTotal;
-    }
-    if (days >= 30 && monthlyTotal < expectedAmount) {
-      expectedAmount = monthlyTotal;
-    }
+    const months = Math.ceil(days / 30);
+    const expectedAmount = months * studyHall.monthly_price;
 
     // Allow for small rounding differences (up to 1 rupee)
     if (Math.abs(bookingIntent.total_amount - expectedAmount) > 1) {

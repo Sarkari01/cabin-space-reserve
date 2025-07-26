@@ -1,6 +1,6 @@
 /**
- * Fee calculation utilities for Razorpay integration
- * Hides the 2% transaction fee by showing it as a "discount"
+ * Fee calculation utilities for monthly-only booking system
+ * Handles 2% transaction fee by showing it as a "discount"
  */
 
 // Razorpay transaction fee percentage
@@ -62,54 +62,29 @@ export const formatPriceWithDiscount = (merchantPrice: number): {
 };
 
 /**
- * Calculate booking amount with fee handling
+ * Calculate monthly booking amount with fee handling
  */
-export const calculateBookingAmountWithFees = (
+export const calculateMonthlyBookingAmountWithFees = (
   startDate: string,
   endDate: string,
-  dailyMerchantPrice: number,
-  weeklyMerchantPrice: number,
-  monthlyMerchantPrice: number
+  monthlyPrice: number
 ): {
   baseAmount: number;
   discountAmount: number;
   finalAmount: number;
   days: number;
+  months: number;
   method: string;
-  priceBreakdown: {
-    baseDaily: number;
-    baseWeekly: number;
-    baseMonthly: number;
-  };
 } => {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const timeDiff = end.getTime() - start.getTime();
   const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+  const months = Math.ceil(days / 30);
 
-  // Calculate customer original prices (merchant price - ₹100)
-  const baseDailyPrice = calculateBasePrice(dailyMerchantPrice);
-  const baseWeeklyPrice = calculateBasePrice(weeklyMerchantPrice);
-  const baseMonthlyPrice = calculateBasePrice(monthlyMerchantPrice);
-
-  // Calculate totals for each method
-  const dailyTotal = days * baseDailyPrice;
-  const weeklyTotal = Math.ceil(days / 7) * baseWeeklyPrice;
-  const monthlyTotal = Math.ceil(days / 30) * baseMonthlyPrice;
-
-  let baseAmount = dailyTotal;
-  let method = 'daily';
-
-  // Choose the most cost-effective option
-  if (days >= 7 && weeklyTotal < baseAmount) {
-    baseAmount = weeklyTotal;
-    method = 'weekly';
-  }
-
-  if (days >= 30 && monthlyTotal < baseAmount) {
-    baseAmount = monthlyTotal;
-    method = 'monthly';
-  }
+  // Calculate customer original price (merchant price - ₹100)
+  const baseMonthlyPrice = calculateBasePrice(monthlyPrice);
+  const baseAmount = months * baseMonthlyPrice;
 
   const discountAmount = calculateDiscountAmount(baseAmount);
   const finalAmount = calculateFinalAmount(baseAmount);
@@ -119,11 +94,7 @@ export const calculateBookingAmountWithFees = (
     discountAmount,
     finalAmount,
     days,
-    method,
-    priceBreakdown: {
-      baseDaily: baseDailyPrice,
-      baseWeekly: baseWeeklyPrice,
-      baseMonthly: baseMonthlyPrice
-    }
+    months,
+    method: 'monthly'
   };
 };
