@@ -549,7 +549,7 @@ const MerchantDashboard = () => {
                               <div className="font-medium">{booking.user?.full_name || 'N/A'}</div>
                               <div className="text-muted-foreground text-xs">{booking.user?.email}</div>
                               <Badge variant="outline" className="text-xs">
-                                {booking.booking_period.toUpperCase()}
+                                {(booking.booking_period || 'monthly').toUpperCase()}
                               </Badge>
                             </div>
                           </div>
@@ -580,7 +580,7 @@ const MerchantDashboard = () => {
                             <div className="space-y-1">
                               <div className="text-lg font-bold">₹{Number(booking.total_amount).toLocaleString()}</div>
                               <Badge variant={getStatusColor(booking.status)} className="text-xs">
-                                {booking.status.toUpperCase()}
+                                {(booking.status || 'pending').toUpperCase()}
                               </Badge>
                               <Badge variant={booking.status === 'confirmed' || booking.status === 'completed' ? 'default' : 'secondary'} className="text-xs ml-1">
                                 {booking.status === 'confirmed' || booking.status === 'completed' ? 'PAID' : 'PENDING'}
@@ -796,7 +796,7 @@ const MerchantDashboard = () => {
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Status:</span>
                               <Badge variant={getStatusColor(booking.status)}>
-                                {booking.status.toUpperCase()}
+                                {(booking.status || 'pending').toUpperCase()}
                               </Badge>
                             </div>
                             <div className="flex items-center justify-between">
@@ -969,7 +969,7 @@ const MerchantDashboard = () => {
                                 <p className="font-medium">{formatDate(userData.bookings[0].start_date)}</p>
                               </div>
                               <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
-                                {userData.bookings[0].status.toUpperCase()}
+                                {(userData.bookings[0].status || 'pending').toUpperCase()}
                               </Badge>
                             </div>
                           )}
@@ -1229,7 +1229,7 @@ const MerchantDashboard = () => {
                                 <p className="font-medium">{formatDate(userData.bookings[0].start_date)}</p>
                               </div>
                               <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
-                                {userData.bookings[0].status.toUpperCase()}
+                                {(userData.bookings[0].status || 'pending').toUpperCase()}
                               </Badge>
                             </div>
                           )}
@@ -1459,7 +1459,7 @@ const MerchantDashboard = () => {
                             <div className="flex items-center space-x-2">
                               <h4 className="font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
                               <Badge variant={getStatusColor(booking.status)}>
-                                {booking.status.toUpperCase()}
+                                {(booking.status || 'pending').toUpperCase()}
                               </Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">
