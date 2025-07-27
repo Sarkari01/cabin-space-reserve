@@ -97,7 +97,7 @@ const ensureAuthenticatedContext = async (userId: string): Promise<boolean> => {
 export const useStudyHalls = () => {
   const [studyHalls, setStudyHalls] = useState<StudyHall[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, session, refreshSession } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
 
   const fetchStudyHalls = async () => {
@@ -251,38 +251,20 @@ export const useStudyHalls = () => {
         return { data: null, error: { message: 'User not authenticated' } };
       }
 
-      // Enhanced JWT token propagation fix
-      console.log('Ensuring JWT token is properly propagated to database...');
+      // Ensure authenticated context with enhanced JWT verification
+      console.log('Ensuring authenticated database context...');
       const authContextValid = await ensureAuthenticatedContext(user.id);
       if (!authContextValid) {
-        console.error('JWT token propagation failed - refreshing session...');
-        
-        // Try to refresh the session to get a fresh JWT token
-        const refreshed = await refreshSession();
-        
-        if (!refreshed) {
-          toast({
-            title: "Authentication Error",
-            description: "Your session has expired. Please sign out and sign in again.",
-            variant: "destructive",
-          });
-          return { data: null, error: { message: 'Session expired' } };
-        }
-        
-        // Retry authentication context verification after refresh
-        console.log('Retrying authentication context after session refresh...');
-        const retryAuthContext = await ensureAuthenticatedContext(user.id);
-        if (!retryAuthContext) {
-          toast({
-            title: "Authentication Error",
-            description: "Unable to establish database connection. Please sign out and sign in again.",
-            variant: "destructive",
-          });
-          return { data: null, error: { message: 'Database authentication failed' } };
-        }
+        console.error('Authentication context verification failed');
+        toast({
+          title: "Authentication Error",
+          description: "Unable to verify your authentication. Please sign out and sign in again.",
+          variant: "destructive",
+        });
+        return { data: null, error: { message: 'Authentication context failed' } };
       }
       
-      console.log('JWT token propagation verified successfully');
+      console.log('Authentication context verified successfully');
 
       // Check subscription limits
       console.log('Checking subscription limits...');
@@ -350,7 +332,7 @@ export const useStudyHalls = () => {
       
       console.log('Study halls table access test successful');
       
-      // Now attempt the database insert - JWT token should be properly propagated
+      // First try the normal database insert
       const { data, error } = await supabase
         .from('study_halls')
         .insert([{
@@ -360,7 +342,60 @@ export const useStudyHalls = () => {
         .select()
         .single();
 
-      if (error) {
+      // If we get a "relation does not exist" error, use the secure function
+      if (error && error.message.includes('relation "study_halls" does not exist')) {
+        console.log('Direct insert failed, trying secure function...');
+        
+        const { data: functionData, error: functionError } = await supabase
+          .rpc('create_study_hall_with_context', {
+            p_name: studyHallData.name,
+            p_description: studyHallData.description || '',
+            p_location: studyHallData.location,
+            p_total_seats: studyHallData.total_seats,
+            p_rows: studyHallData.rows,
+            p_seats_per_row: studyHallData.seats_per_row,
+            p_monthly_price: studyHallData.monthly_price,
+            p_amenities: studyHallData.amenities ? JSON.stringify(studyHallData.amenities) : '[]',
+            p_custom_row_names: studyHallData.custom_row_names || [],
+            p_formatted_address: studyHallData.formatted_address,
+            p_latitude: studyHallData.latitude,
+            p_longitude: studyHallData.longitude,
+            p_image_url: studyHallData.image_url
+          });
+
+        if (functionError) {
+          console.error('Function call error:', functionError);
+          toast({
+            title: "Error",
+            description: `Failed to create study hall via function: ${functionError.message}`,
+            variant: "destructive",
+          });
+          return { data: null, error: functionError };
+        }
+
+        // Type guard for function response
+        const response = functionData as any;
+        if (!response?.success) {
+          console.error('Function returned error:', response);
+          toast({
+            title: "Error",
+            description: `Failed to create study hall: ${response?.error || 'Unknown error'}`,
+            variant: "destructive",
+          });
+          return { data: null, error: { message: response?.error || 'Unknown error' } };
+        }
+
+        console.log('Study hall created successfully via function:', response.data);
+        toast({
+          title: "Success",
+          description: "Study hall created successfully",
+        });
+        
+        // Refresh the study halls list
+        await fetchStudyHalls();
+        
+        return { data: response.data, error: null };
+      } else if (error) {
         console.error('Study hall creation error:', error);
         toast({
           title: "Error",
