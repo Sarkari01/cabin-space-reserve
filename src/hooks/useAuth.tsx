@@ -171,14 +171,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
-  // Session refresh utility
+  // Enhanced session refresh utility with JWT token propagation
   const refreshSession = async () => {
-    const { data, error } = await supabase.auth.refreshSession();
-    if (error) {
-      console.error('Failed to refresh session:', error);
+    try {
+      console.log('Refreshing session to ensure JWT token propagation...');
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('Failed to refresh session:', error);
+        return false;
+      }
+      
+      if (data.session) {
+        // Ensure the client uses the refreshed session
+        await supabase.auth.setSession(data.session);
+        console.log('Session refreshed and set successfully for user:', data.session.user.id);
+        
+        // Update local state with refreshed session
+        setSession(data.session);
+        setUser(data.session.user);
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Session refresh failed:', error);
       return false;
     }
-    return true;
   };
 
   const value = {
