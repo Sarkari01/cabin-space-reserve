@@ -191,20 +191,21 @@ export function EnhancedStudyHallModal({
     
     try {
       if (mode === "add") {
+        // Prepare data with proper validation and type conversion
         const createData: CreateStudyHallData = {
-          name: formData.name,
-          description: formData.description,
-          location: formData.location,
-          formatted_address: formData.formatted_address,
-          total_seats: formData.total_seats,
-          rows: formData.rows,
-          seats_per_row: formData.seats_per_row,
-          custom_row_names: formData.custom_row_names,
-          amenities: selectedAmenities,
-          monthly_price: formData.monthly_price,
-          image_url: formData.image_url,
-          latitude: formData.latitude,
-          longitude: formData.longitude,
+          name: formData.name.trim(),
+          description: formData.description?.trim() || undefined,
+          location: formData.location.trim(),
+          formatted_address: formData.formatted_address?.trim() || undefined,
+          total_seats: Number(formData.total_seats),
+          rows: Number(formData.rows),
+          seats_per_row: Number(formData.seats_per_row),
+          custom_row_names: formData.custom_row_names.length > 0 ? formData.custom_row_names : [],
+          amenities: selectedAmenities.length > 0 ? selectedAmenities : [],
+          monthly_price: Number(formData.monthly_price),
+          image_url: formData.image_url?.trim() || undefined,
+          latitude: formData.latitude || undefined,
+          longitude: formData.longitude || undefined,
           status: "active",
           layout_mode: "fixed",
         };

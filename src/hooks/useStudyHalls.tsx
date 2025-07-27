@@ -235,17 +235,19 @@ export const useStudyHalls = () => {
         dbData.formatted_address = studyHallData.formatted_address.trim();
       }
 
-      // Only include custom_row_names if it has actual custom names
+      // Handle custom_row_names - use null instead of empty array to let DB use defaults
       if (Array.isArray(studyHallData.custom_row_names) && studyHallData.custom_row_names.length > 0) {
         const filteredNames = studyHallData.custom_row_names.filter(name => name?.trim());
         if (filteredNames.length > 0) {
           dbData.custom_row_names = filteredNames;
         }
+        // Don't include empty array - let database use its default
       }
 
-      // Only include amenities if provided
+      // Handle amenities - use null instead of empty array to let DB use defaults
       if (Array.isArray(studyHallData.amenities) && studyHallData.amenities.length > 0) {
         dbData.amenities = studyHallData.amenities;
+        // Don't include empty array - let database use its default
       }
 
       if (studyHallData.image_url?.trim()) {
