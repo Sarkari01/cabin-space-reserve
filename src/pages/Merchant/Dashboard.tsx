@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock, TrendingUp, Power, PowerOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { EnhancedStudyHallModal } from "@/components/study-hall/EnhancedStudyHallModal";
+import { StudyHallCreationModal } from "@/components/study-hall/StudyHallCreationModal";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { useToast } from "@/hooks/use-toast";
@@ -49,7 +49,7 @@ const MerchantDashboard = () => {
   const { limits, checkStudyHallCreationLimit } = useSubscriptionLimits();
   
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
-  const [studyHallModalMode, setStudyHallModalMode] = useState<"add" | "edit" | "view">("add");
+  // Simplified modal state for creation only
   const [selectedStudyHall, setSelectedStudyHall] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
@@ -149,29 +149,7 @@ const MerchantDashboard = () => {
   }
 
   const handleAddStudyHall = () => {
-    setSelectedStudyHall(null);
-    setStudyHallModalMode("add");
     setStudyHallModalOpen(true);
-  };
-
-  const handleViewStudyHall = (studyHall: any) => {
-    setSelectedStudyHall(studyHall);
-    setStudyHallModalMode("view");
-    setStudyHallModalOpen(true);
-  };
-
-  const handleEditStudyHall = (studyHall: any) => {
-    setSelectedStudyHall(studyHall);
-    setStudyHallModalMode("edit");
-    setStudyHallModalOpen(true);
-  };
-
-  const handleSaveStudyHall = async (studyHallData: any) => {
-    if (studyHallModalMode === "add") {
-      await createStudyHall(studyHallData);
-    } else if (studyHallModalMode === "edit") {
-      await updateStudyHall(studyHallData.id, studyHallData);
-    }
   };
 
   const handleDeleteStudyHall = async (id: string) => {
@@ -497,7 +475,7 @@ const MerchantDashboard = () => {
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => handleEditStudyHall(studyHall)}
+                        disabled
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
@@ -506,7 +484,7 @@ const MerchantDashboard = () => {
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => handleViewStudyHall(studyHall)}
+                        disabled
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View Layout
@@ -1412,7 +1390,7 @@ const MerchantDashboard = () => {
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => handleEditStudyHall(studyHall)}
+                        disabled
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
@@ -1421,7 +1399,7 @@ const MerchantDashboard = () => {
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => handleViewStudyHall(studyHall)}
+                        disabled
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View Layout
@@ -1576,15 +1554,13 @@ const MerchantDashboard = () => {
         )}
 
         <ErrorBoundary>
-          <EnhancedStudyHallModal
+          <StudyHallCreationModal
             open={studyHallModalOpen}
             onOpenChange={setStudyHallModalOpen}
             onSuccess={() => {
-              // Modal handles save internally, just refresh data
-              // The hooks should automatically refetch
+              fetchStudyHalls();
+              refreshAnalytics();
             }}
-            studyHall={selectedStudyHall}
-            mode={studyHallModalMode}
           />
         </ErrorBoundary>
 

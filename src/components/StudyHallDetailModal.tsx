@@ -294,9 +294,10 @@ const StudyHallDetailModalComponent = ({
                   <CardTitle className="text-lg">Incharge Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {studyHall.incharges && studyHall.incharges.length > 0 ? (
-                    <div className="space-y-4">
-                      {studyHall.incharges.map((incharge) => (
+                {/* Incharges section temporarily removed */}
+                {false ? (
+                  <div className="space-y-4">
+                    {[].map((incharge: any) => (
                         <div key={incharge.id} className="border rounded-lg p-4 space-y-2">
                           <div className="flex justify-between items-start">
                             <div className="space-y-1">

@@ -50,7 +50,7 @@ import { useOperationalUsers } from "@/hooks/useOperationalUsers";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useSupportTickets } from "@/hooks/useSupportTickets";
 import { AdminReviewsTab } from "@/components/admin/AdminReviewsTab";
-import { EnhancedStudyHallModal } from "@/components/study-hall/EnhancedStudyHallModal";
+// import { EnhancedStudyHallModal } from "@/components/study-hall/EnhancedStudyHallModal"; // Removed
 import { InstitutionsTab } from "@/components/admin/InstitutionsTab";
 import { AdminReportsTab } from "@/components/reports/AdminReportsTab";
 import { AllMerchantsTab } from "@/components/admin/AllMerchantsTab";
@@ -1482,19 +1482,7 @@ const AdminDashboard = () => {
         }}
       />
 
-      <EnhancedStudyHallModal
-        open={studyHallModalOpen}
-        onOpenChange={(open) => {
-          setStudyHallModalOpen(open);
-          if (!open) setSelectedStudyHall(null);
-        }}
-        onSuccess={() => {
-          // Modal handles save internally, just refresh data
-          // The useAdminData hook should automatically refetch
-        }}
-        studyHall={selectedStudyHall}
-        mode={studyHallModalMode}
-      />
+      {/* Study hall modal temporarily removed */}
     </>
   );
 };

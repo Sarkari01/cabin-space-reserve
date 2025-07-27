@@ -108,16 +108,15 @@ export const useStudyHalls = () => {
         return {
           ...hall,
           amenities: Array.isArray(hall.amenities) ? hall.amenities : [],
-          row_seat_config: typeof hall.row_seat_config === 'object' && hall.row_seat_config ? hall.row_seat_config as Record<string, { seats: number }> : undefined,
-          incharges: assignedIncharges
+          // Remove complex features for now
         };
       }) as StudyHall[];
       
       console.log('\n🏁 Final transformed data with incharges:', transformedData.map(h => ({
         name: h.name,
         id: h.id,
-        inchargeCount: h.incharges?.length || 0,
-        inchargeNames: h.incharges?.map(i => i.full_name) || []
+        inchargeCount: 0,
+        inchargeNames: []
       })));
       
       setStudyHalls(transformedData);
@@ -353,13 +352,7 @@ export const useStudyHalls = () => {
         dbData.status = studyHallData.status;
       }
 
-      if (studyHallData.layout_mode) {
-        dbData.layout_mode = studyHallData.layout_mode;
-      }
-
-      if (studyHallData.row_seat_config) {
-        dbData.row_seat_config = studyHallData.row_seat_config;
-      }
+      // Remove complex layout features for now
 
       console.log('📤 Sending to database:', dbData);
 
