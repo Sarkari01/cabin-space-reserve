@@ -147,42 +147,96 @@ export const useStudyHalls = () => {
     
     console.log('🚀 Creating study hall with data:', studyHallData);
     
-    // Add comprehensive debugging
-    console.log('🔍 Authentication Debug:', {
-      user: user?.id,
-      userEmail: user?.email,
-      userRole: user?.user_metadata?.role,
-      authUID: (await supabase.auth.getUser()).data.user?.id
-    });
-
-    // Test database connection with a simple query
-    console.log('🔍 Testing database connection...');
-    try {
-      const { data: testData, error: testError } = await supabase
-        .from('profiles')
-        .select('id, role')
-        .eq('id', user.id)
-        .single();
-      
-      console.log('✅ Database connection test result:', { testData, testError });
-      
-      if (testError) {
-        console.error('❌ Database connection test failed:', testError);
-        toast({
-          title: "Database Connection Error",
-          description: `Cannot connect to database: ${testError.message}`,
-          variant: "destructive"
-        });
-        return { data: null, error: testError };
-      }
-    } catch (dbTestError: any) {
-      console.error('❌ Database connection test exception:', dbTestError);
+    // Step 1: Verify and refresh session before database operations
+    console.log('🔍 Verifying session state...');
+    
+    // Get current session
+    const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('❌ Session error:', sessionError);
       toast({
-        title: "Database Connection Error", 
-        description: `Database test failed: ${dbTestError.message}`,
+        title: "Authentication Error",
+        description: "Please log out and log in again",
         variant: "destructive"
       });
-      return { data: null, error: dbTestError };
+      return { data: null, error: sessionError };
+    }
+
+    if (!currentSession || !currentSession.user) {
+      console.error('❌ No valid session found');
+      toast({
+        title: "Authentication Error", 
+        description: "Please log out and log in again",
+        variant: "destructive"
+      });
+      return { data: null, error: new Error('No valid session') };
+    }
+
+    // Step 2: Refresh session to ensure it's current
+    console.log('🔄 Refreshing session...');
+    const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+    
+    if (refreshError) {
+      console.error('❌ Session refresh error:', refreshError);
+      toast({
+        title: "Authentication Error",
+        description: "Session refresh failed. Please log in again",
+        variant: "destructive" 
+      });
+      return { data: null, error: refreshError };
+    }
+
+    // Step 3: Comprehensive authentication debugging
+    console.log('🔍 Session Debug Info:', {
+      originalUser: user?.id,
+      currentSessionUserId: currentSession?.user?.id,
+      refreshedSessionUserId: refreshedSession?.user?.id,
+      sessionValid: !!refreshedSession,
+      accessToken: refreshedSession?.access_token ? 'present' : 'missing',
+      expiresAt: refreshedSession?.expires_at,
+      userRole: refreshedSession?.user?.user_metadata?.role
+    });
+
+    // Step 4: Test database connection with auth context
+    console.log('🔍 Testing authenticated database access...');
+    try {
+      const { data: authTest, error: authTestError } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('id', refreshedSession.user.id)
+        .single();
+      
+      console.log('✅ Auth test result:', { authTest, authTestError });
+      
+      if (authTestError) {
+        console.error('❌ Authenticated database access failed:', authTestError);
+        toast({
+          title: "Database Access Error",
+          description: `Authentication context issue: ${authTestError.message}`,
+          variant: "destructive"
+        });
+        return { data: null, error: authTestError };
+      }
+
+      if (authTest?.role !== 'merchant') {
+        console.error('❌ User is not a merchant:', authTest);
+        toast({
+          title: "Permission Error", 
+          description: "Only merchants can create study halls",
+          variant: "destructive"
+        });
+        return { data: null, error: new Error('User is not a merchant') };
+      }
+
+    } catch (authTestException: any) {
+      console.error('❌ Auth test exception:', authTestException);
+      toast({
+        title: "Database Error",
+        description: `Auth verification failed: ${authTestException.message}`,
+        variant: "destructive"
+      });
+      return { data: null, error: authTestException };
     }
 
     // Check subscription limits before creating
