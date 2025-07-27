@@ -50,7 +50,7 @@ import { useOperationalUsers } from "@/hooks/useOperationalUsers";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useSupportTickets } from "@/hooks/useSupportTickets";
 import { AdminReviewsTab } from "@/components/admin/AdminReviewsTab";
-import { StudyHallModal } from "@/components/StudyHallModal";
+import { EnhancedStudyHallModal } from "@/components/study-hall/EnhancedStudyHallModal";
 import { InstitutionsTab } from "@/components/admin/InstitutionsTab";
 import { AdminReportsTab } from "@/components/reports/AdminReportsTab";
 import { AllMerchantsTab } from "@/components/admin/AllMerchantsTab";
@@ -1482,7 +1482,7 @@ const AdminDashboard = () => {
         }}
       />
 
-      <StudyHallModal
+      <EnhancedStudyHallModal
         open={studyHallModalOpen}
         onOpenChange={(open) => {
           setStudyHallModalOpen(open);
