@@ -203,11 +203,8 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
         },
         (error) => {
           console.error('Error getting location:', error);
-          toast({
-            title: "Location access denied",
-            description: "Please enable location access to use this feature",
-            variant: "destructive",
-          });
+          // Don't show destructive toast for location permission issues
+          // Users can still manually search and select locations
           setIsGettingLocation(false);
         },
         { enableHighAccuracy: true, timeout: 10000 }
