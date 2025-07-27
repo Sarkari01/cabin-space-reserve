@@ -60,6 +60,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       async (event, session) => {
         console.log('Auth state change:', event, 'Session exists:', !!session, 'User ID:', session?.user?.id);
         
+        // Explicitly sync session with Supabase client for JWT token propagation
+        if (session) {
+          try {
+            await supabase.auth.setSession({
+              access_token: session.access_token,
+              refresh_token: session.refresh_token
+            });
+            console.log('Session synchronized with Supabase client');
+          } catch (error) {
+            console.error('Failed to sync session with Supabase client:', error);
+          }
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         

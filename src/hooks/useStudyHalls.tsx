@@ -4,10 +4,33 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { StudyHallData as StudyHall, Seat } from '@/types/StudyHall';
 
-// Simple session verification utility
+// Enhanced session verification utility
 const verifySession = async (): Promise<boolean> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return !!session?.user;
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Session verification error:', error);
+      return false;
+    }
+    
+    if (!session?.user) {
+      console.log('No valid session found');
+      return false;
+    }
+    
+    // Ensure session is properly set in Supabase client for JWT propagation
+    await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    });
+    
+    console.log('Session verified and synchronized for user:', session.user.id);
+    return true;
+  } catch (error) {
+    console.error('Session verification failed:', error);
+    return false;
+  }
 };
 
 export const useStudyHalls = () => {
