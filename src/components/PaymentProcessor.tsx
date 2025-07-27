@@ -15,7 +15,7 @@ interface PaymentProcessorProps {
   bookingIntent: {
     study_hall_id: string;
     seat_id: string;
-    booking_period: "1_month" | "2_months" | "3_months" | "6_months" | "12_months";
+    booking_period: "daily" | "weekly" | "monthly";
     start_date: string;
     end_date: string;
     total_amount: number;

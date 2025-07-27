@@ -47,6 +47,8 @@ interface StudyHall {
   name: string;
   location: string;
   total_seats: number;
+  daily_price: number;
+  weekly_price: number;
   monthly_price: number;
   status: string;
   created_at: string;
@@ -253,7 +255,7 @@ export function MerchantDetailModal({
       key: 'pricing',
       render: (_: any, hall: StudyHall) => (
         <div className="text-sm">
-          <div>Monthly: {formatCurrency(hall.monthly_price)}</div>
+          <div>Daily: {formatCurrency(hall.daily_price)}</div>
           <div className="text-muted-foreground">Monthly: {formatCurrency(hall.monthly_price)}</div>
         </div>
       )

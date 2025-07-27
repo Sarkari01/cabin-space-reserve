@@ -17,6 +17,8 @@ interface StudyHall {
   latitude: number;
   longitude: number;
   distance_km: number;
+  daily_price: number;
+  weekly_price: number;
   monthly_price: number;
   amenities: string[];
   image_url?: string;
@@ -118,7 +120,8 @@ export const StudyHallMap: React.FC<StudyHallMapProps> = ({
             <p style="margin-bottom: 4px; color: #666;">${studyHall.formatted_address || studyHall.location}</p>
             <p style="margin-bottom: 8px; color: #333;">Distance: ${formatDistance(studyHall.distance_km)}</p>
             <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <span style="background: #f3f4f6; padding: 2px 8px; border-radius: 12px; font-size: 12px;">₹${studyHall.monthly_price}/month</span>
+              <span style="background: #f3f4f6; padding: 2px 8px; border-radius: 12px; font-size: 12px;">₹${studyHall.daily_price}/day</span>
+              <span style="background: #f3f4f6; padding: 2px 8px; border-radius: 12px; font-size: 12px;">₹${studyHall.weekly_price}/week</span>
             </div>
             ${studyHall.amenities.length > 0 ? `
               <div style="margin-bottom: 8px;">
@@ -349,6 +352,12 @@ export const StudyHallMap: React.FC<StudyHallMapProps> = ({
                 </p>
                 
                 <div className="flex flex-wrap gap-2 mb-2">
+                  <span className="text-xs bg-muted px-2 py-1 rounded">
+                    ₹{studyHall.daily_price}/day
+                  </span>
+                  <span className="text-xs bg-muted px-2 py-1 rounded">
+                    ₹{studyHall.weekly_price}/week
+                  </span>
                   <span className="text-xs bg-muted px-2 py-1 rounded">
                     ₹{studyHall.monthly_price}/month
                   </span>

@@ -4,127 +4,15 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { StudyHallData as StudyHall, Seat } from '@/types/StudyHall';
 
-// Enhanced session verification utility with JWT token refresh
-const verifySession = async (): Promise<boolean> => {
-  try {
-    console.log('Starting enhanced session verification...');
-    
-    // First, try to refresh the session to ensure we have a valid JWT token
-    const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-    
-    if (refreshError) {
-      console.log('Session refresh failed, trying current session:', refreshError.message);
-      // Fall back to getting the current session
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !currentSession) {
-        console.error('No valid session available:', sessionError?.message);
-        return false;
-      }
-      // Use current session if refresh failed
-      await supabase.auth.setSession(currentSession);
-      console.log('Using current session for user:', currentSession.user.id);
-    } else if (refreshedSession) {
-      // Use refreshed session - this ensures JWT token is fresh
-      await supabase.auth.setSession(refreshedSession);
-      console.log('Using refreshed session for user:', refreshedSession.user.id);
-    }
-
-    // Additional step: Force the client to use the latest session context
-    // by making a quick authenticated request to verify JWT is working
-    const { data: authTest, error: authTestError } = await supabase
-      .from('profiles')
-      .select('id')
-      .limit(1)
-      .single();
-    
-    if (authTestError && authTestError.code === 'PGRST116') {
-      // PGRST116 means no rows found, which is fine - it means auth is working
-      console.log('Session verification successful - auth context is working');
-    } else if (authTestError) {
-      console.error('Session verification failed - auth context not working:', authTestError);
-      return false;
-    } else {
-      console.log('Session verification successful - found user profile');
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Session verification failed:', error);
-    return false;
-  }
-};
-
-// Function to ensure database context is properly authenticated
-const ensureAuthenticatedContext = async (userId: string): Promise<boolean> => {
-  try {
-    console.log('Ensuring authenticated context for user:', userId);
-    
-    // Step 1: Verify the session is properly set
-    const sessionValid = await verifySession();
-    if (!sessionValid) {
-      console.error('Session validation failed');
-      return false;
-    }
-
-    // Step 2: Test that auth.uid() works in database context
-    // We'll do this by checking if we can access user's profile
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, role')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      console.error('Database authentication context test failed:', error);
-      
-      // If it's a permission error, it means auth.uid() is returning null
-      if (error.code === '42501' || error.message.includes('permission denied')) {
-        console.error('Permission denied - auth.uid() is likely returning null');
-        return false;
-      }
-      
-      return false;
-    }
-
-    console.log('Database authentication context verified for user:', data.id);
-    return true;
-  } catch (error) {
-    console.error('Failed to ensure authenticated context:', error);
-    return false;
-  }
-};
-
 export const useStudyHalls = () => {
   const [studyHalls, setStudyHalls] = useState<StudyHall[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, session, refreshSession } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const fetchStudyHalls = async () => {
     try {
       setLoading(true);
-      
-      // Ensure we have an authenticated session
-      if (!session || !user) {
-        console.log('No authenticated session available for study halls fetch');
-        setStudyHalls([]);
-        return;
-      }
-
-      // Verify session is still valid
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        console.error('Session validation failed:', sessionError);
-        toast({
-          title: "Authentication Error",
-          description: "Please log in again to continue",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Fetching study halls with authenticated user:', user.id);
-      
       let query = supabase
         .from('study_halls')
         .select('*');
@@ -235,57 +123,10 @@ export const useStudyHalls = () => {
   };
 
   const createStudyHall = async (studyHallData: Omit<StudyHall, 'id' | 'merchant_id' | 'created_at' | 'updated_at'>) => {
+    if (!user) throw new Error('User not authenticated');
+    
+    // Check subscription limits before creating
     try {
-      console.log('Starting study hall creation process...');
-      console.log('Current user:', user?.id);
-      console.log('Current session:', session?.access_token ? 'exists' : 'missing');
-      
-      // Simple authentication check
-      if (!user || !session) {
-        console.error('User not authenticated');
-        toast({
-          title: "Authentication Required",
-          description: "You must be logged in to create a study hall. Please sign in again.",
-          variant: "destructive",
-        });
-        return { data: null, error: { message: 'User not authenticated' } };
-      }
-
-      // Enhanced JWT token propagation fix
-      console.log('Ensuring JWT token is properly propagated to database...');
-      const authContextValid = await ensureAuthenticatedContext(user.id);
-      if (!authContextValid) {
-        console.error('JWT token propagation failed - refreshing session...');
-        
-        // Try to refresh the session to get a fresh JWT token
-        const refreshed = await refreshSession();
-        
-        if (!refreshed) {
-          toast({
-            title: "Authentication Error",
-            description: "Your session has expired. Please sign out and sign in again.",
-            variant: "destructive",
-          });
-          return { data: null, error: { message: 'Session expired' } };
-        }
-        
-        // Retry authentication context verification after refresh
-        console.log('Retrying authentication context after session refresh...');
-        const retryAuthContext = await ensureAuthenticatedContext(user.id);
-        if (!retryAuthContext) {
-          toast({
-            title: "Authentication Error",
-            description: "Unable to establish database connection. Please sign out and sign in again.",
-            variant: "destructive",
-          });
-          return { data: null, error: { message: 'Database authentication failed' } };
-        }
-      }
-      
-      console.log('JWT token propagation verified successfully');
-
-      // Check subscription limits
-      console.log('Checking subscription limits...');
       const { data: limitsData, error: limitsError } = await supabase
         .rpc('get_merchant_subscription_limits', {
           p_merchant_id: user.id
@@ -295,8 +136,8 @@ export const useStudyHalls = () => {
         console.error('Error checking subscription limits:', limitsError);
         toast({
           title: "Error",
-          description: "Failed to verify subscription limits. Please try again.",
-          variant: "destructive",
+          description: "Failed to verify subscription limits",
+          variant: "destructive"
         });
         return { data: null, error: limitsError };
       }
@@ -327,30 +168,7 @@ export const useStudyHalls = () => {
         return { data: null, error: { message } };
       }
 
-      // Create the study hall
-      console.log('Creating study hall with data:', studyHallData);
-      console.log('Merchant ID:', user.id);
-      
-      // Test if study_halls table is accessible
-      console.log('Testing study_halls table access...');
-      const { data: testAccess, error: testAccessError } = await supabase
-        .from('study_halls')
-        .select('id')
-        .limit(1);
-      
-      if (testAccessError) {
-        console.error('Study halls table access test failed:', testAccessError);
-        toast({
-          title: "Database Table Error",
-          description: `Cannot access study_halls table: ${testAccessError.message}`,
-          variant: "destructive",
-        });
-        return { data: null, error: testAccessError };
-      }
-      
-      console.log('Study halls table access test successful');
-      
-      // Now attempt the database insert - JWT token should be properly propagated
+      // Proceed with creation if limits check passes
       const { data, error } = await supabase
         .from('study_halls')
         .insert([{
@@ -359,32 +177,20 @@ export const useStudyHalls = () => {
         }])
         .select()
         .single();
-
-      if (error) {
-        console.error('Study hall creation error:', error);
-        toast({
-          title: "Error",
-          description: `Failed to create study hall: ${error.message}`,
-          variant: "destructive",
-        });
-        return { data: null, error };
-      }
-
-      console.log('Study hall created successfully:', data);
+        
+      if (error) throw error;
+      
+      await fetchStudyHalls();
       toast({
         title: "Success",
         description: "Study hall created successfully",
       });
       
-      // Refresh the study halls list
-      await fetchStudyHalls();
-      
       return { data, error: null };
     } catch (error: any) {
-      console.error('Unexpected error creating study hall:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: error.message || "Failed to create study hall",
         variant: "destructive",
       });
       return { data: null, error };
@@ -474,10 +280,8 @@ export const useStudyHalls = () => {
   };
 
   useEffect(() => {
-    if (session && user) {
-      fetchStudyHalls();
-    }
-  }, [user, session]);
+    fetchStudyHalls();
+  }, [user]);
 
   return {
     studyHalls,

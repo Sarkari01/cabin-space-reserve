@@ -166,27 +166,11 @@ const MerchantDashboard = () => {
     setStudyHallModalOpen(true);
   };
 
-  const handleSaveStudyHall = async (studyHallData: any): Promise<{ success: boolean; data?: any; error?: any }> => {
-    try {
-      if (studyHallModalMode === "add") {
-        const result = await createStudyHall(studyHallData);
-        if (result.error) {
-          console.error('Create study hall error:', result.error);
-          return { success: false, error: result.error };
-        }
-        return { success: true, data: result.data };
-      } else if (studyHallModalMode === "edit") {
-        const result = await updateStudyHall(studyHallData.id, studyHallData);
-        if (result.error) {
-          console.error('Update study hall error:', result.error);
-          return { success: false, error: result.error };
-        }
-        return { success: true, data: result.data };
-      }
-      return { success: false };
-    } catch (error) {
-      console.error('handleSaveStudyHall error:', error);
-      return { success: false, error };
+  const handleSaveStudyHall = async (studyHallData: any) => {
+    if (studyHallModalMode === "add") {
+      await createStudyHall(studyHallData);
+    } else if (studyHallModalMode === "edit") {
+      await updateStudyHall(studyHallData.id, studyHallData);
     }
   };
 
@@ -476,8 +460,8 @@ const MerchantDashboard = () => {
                         <p className="font-semibold">{studyHall.total_seats}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Monthly Rate</p>
-                        <p className="font-semibold">₹{studyHall.monthly_price}</p>
+                        <p className="text-sm text-muted-foreground">Daily Rate</p>
+                        <p className="font-semibold">₹{studyHall.daily_price}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Layout</p>
@@ -564,9 +548,9 @@ const MerchantDashboard = () => {
                             <div className="space-y-1 text-sm">
                               <div className="font-medium">{booking.user?.full_name || 'N/A'}</div>
                               <div className="text-muted-foreground text-xs">{booking.user?.email}</div>
-                               <Badge variant="outline" className="text-xs">
-                                 MONTHLY
-                               </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {booking.booking_period.toUpperCase()}
+                              </Badge>
                             </div>
                           </div>
 
@@ -595,9 +579,9 @@ const MerchantDashboard = () => {
                             </div>
                             <div className="space-y-1">
                               <div className="text-lg font-bold">₹{Number(booking.total_amount).toLocaleString()}</div>
-                               <Badge variant={getStatusColor(booking.status)} className="text-xs">
-                                 {booking.status?.toUpperCase() || 'PENDING'}
-                               </Badge>
+                              <Badge variant={getStatusColor(booking.status)} className="text-xs">
+                                {booking.status.toUpperCase()}
+                              </Badge>
                               <Badge variant={booking.status === 'confirmed' || booking.status === 'completed' ? 'default' : 'secondary'} className="text-xs ml-1">
                                 {booking.status === 'confirmed' || booking.status === 'completed' ? 'PAID' : 'PENDING'}
                               </Badge>
@@ -811,9 +795,9 @@ const MerchantDashboard = () => {
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Status:</span>
-                               <Badge variant={getStatusColor(booking.status)}>
-                                 {booking.status?.toUpperCase() || 'PENDING'}
-                               </Badge>
+                              <Badge variant={getStatusColor(booking.status)}>
+                                {booking.status.toUpperCase()}
+                              </Badge>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Payment:</span>
@@ -984,9 +968,9 @@ const MerchantDashboard = () => {
                                 <span className="text-muted-foreground">Date:</span>
                                 <p className="font-medium">{formatDate(userData.bookings[0].start_date)}</p>
                               </div>
-                               <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
-                                 {userData.bookings[0].status?.toUpperCase() || 'PENDING'}
-                               </Badge>
+                              <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
+                                {userData.bookings[0].status.toUpperCase()}
+                              </Badge>
                             </div>
                           )}
                         </div>
@@ -1244,9 +1228,9 @@ const MerchantDashboard = () => {
                                 <span className="text-muted-foreground">Date:</span>
                                 <p className="font-medium">{formatDate(userData.bookings[0].start_date)}</p>
                               </div>
-                               <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
-                                 {userData.bookings[0].status?.toUpperCase() || 'PENDING'}
-                               </Badge>
+                              <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
+                                {userData.bookings[0].status.toUpperCase()}
+                              </Badge>
                             </div>
                           )}
                         </div>
@@ -1391,8 +1375,8 @@ const MerchantDashboard = () => {
                         <p className="font-semibold">{studyHall.total_seats}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Monthly Rate</p>
-                        <p className="font-semibold">₹{studyHall.monthly_price}</p>
+                        <p className="text-sm text-muted-foreground">Daily Rate</p>
+                        <p className="font-semibold">₹{studyHall.daily_price}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Layout</p>
@@ -1474,9 +1458,9 @@ const MerchantDashboard = () => {
                           <div className="space-y-2">
                             <div className="flex items-center space-x-2">
                               <h4 className="font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
-                               <Badge variant={getStatusColor(booking.status)}>
-                                 {booking.status?.toUpperCase() || 'PENDING'}
-                               </Badge>
+                              <Badge variant={getStatusColor(booking.status)}>
+                                {booking.status.toUpperCase()}
+                              </Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">
                               <span className="font-medium">{booking.user?.full_name || booking.user?.email}</span> • 
@@ -1594,8 +1578,12 @@ const MerchantDashboard = () => {
         <StudyHallModal
           open={studyHallModalOpen}
           onOpenChange={setStudyHallModalOpen}
-          onSave={handleSaveStudyHall}
+          onSuccess={() => {
+            // Modal handles save internally, just refresh data
+            // The hooks should automatically refetch
+          }}
           studyHall={selectedStudyHall}
+          mode={studyHallModalMode}
         />
 
         {/* Booking Detail Modal */}

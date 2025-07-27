@@ -146,8 +146,10 @@ export const useBookingAvailability = () => {
   const calculateBookingAmount = (
     startDate: string,
     endDate: string,
+    dailyPrice: number,
+    weeklyPrice: number,
     monthlyPrice: number
-  ): {
+  ): { 
     amount: number; 
     baseAmount: number;
     discountAmount: number;
@@ -155,6 +157,8 @@ export const useBookingAvailability = () => {
     days: number; 
     method: string;
     priceBreakdown: {
+      baseDaily: number;
+      baseWeekly: number;
       baseMonthly: number;
     };
   } => {
@@ -165,14 +169,29 @@ export const useBookingAvailability = () => {
 
     console.log(`Calculating amount for ${days} days from ${startDate} to ${endDate}`);
 
-    // Calculate customer original price (merchant price - ₹100)
+    // Calculate customer original prices (merchant price - ₹100)
+    const baseDailyPrice = dailyPrice - 100;
+    const baseWeeklyPrice = weeklyPrice - 100;
     const baseMonthlyPrice = monthlyPrice - 100;
 
-    // Calculate total for monthly method using base price
+    // Calculate totals for each method using base prices
+    const dailyTotal = days * baseDailyPrice;
+    const weeklyTotal = Math.ceil(days / 7) * baseWeeklyPrice;
     const monthlyTotal = Math.ceil(days / 30) * baseMonthlyPrice;
 
-    const baseAmount = monthlyTotal;
-    const calculationMethod = 'monthly';
+    let baseAmount = dailyTotal;
+    let calculationMethod = 'daily';
+
+    // Choose the most cost-effective option
+    if (days >= 7 && weeklyTotal < baseAmount) {
+      baseAmount = weeklyTotal;
+      calculationMethod = 'weekly';
+    }
+
+    if (days >= 30 && monthlyTotal < baseAmount) {
+      baseAmount = monthlyTotal;
+      calculationMethod = 'monthly';
+    }
 
     // Calculate the "discount" amount (covers Razorpay fee)
     const discountAmount = Math.round(baseAmount * 0.02);
@@ -186,6 +205,8 @@ export const useBookingAvailability = () => {
       days, 
       method: calculationMethod,
       priceBreakdown: {
+        baseDaily: baseDailyPrice,
+        baseWeekly: baseWeeklyPrice,
         baseMonthly: baseMonthlyPrice
       }
     };

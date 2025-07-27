@@ -53,19 +53,19 @@ const Index = () => {
     
     let matchesPrice = true;
     if (priceRange) {
-      const monthlyPrice = studyHall.monthly_price;
+      const dailyPrice = studyHall.daily_price;
       switch (priceRange) {
         case "0-100":
-          matchesPrice = monthlyPrice <= 100;
+          matchesPrice = dailyPrice <= 100;
           break;
         case "100-200":
-          matchesPrice = monthlyPrice > 100 && monthlyPrice <= 200;
+          matchesPrice = dailyPrice > 100 && dailyPrice <= 200;
           break;
         case "200-500":
-          matchesPrice = monthlyPrice > 200 && monthlyPrice <= 500;
+          matchesPrice = dailyPrice > 200 && dailyPrice <= 500;
           break;
         case "500+":
-          matchesPrice = monthlyPrice > 500;
+          matchesPrice = dailyPrice > 500;
           break;
       }
     }
@@ -272,7 +272,7 @@ const Index = () => {
                           <div className="flex items-center">
                             <DollarSign className="h-4 w-4 text-primary mr-1" />
                             <span className="font-semibold text-foreground">
-                              ₹{studyHall.monthly_price}
+                              ₹{studyHall.daily_price}
                             </span>
                             <span className="text-sm text-muted-foreground ml-1">/day</span>
                           </div>

@@ -16,7 +16,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
-  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,8 +42,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('Error fetching user profile:', error);
-        // Set default role as fallback to prevent stuck states
-        setUserRole('student');
         return;
       }
 
@@ -53,8 +50,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole(data.role);
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      // Set default role as fallback to prevent stuck states
-      setUserRole('student');
     }
   };
 
@@ -63,13 +58,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state change:', event, 'Session exists:', !!session, 'User ID:', session?.user?.id);
-        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          console.log('User authenticated, deferring profile fetch');
-          // Defer profile fetching to avoid race conditions
+          console.log('Fetching profile for user:', session.user.id);
+          // Fetch user profile when user is authenticated
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
@@ -84,31 +78,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     // Get initial session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Initial session check:', !!session, session?.user?.id);
-        
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
-          // Defer profile fetching to avoid blocking initialization
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 0);
-        } else {
-          console.log('No initial session found');
-          setUserProfile(null);
-          setUserRole(null);
-        }
-      } catch (error) {
-        console.error('Error during auth initialization:', error);
-      } finally {
-        setLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', !!session, session?.user?.id);
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
+        console.log('No initial session found');
       }
-    };
+      
+      setLoading(false);
+    });
 
-    initializeAuth();
     return () => subscription.unsubscribe();
   }, []);
 
@@ -171,36 +154,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
-  // Enhanced session refresh utility with JWT token propagation
-  const refreshSession = async () => {
-    try {
-      console.log('Refreshing session to ensure JWT token propagation...');
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error('Failed to refresh session:', error);
-        return false;
-      }
-      
-      if (data.session) {
-        // Ensure the client uses the refreshed session
-        await supabase.auth.setSession(data.session);
-        console.log('Session refreshed and set successfully for user:', data.session.user.id);
-        
-        // Update local state with refreshed session
-        setSession(data.session);
-        setUser(data.session.user);
-        
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Session refresh failed:', error);
-      return false;
-    }
-  };
-
   const value = {
     user,
     session,
@@ -210,7 +163,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signIn,
     signUp,
     signOut,
-    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

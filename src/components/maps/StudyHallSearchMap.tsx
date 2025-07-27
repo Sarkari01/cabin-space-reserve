@@ -11,6 +11,8 @@ interface StudyHall {
   latitude: number;
   longitude: number;
   distance_km: number;
+  daily_price: number;
+  weekly_price: number;
   monthly_price: number;
   amenities: string[];
   image_url?: string;

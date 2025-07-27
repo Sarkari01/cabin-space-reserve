@@ -57,6 +57,8 @@ export const MerchantReportsTab: React.FC = () => {
           { key: 'name', title: 'Study Hall Name' },
           { key: 'location', title: 'Location' },
           { key: 'total_seats', title: 'Total Seats' },
+          { key: 'daily_price', title: 'Daily Price', format: formatCurrency },
+          { key: 'weekly_price', title: 'Weekly Price', format: formatCurrency },
           { key: 'monthly_price', title: 'Monthly Price', format: formatCurrency },
           { key: 'average_rating', title: 'Rating', format: (value: number) => value ? value.toFixed(1) : 'N/A' },
           { key: 'total_reviews', title: 'Reviews' },
@@ -136,8 +138,8 @@ export const MerchantReportsTab: React.FC = () => {
             render: (value: number) => `${value} seats`
           },
           {
-            key: 'monthly_price',
-            title: 'Monthly Price',
+            key: 'daily_price',
+            title: 'Daily Price',
             render: (value: number) => formatCurrency(value)
           },
           {

@@ -382,6 +382,8 @@ export const useReports = () => {
 
           return {
             ...studyHall,
+            daily_price: Number(studyHall.daily_price) || 0,
+            weekly_price: Number(studyHall.weekly_price) || 0,
             monthly_price: Number(studyHall.monthly_price) || 0,
             merchant: merchantsMap.get(studyHall.merchant_id) || { full_name: 'Unknown', email: 'N/A' },
             bookings_count: bookingStats?.length || 0,

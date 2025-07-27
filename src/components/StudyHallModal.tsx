@@ -1,284 +1,310 @@
-import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useRef, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Minus, Grid3X3, DollarSign, Upload, X, Wifi, Snowflake, Car, Coffee, Printer, Monitor, Settings } from "lucide-react";
-import { QRCodeManager } from "@/components/QRCodeManager";
-import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, MapPin, Users, Calendar, DollarSign, Wifi, Car, Coffee, Printer, Monitor, Plus, X, Upload, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSeats } from "@/hooks/useStudyHalls";
-import { LocationPicker } from "@/components/maps/LocationPicker";
-import { MultiImageUpload, type UploadedImage } from "@/components/MultiImageUpload";
-import { useMonthlyPricing, type MonthlyPricingPlan } from "@/hooks/useMonthlyPricing";
-import { SeatLayoutPreview } from "@/components/SeatLayoutPreview";
-import { CustomLayoutEditor } from "@/components/CustomLayoutEditor";
-import { useStudyHallImages } from "@/hooks/useStudyHallImages";
+import { useStudyHalls } from "@/hooks/useStudyHalls";
+import { useMerchantPricingPlans } from "@/hooks/useMerchantPricingPlans";
+// MapLocationPicker component will be implemented when needed
 
-interface Seat {
-  id: string;
-  seat_id: string;
-  row_name: string;
-  seat_number: number;
-  is_available: boolean;
-}
-
-interface StudyHall {
-  id?: string;
-  name: string;
-  description: string;
-  location: string;
-  total_seats: number;
-  rows: number;
-  seats_per_row: number;
-  custom_row_names: string[];
-  amenities: string[];
-  monthly_price: number;
-  image_url?: string;
-  status: "active" | "inactive";
-  latitude?: number;
-  longitude?: number;
-  formatted_address?: string;
-  layout_mode?: "fixed" | "custom";
-  row_seat_config?: Record<string, { seats: number }>;
-}
+import { StudyHallData } from "@/types/StudyHall";
 
 interface StudyHallModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  studyHall?: StudyHall | null;
-  onSave: (studyHall: StudyHall) => Promise<{ success: boolean; data?: any }>;
-  loading?: boolean;
+  studyHall?: StudyHallData | null;
+  mode: "add" | "edit" | "view";
+  onSuccess?: () => void;
 }
 
-export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading }: StudyHallModalProps) => {
-  const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { getPricingPlan, savePricingPlan } = useMonthlyPricing();
-
-  // Main form data
-  const [formData, setFormData] = useState<StudyHall>({
+export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess }: StudyHallModalProps) {
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
     location: "",
-    latitude: undefined,
-    longitude: undefined,
     formatted_address: "",
-    total_seats: 20,
-    rows: 4,
-    seats_per_row: 5,
-    custom_row_names: ["A", "B", "C", "D"],
-    amenities: [],
-    monthly_price: 1500,
-    status: "active",
-    layout_mode: "fixed",
-    row_seat_config: {}
+    latitude: 0,
+    longitude: 0,
+    total_seats: 1,
+    rows: 1,
+    seats_per_row: 1,
+    custom_row_names: [] as string[],
+    amenities: [] as string[],
+    daily_price: 0,
+    weekly_price: 0,
+    monthly_price: 0,
+    image_url: "",
   });
-
-  const { seats, loading: seatsLoading, fetchSeats } = useSeats(studyHall?.id);
-  const { images, loading: imagesLoading } = useStudyHallImages(studyHall?.id);
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [imageUploadLoading, setImageUploadLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  const [seatingCapacity, setSeatingCapacity] = useState(1);
   
-  // Image upload state
-  const [newImages, setNewImages] = useState<UploadedImage[]>([]);
-  
-  // Pricing plans state
-  const [pricingPlan, setPricingPlan] = useState<MonthlyPricingPlan | null>(null);
-  const [pricingFormData, setPricingFormData] = useState<MonthlyPricingPlan>({
-    merchant_id: "",
-    study_hall_id: "",
-    months_1_enabled: true,
-    months_1_price: 1500,
-    months_2_enabled: true,
-    months_2_price: 2800,
-    months_3_enabled: true,
-    months_3_price: 4200,
-    months_6_enabled: true,
-    months_6_price: 8000,
-    months_12_enabled: true,
-    months_12_price: 15000,
+  // Add pricing plan state
+  const [pricingPlan, setPricingPlan] = useState({
+    daily_enabled: true,
+    daily_price: undefined as number | undefined,
+    weekly_enabled: true,
+    weekly_price: undefined as number | undefined,
+    monthly_enabled: true,
+    monthly_price: undefined as number | undefined,
   });
+  const [pricingPlanLoading, setPricingPlanLoading] = useState(false);
 
-  // Load study hall data when modal opens
+  const { toast } = useToast();
+  const { createStudyHall, updateStudyHall } = useStudyHalls();
+  const { getPricingPlan, savePricingPlan } = useMerchantPricingPlans();
+
   useEffect(() => {
-    if (open && studyHall) {
+    if (studyHall) {
       setFormData({
-        name: studyHall.name || "",
+        name: studyHall.name,
         description: studyHall.description || "",
-        location: studyHall.location || "",
-        latitude: studyHall.latitude,
-        longitude: studyHall.longitude,
-        formatted_address: studyHall.formatted_address,
-        total_seats: studyHall.total_seats || 20,
-        rows: studyHall.rows || 4,
-        seats_per_row: studyHall.seats_per_row || 5,
-        custom_row_names: studyHall.custom_row_names || ["A", "B", "C", "D"],
-        amenities: studyHall.amenities || [],
-        monthly_price: studyHall.monthly_price || 1500,
-        status: studyHall.status || "active",
-        layout_mode: studyHall.layout_mode || "fixed",
-        row_seat_config: studyHall.row_seat_config
+        location: studyHall.location,
+        formatted_address: studyHall.formatted_address || "",
+        latitude: studyHall.latitude || 0,
+        longitude: studyHall.longitude || 0,
+        total_seats: studyHall.total_seats,
+        rows: studyHall.rows,
+        seats_per_row: studyHall.seats_per_row,
+        custom_row_names: studyHall.custom_row_names,
+        amenities: studyHall.amenities,
+        daily_price: studyHall.daily_price,
+        weekly_price: studyHall.weekly_price,
+        monthly_price: studyHall.monthly_price,
+        image_url: studyHall.image_url || "",
       });
-
-      // Load pricing plan if editing existing study hall
-      if (studyHall.id) {
-        loadPricingPlan(studyHall.id);
-      }
-    } else if (open && !studyHall) {
-      // Reset form for new study hall
+      setSelectedAmenities(studyHall.amenities);
+      setSeatingCapacity(studyHall.total_seats);
+    } else {
+      // Reset form data when studyHall is null (for add mode)
       setFormData({
         name: "",
         description: "",
         location: "",
-        latitude: undefined,
-        longitude: undefined,
         formatted_address: "",
-        total_seats: 20,
-        rows: 4,
-        seats_per_row: 5,
-        custom_row_names: ["A", "B", "C", "D"],
-        amenities: [],
-        monthly_price: 1500,
-        status: "active",
-        layout_mode: "fixed",
-        row_seat_config: {}
+        latitude: 0,
+        longitude: 0,
+        total_seats: 1,
+        rows: 1,
+        seats_per_row: 1,
+        custom_row_names: [] as string[],
+        amenities: [] as string[],
+        daily_price: 0,
+        weekly_price: 0,
+        monthly_price: 0,
+        image_url: "",
       });
-
-      setPricingFormData({
-        merchant_id: "",
-        study_hall_id: "",
-        months_1_enabled: true,
-        months_1_price: 1500,
-        months_2_enabled: true,
-        months_2_price: 2800,
-        months_3_enabled: true,
-        months_3_price: 4200,
-        months_6_enabled: true,
-        months_6_price: 8000,
-        months_12_enabled: true,
-        months_12_price: 15000,
-      });
-      setPricingPlan(null);
+      setSelectedAmenities([]);
+      setSeatingCapacity(1);
     }
-  }, [open, studyHall]);
+  }, [studyHall]);
 
-  const loadPricingPlan = async (studyHallId: string) => {
-    const plan = await getPricingPlan(studyHallId);
-    if (plan) {
-      setPricingPlan(plan);
-      setPricingFormData({
-        ...plan,
-        months_1_enabled: plan.months_1_enabled,
-        months_1_price: plan.months_1_price || 1500,
-        months_2_enabled: plan.months_2_enabled,
-        months_2_price: plan.months_2_price || 2800,
-        months_3_enabled: plan.months_3_enabled,
-        months_3_price: plan.months_3_price || 4200,
-        months_6_enabled: plan.months_6_enabled,
-        months_6_price: plan.months_6_price || 8000,
-        months_12_enabled: plan.months_12_enabled,
-        months_12_price: plan.months_12_price || 15000,
-      });
+  // Load pricing plan for existing study halls
+  useEffect(() => {
+    const loadPricingPlan = async () => {
+      if (studyHall?.id && (mode === "edit" || mode === "view")) {
+        setPricingPlanLoading(true);
+        try {
+          const plan = await getPricingPlan(studyHall.id);
+          if (plan) {
+            setPricingPlan({
+              daily_enabled: plan.daily_enabled,
+              daily_price: plan.daily_price || undefined,
+              weekly_enabled: plan.weekly_enabled,
+              weekly_price: plan.weekly_price || undefined,
+              monthly_enabled: plan.monthly_enabled,
+              monthly_price: plan.monthly_price || undefined,
+            });
+          }
+        } catch (error) {
+          console.error('Error loading pricing plan:', error);
+        } finally {
+          setPricingPlanLoading(false);
+        }
+      }
+    };
+
+    loadPricingPlan();
+  }, [studyHall?.id, mode, getPricingPlan]);
+
+  useEffect(() => {
+    if (selectedImage) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(selectedImage);
+    } else {
+      setPreviewImage(null);
     }
+  }, [selectedImage]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAmenityChange = (amenity: string) => {
+    setSelectedAmenities(prev => {
+      if (prev.includes(amenity)) {
+        return prev.filter(a => a !== amenity);
+      } else {
+        return [...prev, amenity];
+      }
+    });
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedImage) {
+      toast({
+        title: "Error",
+        description: "Please select an image to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImageUploadLoading(true);
+
+    try {
+      // For now, we'll just show the preview - actual upload functionality to be implemented
+      setFormData(prev => ({ ...prev, image_url: previewImage || "" }));
+      toast({
+        title: "Success",
+        description: "Image selected successfully",
+      });
+    } catch (error) {
+      console.error('Error processing image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process image",
+        variant: "destructive",
+      });
+    } finally {
+      setImageUploadLoading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, image_url: "" }));
+    setSelectedImage(null);
+    setPreviewImage(null);
+  };
+
+  const handleLocationSelect = (location: string, address: string, latitude: number, longitude: number) => {
+    setFormData(prev => ({ ...prev, location, formatted_address: address, latitude, longitude }));
+    setLocationPickerOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.name || !formData.location) {
+    if (mode === "view") return;
+    
+    if (!formData.name || !formData.description || !formData.location || !formData.formatted_address) {
       toast({
-        title: "Validation Error",
-        description: "Name and location are required",
+        title: "Missing Information",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
     }
 
-    if (formData.rows < 1 || formData.seats_per_row < 1) {
-      toast({
-        title: "Validation Error", 
-        description: "Must have at least 1 row and 1 seat per row",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    setLoading(true);
+    
     try {
-      const studyHallData: StudyHall = {
-        ...formData,
-        total_seats: formData.layout_mode === "custom" 
-          ? Object.values(formData.row_seat_config || {}).reduce((sum, row) => sum + row.seats, 0)
-          : formData.rows * formData.seats_per_row
-      };
-
-      const result = await onSave(studyHallData);
+      let studyHallId = studyHall?.id;
       
-      if (result.success) {
-        const studyHallId = studyHallData.id || result.data?.id || studyHall?.id;
+      if (mode === "add") {
+        // Create new study hall
+        const result = await createStudyHall({
+          name: formData.name,
+          description: formData.description,
+          location: formData.location,
+          formatted_address: formData.formatted_address,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          total_seats: seatingCapacity,
+          rows: Math.ceil(seatingCapacity / 10),
+          seats_per_row: Math.min(seatingCapacity, 10),
+          custom_row_names: formData.custom_row_names,
+          amenities: selectedAmenities,
+          daily_price: formData.daily_price,
+          weekly_price: formData.weekly_price,
+          monthly_price: formData.monthly_price,
+          image_url: formData.image_url,
+          status: "active",
+        });
         
-        // Save pricing plan after study hall is saved
-        if (studyHallId) {
-          const pricingSuccess = await savePricingPlan({
-            ...pricingFormData,
-            study_hall_id: studyHallId,
-          });
-
-          if (!pricingSuccess) {
-            toast({
-              title: "Warning", 
-              description: "Study hall saved but pricing plan failed to save",
-              variant: "destructive",
-            });
-          }
-        }
-
-        // Upload new images if any
-        if (newImages.length > 0 && studyHallId) {
+        if (result?.data?.id) {
+          studyHallId = result.data.id;
+        
+          // Save pricing plan after creating study hall
           try {
-            const { data, error } = await supabase.functions.invoke('upload-study-hall-images', {
-              body: {
-                studyHallId,
-                images: await Promise.all(newImages.map(async (img, index) => ({
-                  fileData: await fileToBase64(img.file),
-                  fileName: img.file.name,
-                  isMain: img.isMain,
-                  displayOrder: index
-                })))
-              }
+            await savePricingPlan({
+              merchant_id: result.data.merchant_id || "", 
+              study_hall_id: studyHallId,
+              ...pricingPlan,
             });
-
-            if (error) {
-              console.error('Image upload error:', error);
-              toast({
-                title: "Warning",
-                description: "Study hall saved but image upload failed",
-                variant: "destructive",
-              });
-            } else {
-              toast({
-                title: "Success",
-                description: "Study hall and images saved successfully",
-              });
-            }
           } catch (error) {
-            console.error('Image upload error:', error);
-            toast({
-              title: "Warning",
-              description: "Study hall saved but image upload failed", 
-              variant: "destructive",
-            });
+            console.error('Error saving pricing plan:', error);
           }
         }
-
-        // Clear new images state
-        setNewImages([]);
-        onOpenChange(false);
+        
+        toast({
+          title: "Success",
+          description: "Study hall created successfully with pricing plan",
+        });
+      } else if (mode === "edit") {
+        // Update existing study hall
+        await updateStudyHall(studyHall!.id, {
+          name: formData.name,
+          description: formData.description,
+          location: formData.location,
+          formatted_address: formData.formatted_address,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          total_seats: seatingCapacity,
+          amenities: selectedAmenities,
+          daily_price: formData.daily_price,
+          weekly_price: formData.weekly_price,
+          monthly_price: formData.monthly_price,
+          image_url: formData.image_url,
+        });
+        
+        // Update pricing plan
+        if (studyHallId) {
+          await savePricingPlan({
+            merchant_id: studyHall!.merchant_id,
+            study_hall_id: studyHallId,
+            ...pricingPlan,
+            daily_price: pricingPlan.daily_enabled ? pricingPlan.daily_price : null,
+            weekly_price: pricingPlan.weekly_enabled ? pricingPlan.weekly_price : null,
+            monthly_price: pricingPlan.monthly_enabled ? pricingPlan.monthly_price : null,
+          });
+        }
+        
+        toast({
+          title: "Success",
+          description: "Study hall updated successfully",
+        });
       }
+      
+      onSuccess?.();
+      onOpenChange(false);
     } catch (error) {
       console.error('Error saving study hall:', error);
       toast({
@@ -286,369 +312,414 @@ export const StudyHallModal = ({ open, onOpenChange, studyHall, onSave, loading 
         description: "Failed to save study hall",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Helper function to convert file to base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result.split(',')[1]); // Remove data:image/jpeg;base64, prefix
-        } else {
-          reject(new Error('Failed to convert file to base64'));
-        }
-      };
-      reader.onerror = error => reject(error);
-    });
+  const handleCapacityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value > 0) {
+      setSeatingCapacity(value);
+    }
   };
-
-  const availableAmenities = [
-    { id: "wifi", label: "WiFi", icon: Wifi },
-    { id: "ac", label: "Air Conditioning", icon: Snowflake },
-    { id: "parking", label: "Parking", icon: Car },
-    { id: "cafeteria", label: "Cafeteria", icon: Coffee },
-    { id: "printer", label: "Printer", icon: Printer },
-    { id: "projector", label: "Projector", icon: Monitor },
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {studyHall ? "Edit Study Hall" : "Add New Study Hall"}
+            {mode === "add" ? "Create New Study Hall" : 
+             mode === "edit" ? "Edit Study Hall" : "Study Hall Details"}
           </DialogTitle>
+          <DialogDescription>
+            {mode === "add" ? "Fill in the details to create a new study hall" :
+             mode === "edit" ? "Update the study hall information" : 
+             "View study hall information"}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="pricing">Monthly Pricing</TabsTrigger>
-              <TabsTrigger value="layout">Seat Layout</TabsTrigger>
-              <TabsTrigger value="images">Images</TabsTrigger>
-              <TabsTrigger value="amenities">Amenities</TabsTrigger>
+              <TabsTrigger value="seating">Seating</TabsTrigger>
+              <TabsTrigger value="pricing">Pricing Plans</TabsTrigger>
+              <TabsTrigger value="location">Location</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="basic" className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Study Hall Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Enter study hall name"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <select
-                    id="status"
-                    value={formData.status}
-                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as "active" | "inactive" }))}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter study hall description"
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <LocationPicker
-                  onLocationSelect={({ latitude, longitude, formattedAddress }) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      location: formattedAddress,
-                      formatted_address: formattedAddress,
-                      latitude: latitude,
-                      longitude: longitude
-                    }));
-                  }}
-                  initialLocation={formData.location ? {
-                    latitude: formData.latitude || 0,
-                    longitude: formData.longitude || 0,
-                    formattedAddress: formData.location
-                  } : undefined}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="monthly_price">Base Monthly Price (₹)</Label>
-                <Input
-                  id="monthly_price"
-                  type="number"
-                  value={formData.monthly_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, monthly_price: Number(e.target.value) }))}
-                  placeholder="1500"
-                  min="1"
-                  required
-                />
-                <p className="text-sm text-muted-foreground">
-                  This is the base monthly price. You can set different pricing tiers in the Pricing tab.
-                </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="pricing" className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Monthly Pricing Plans</h3>
-                <p className="text-sm text-muted-foreground">
-                  Set different pricing for various monthly subscription periods.
-                </p>
-
-                {[
-                  { key: 'months_1', label: '1 Month', enabled: 'months_1_enabled', price: 'months_1_price' },
-                  { key: 'months_2', label: '2 Months', enabled: 'months_2_enabled', price: 'months_2_price' },
-                  { key: 'months_3', label: '3 Months', enabled: 'months_3_enabled', price: 'months_3_price' },
-                  { key: 'months_6', label: '6 Months', enabled: 'months_6_enabled', price: 'months_6_price' },
-                  { key: 'months_12', label: '12 Months', enabled: 'months_12_enabled', price: 'months_12_price' },
-                ].map((period) => (
-                  <Card key={period.key} className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <Switch
-                          checked={pricingFormData[period.enabled as keyof MonthlyPricingPlan] as boolean}
-                          onCheckedChange={(checked) => 
-                            setPricingFormData(prev => ({ ...prev, [period.enabled]: checked }))
-                          }
-                        />
-                        <Label className="text-base font-medium">{period.label}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <DollarSign className="h-4 w-4" />
-                        <Input
-                          type="number"
-                          value={pricingFormData[period.price as keyof MonthlyPricingPlan] as number || ''}
-                          onChange={(e) => 
-                            setPricingFormData(prev => ({ 
-                              ...prev, 
-                              [period.price]: Number(e.target.value) 
-                            }))
-                          }
-                          placeholder="Price"
-                          className="w-32"
-                          min="1"
-                          disabled={!(pricingFormData[period.enabled as keyof MonthlyPricingPlan] as boolean)}
-                        />
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="layout" className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <Label>Layout Mode:</Label>
-                  <div className="flex space-x-4">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        value="fixed"
-                        checked={formData.layout_mode === "fixed"}
-                        onChange={(e) => setFormData(prev => ({ ...prev, layout_mode: e.target.value as "fixed" | "custom" }))}
-                      />
-                      <span>Fixed Grid</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        value="custom"
-                        checked={formData.layout_mode === "custom"}
-                        onChange={(e) => setFormData(prev => ({ ...prev, layout_mode: e.target.value as "fixed" | "custom" }))}
-                      />
-                      <span>Custom Layout</span>
-                    </label>
-                  </div>
-                </div>
-
-                {formData.layout_mode === "fixed" ? (
-                  <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="basic" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Basic Information
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    General information about the study hall.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="rows">Number of Rows</Label>
+                      <Label htmlFor="name">Name</Label>
                       <Input
-                        id="rows"
-                        type="number"
-                        value={formData.rows}
-                        onChange={(e) => {
-                          const newRows = Number(e.target.value);
-                          setFormData(prev => ({
-                            ...prev,
-                            rows: newRows,
-                            total_seats: newRows * prev.seats_per_row,
-                            custom_row_names: Array.from({ length: newRows }, (_, i) => 
-                              String.fromCharCode(65 + i)
-                            )
-                          }));
-                        }}
-                        min="1"
-                        max="10"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
                         required
+                        disabled={mode === "view"}
                       />
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="seats_per_row">Seats per Row</Label>
-                      <Input
-                        id="seats_per_row"
-                        type="number"
-                        value={formData.seats_per_row}
-                        onChange={(e) => {
-                          const newSeatsPerRow = Number(e.target.value);
-                          setFormData(prev => ({
-                            ...prev,
-                            seats_per_row: newSeatsPerRow,
-                            total_seats: prev.rows * newSeatsPerRow
-                          }));
-                        }}
-                        min="1"
-                        max="20"
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        name="description"
+                        value={formData.description}
+                        onChange={handleInputChange}
                         required
+                        disabled={mode === "view"}
                       />
                     </div>
                   </div>
-                ) : (
-                  <CustomLayoutEditor
-                    rowSeatConfig={formData.row_seat_config || {}}
-                    onConfigChange={(config) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        row_seat_config: config,
-                        total_seats: Object.values(config).reduce((sum, row) => sum + row.seats, 0)
-                      }));
-                    }}
-                  />
-                )}
+                </CardContent>
+              </Card>
 
-                <SeatLayoutPreview
-                  layoutMode={formData.layout_mode || "fixed"}
-                  rows={formData.rows}
-                  seatsPerRow={formData.seats_per_row}
-                  customRowNames={formData.custom_row_names}
-                  rowSeatConfig={formData.row_seat_config}
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="images" className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Study Hall Images</Label>
-                  {images.length > 0 && (
-                    <Badge variant="secondary">
-                      {images.length} existing image{images.length !== 1 ? 's' : ''}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Upload multiple images to showcase your study hall. The first image will be set as the main image.
-                </p>
-                
-                <MultiImageUpload
-                  studyHallId={studyHall?.id}
-                  existingImages={images.map(img => ({
-                    id: img.id,
-                    image_url: img.image_url,
-                    is_main: img.is_main,
-                    display_order: img.display_order
-                  }))}
-                  onImagesChange={setNewImages}
-                  disabled={loading || imagesLoading}
-                  maxImages={10}
-                />
-                
-                {newImages.length > 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    Note: New images will be uploaded after the study hall is saved.
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="amenities" className="space-y-4">
-              <div className="space-y-4">
-                <Label>Available Amenities</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  {availableAmenities.map((amenity) => {
-                    const Icon = amenity.icon;
-                    const isSelected = formData.amenities.includes(amenity.id);
-                    
-                    return (
-                      <Card
-                        key={amenity.id}
-                        className={`p-4 cursor-pointer transition-colors ${
-                          isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'
-                        }`}
-                        onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            amenities: isSelected
-                              ? prev.amenities.filter(a => a !== amenity.id)
-                              : [...prev.amenities, amenity.id]
-                          }));
-                        }}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wifi className="h-5 w-5" />
+                    Amenities
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Select the amenities available at the study hall.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {["wifi", "coffee", "printer", "car", "monitor"].map(amenity => (
+                      <Button
+                        key={amenity}
+                        variant={selectedAmenities.includes(amenity) ? "secondary" : "outline"}
+                        onClick={() => handleAmenityChange(amenity)}
+                        disabled={mode === "view"}
                       >
-                        <div className="flex items-center space-x-3">
-                          <Icon className={`h-5 w-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                          <span className={isSelected ? 'text-primary font-medium' : 'text-foreground'}>
-                            {amenity.label}
-                          </span>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4">
-                  <Label>Selected Amenities:</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.amenities.map((amenityId) => {
-                      const amenity = availableAmenities.find(a => a.id === amenityId);
-                      return amenity ? (
-                        <Badge key={amenityId} variant="secondary">
-                          {amenity.label}
-                        </Badge>
-                      ) : null;
-                    })}
-                    {formData.amenities.length === 0 && (
-                      <span className="text-muted-foreground text-sm">No amenities selected</span>
-                    )}
+                        {amenity.charAt(0).toUpperCase() + amenity.slice(1)}
+                      </Button>
+                    ))}
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    Images
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Upload images of the study hall.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="image">Select Image</Label>
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setSelectedImage(file);
+                        }}
+                        disabled={mode === "view"}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleImageUpload}
+                      disabled={imageUploadLoading || mode === "view"}
+                    >
+                      {imageUploadLoading ? "Uploading..." : "Upload"}
+                    </Button>
+                  </div>
+
+                  {previewImage && (
+                    <div className="aspect-w-16 aspect-h-9">
+                      <img
+                        src={previewImage}
+                        alt="Preview"
+                        className="object-cover rounded-md"
+                      />
+                    </div>
+                  )}
+
+                  {formData.image_url && (
+                    <div className="relative max-w-md">
+                      <img
+                        src={formData.image_url}
+                        alt="Study Hall"
+                        className="object-cover rounded-md aspect-video w-full"
+                      />
+                      {mode !== "view" && (
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 rounded-full"
+                          onClick={handleRemoveImage}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="seating" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Seating Capacity
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Set the seating capacity for the study hall.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                      <Label htmlFor="total_seats">Total Seats</Label>
+                      <Input
+                        id="total_seats"
+                        type="number"
+                        min="1"
+                        value={seatingCapacity}
+                        onChange={handleCapacityChange}
+                        required
+                        disabled={mode === "view"}
+                      />
+                    </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="pricing" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Custom Pricing Plans
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Configure custom pricing for different booking periods. If disabled, default study hall prices will be used.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {pricingPlanLoading ? (
+                    <div className="text-center py-8">
+                      <div className="text-sm text-muted-foreground">Loading pricing plans...</div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Daily Pricing */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-medium">Daily Pricing</h4>
+                            <p className="text-xs text-muted-foreground">Price per day</p>
+                          </div>
+                          <Switch
+                            checked={pricingPlan.daily_enabled}
+                            onCheckedChange={(checked) => 
+                              setPricingPlan(prev => ({ ...prev, daily_enabled: checked }))
+                            }
+                            disabled={mode === "view"}
+                          />
+                        </div>
+                        {pricingPlan.daily_enabled && (
+                          <div>
+                            <Label htmlFor="daily_price">Daily Price (₹)</Label>
+                            <Input
+                              id="daily_price"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={pricingPlan.daily_price || ''}
+                              onChange={(e) => 
+                                setPricingPlan(prev => ({ 
+                                  ...prev, 
+                                  daily_price: e.target.value ? parseFloat(e.target.value) : undefined 
+                                }))
+                              }
+                              placeholder="Enter daily price"
+                              disabled={mode === "view"}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator />
+
+                      {/* Weekly Pricing */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-medium">Weekly Pricing</h4>
+                            <p className="text-xs text-muted-foreground">Price per week</p>
+                          </div>
+                          <Switch
+                            checked={pricingPlan.weekly_enabled}
+                            onCheckedChange={(checked) => 
+                              setPricingPlan(prev => ({ ...prev, weekly_enabled: checked }))
+                            }
+                            disabled={mode === "view"}
+                          />
+                        </div>
+                        {pricingPlan.weekly_enabled && (
+                          <div>
+                            <Label htmlFor="weekly_price">Weekly Price (₹)</Label>
+                            <Input
+                              id="weekly_price"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={pricingPlan.weekly_price || ''}
+                              onChange={(e) => 
+                                setPricingPlan(prev => ({ 
+                                  ...prev, 
+                                  weekly_price: e.target.value ? parseFloat(e.target.value) : undefined 
+                                }))
+                              }
+                              placeholder="Enter weekly price"
+                              disabled={mode === "view"}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator />
+
+                      {/* Monthly Pricing */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-medium">Monthly Pricing</h4>
+                            <p className="text-xs text-muted-foreground">Price per month</p>
+                          </div>
+                          <Switch
+                            checked={pricingPlan.monthly_enabled}
+                            onCheckedChange={(checked) => 
+                              setPricingPlan(prev => ({ ...prev, monthly_enabled: checked }))
+                            }
+                            disabled={mode === "view"}
+                          />
+                        </div>
+                        {pricingPlan.monthly_enabled && (
+                          <div>
+                            <Label htmlFor="monthly_price">Monthly Price (₹)</Label>
+                            <Input
+                              id="monthly_price"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={pricingPlan.monthly_price || ''}
+                              onChange={(e) => 
+                                setPricingPlan(prev => ({ 
+                                  ...prev, 
+                                  monthly_price: e.target.value ? parseFloat(e.target.value) : undefined 
+                                }))
+                              }
+                              placeholder="Enter monthly price"
+                              disabled={mode === "view"}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-sm text-blue-800">
+                            <p className="font-medium">Pricing Notes:</p>
+                            <ul className="mt-1 list-disc list-inside space-y-1 text-xs">
+                              <li>Enabled periods with valid prices will be available for booking</li>
+                              <li>Disabled periods will fall back to default study hall pricing</li>
+                              <li>Leave price empty to disable that pricing period</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="location" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Location
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Set the location of the study hall.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      required
+                      disabled={mode === "view"}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="formatted_address">Address</Label>
+                    <Input
+                      id="formatted_address"
+                      name="formatted_address"
+                      value={formData.formatted_address}
+                      onChange={handleInputChange}
+                      required
+                      disabled={mode === "view"}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setLocationPickerOpen(true)}
+                    disabled={mode === "view"}
+                  >
+                    Pick Location on Map
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
+          <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : studyHall ? "Update Study Hall" : "Create Study Hall"}
-            </Button>
+            {mode !== "view" && (
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : "Save"}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>
+
+      {/* MapLocationPicker component will be implemented when needed */}
     </Dialog>
   );
-};
+}

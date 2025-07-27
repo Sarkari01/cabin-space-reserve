@@ -21,7 +21,6 @@ const Login = () => {
   // Redirect authenticated users to their dashboard
   useEffect(() => {
     if (user && userRole) {
-      console.log('User and role available, redirecting:', user.id, userRole);
       const dashboard = getRoleBasedDashboard(userRole);
       navigate(dashboard, { replace: true });
     }
@@ -61,6 +60,8 @@ const Login = () => {
         title: "Success",
         description: "Logged in successfully",
       });
+      
+      // Redirect will be handled by useEffect when user and role are available
     } catch (error: any) {
       toast({
         title: "Error",

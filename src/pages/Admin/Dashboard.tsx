@@ -250,7 +250,7 @@ const AdminDashboard = () => {
     setStudyHallModalOpen(true);
   };
 
-  const handleSaveStudyHall = async (studyHallData: any): Promise<{ success: boolean; data?: any }> => {
+  const handleSaveStudyHall = async (studyHallData: any) => {
     try {
       if (studyHallModalMode === "edit" && selectedStudyHall) {
         // Extract only the fields that belong to the study_halls table
@@ -260,15 +260,13 @@ const AdminDashboard = () => {
           ...updateData
         } = studyHallData;
 
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("study_halls")
           .update({
             ...updateData,
             updated_at: new Date().toISOString()
           })
-          .eq("id", selectedStudyHall.id)
-          .select()
-          .single();
+          .eq("id", selectedStudyHall.id);
 
         if (error) throw error;
 
@@ -279,20 +277,15 @@ const AdminDashboard = () => {
         
         // Refresh the data to show updated information
         await fetchData();
-        setStudyHallModalOpen(false);
-        setSelectedStudyHall(null);
-        return { success: true, data };
       }
       setStudyHallModalOpen(false);
       setSelectedStudyHall(null);
-      return { success: true };
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to update study hall",
         variant: "destructive",
       });
-      return { success: false };
     }
   };
 
@@ -373,7 +366,8 @@ const AdminDashboard = () => {
       title: 'Pricing',
       render: (value: any, studyHall: any) => (
         <div className="text-sm">
-          <div>₹{studyHall?.monthly_price}/month</div>
+          <div>₹{studyHall?.daily_price}/day</div>
+          <div className="text-muted-foreground">₹{studyHall?.monthly_price}/month</div>
         </div>
       ),
       mobileHidden: true
@@ -725,7 +719,7 @@ const AdminDashboard = () => {
                             <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
                               {studyHall.status}
                             </Badge>
-                            <p className="text-sm font-medium">₹{studyHall.monthly_price}/month</p>
+                            <p className="text-sm font-medium">₹{studyHall.daily_price}/day</p>
                           </div>
                         </div>
                       ))}
@@ -1494,8 +1488,12 @@ const AdminDashboard = () => {
           setStudyHallModalOpen(open);
           if (!open) setSelectedStudyHall(null);
         }}
-        onSave={handleSaveStudyHall}
+        onSuccess={() => {
+          // Modal handles save internally, just refresh data
+          // The useAdminData hook should automatically refetch
+        }}
         studyHall={selectedStudyHall}
+        mode={studyHallModalMode}
       />
     </>
   );

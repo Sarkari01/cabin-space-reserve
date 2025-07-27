@@ -137,6 +137,7 @@ export type Database = {
       bookings: {
         Row: {
           booking_number: number | null
+          booking_period: Database["public"]["Enums"]["booking_period"]
           created_at: string
           end_date: string
           guest_email: string | null
@@ -154,6 +155,7 @@ export type Database = {
         }
         Insert: {
           booking_number?: number | null
+          booking_period: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date: string
           guest_email?: string | null
@@ -171,6 +173,7 @@ export type Database = {
         }
         Update: {
           booking_number?: number | null
+          booking_period?: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date?: string
           guest_email?: string | null
@@ -1175,6 +1178,63 @@ export type Database = {
           },
         ]
       }
+      merchant_pricing_plans: {
+        Row: {
+          created_at: string
+          daily_enabled: boolean
+          daily_price: number | null
+          id: string
+          merchant_id: string
+          monthly_enabled: boolean
+          monthly_price: number | null
+          study_hall_id: string
+          updated_at: string
+          weekly_enabled: boolean
+          weekly_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          daily_enabled?: boolean
+          daily_price?: number | null
+          id?: string
+          merchant_id: string
+          monthly_enabled?: boolean
+          monthly_price?: number | null
+          study_hall_id: string
+          updated_at?: string
+          weekly_enabled?: boolean
+          weekly_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          daily_enabled?: boolean
+          daily_price?: number | null
+          id?: string
+          merchant_id?: string
+          monthly_enabled?: boolean
+          monthly_price?: number | null
+          study_hall_id?: string
+          updated_at?: string
+          weekly_enabled?: boolean
+          weekly_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_pricing_plans_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_pricing_plans_study_hall_id_fkey"
+            columns: ["study_hall_id"]
+            isOneToOne: false
+            referencedRelation: "study_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_profiles: {
         Row: {
           account_holder_name: string | null
@@ -1317,60 +1377,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      monthly_pricing_plans: {
-        Row: {
-          created_at: string | null
-          id: string
-          merchant_id: string
-          months_1_enabled: boolean | null
-          months_1_price: number | null
-          months_12_enabled: boolean | null
-          months_12_price: number | null
-          months_2_enabled: boolean | null
-          months_2_price: number | null
-          months_3_enabled: boolean | null
-          months_3_price: number | null
-          months_6_enabled: boolean | null
-          months_6_price: number | null
-          study_hall_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          merchant_id: string
-          months_1_enabled?: boolean | null
-          months_1_price?: number | null
-          months_12_enabled?: boolean | null
-          months_12_price?: number | null
-          months_2_enabled?: boolean | null
-          months_2_price?: number | null
-          months_3_enabled?: boolean | null
-          months_3_price?: number | null
-          months_6_enabled?: boolean | null
-          months_6_price?: number | null
-          study_hall_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          merchant_id?: string
-          months_1_enabled?: boolean | null
-          months_1_price?: number | null
-          months_12_enabled?: boolean | null
-          months_12_price?: number | null
-          months_2_enabled?: boolean | null
-          months_2_price?: number | null
-          months_3_enabled?: boolean | null
-          months_3_price?: number | null
-          months_6_enabled?: boolean | null
-          months_6_price?: number | null
-          study_hall_id?: string
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       news_posts: {
         Row: {
@@ -1896,30 +1902,6 @@ export type Database = {
           },
         ]
       }
-      security_audit_log: {
-        Row: {
-          created_at: string | null
-          details: Json | null
-          event_type: string
-          id: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          details?: Json | null
-          event_type: string
-          id?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          details?: Json | null
-          event_type?: string
-          id?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       settlement_transactions: {
         Row: {
           booking_id: string
@@ -2250,6 +2232,7 @@ export type Database = {
           average_rating: number | null
           created_at: string
           custom_row_names: string[]
+          daily_price: number
           description: string | null
           formatted_address: string | null
           hall_number: number | null
@@ -2271,12 +2254,14 @@ export type Database = {
           total_reviews: number | null
           total_seats: number
           updated_at: string
+          weekly_price: number
         }
         Insert: {
           amenities?: Json | null
           average_rating?: number | null
           created_at?: string
           custom_row_names?: string[]
+          daily_price?: number
           description?: string | null
           formatted_address?: string | null
           hall_number?: number | null
@@ -2298,12 +2283,14 @@ export type Database = {
           total_reviews?: number | null
           total_seats: number
           updated_at?: string
+          weekly_price?: number
         }
         Update: {
           amenities?: Json | null
           average_rating?: number | null
           created_at?: string
           custom_row_names?: string[]
+          daily_price?: number
           description?: string | null
           formatted_address?: string | null
           hall_number?: number | null
@@ -2325,6 +2312,7 @@ export type Database = {
           total_reviews?: number | null
           total_seats?: number
           updated_at?: string
+          weekly_price?: number
         }
         Relationships: [
           {
@@ -2758,50 +2746,23 @@ export type Database = {
           released_booking_ids: string[]
         }[]
       }
-      calculate_distance: {
-        Args: { lat1: number; lon1: number; lat2: number; lon2: number }
-        Returns: number
-      }
-      calculate_monthly_booking_amount: {
+      calculate_booking_amount: {
         Args: {
           p_start_date: string
           p_end_date: string
-          p_months_1_price: number
-          p_months_2_price: number
-          p_months_3_price: number
-          p_months_6_price?: number
-          p_months_12_price?: number
-        }
-        Returns: {
-          amount: number
-          months: number
-          period_type: string
-        }[]
-      }
-      calculate_monthly_only_booking_amount: {
-        Args: {
-          p_start_date: string
-          p_end_date: string
+          p_daily_price: number
+          p_weekly_price: number
           p_monthly_price: number
         }
         Returns: {
           amount: number
           days: number
-          months: number
           method: string
         }[]
       }
-      calculate_simple_booking_amount: {
-        Args: {
-          p_start_date: string
-          p_end_date: string
-          p_monthly_price: number
-        }
-        Returns: {
-          amount: number
-          days: number
-          months: number
-        }[]
+      calculate_distance: {
+        Args: { lat1: number; lon1: number; lat2: number; lon2: number }
+        Returns: number
       }
       calculate_total_seats_from_config: {
         Args: { row_seat_config: Json }
@@ -2814,28 +2775,6 @@ export type Database = {
       cleanup_old_failed_transactions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      create_study_hall_with_context: {
-        Args: {
-          p_name: string
-          p_description: string
-          p_location: string
-          p_total_seats: number
-          p_rows: number
-          p_seats_per_row: number
-          p_monthly_price: number
-          p_amenities?: Json
-          p_custom_row_names?: string[]
-          p_formatted_address?: string
-          p_latitude?: number
-          p_longitude?: number
-          p_image_url?: string
-        }
-        Returns: Json
-      }
-      debug_auth_context: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
       }
       generate_invitation_token: {
         Args: Record<PropertyKey, never>
@@ -2952,27 +2891,6 @@ export type Database = {
           merchant_id: string
         }[]
       }
-      get_nearby_study_halls_with_monthly_pricing: {
-        Args: { p_latitude: number; p_longitude: number; p_radius_km?: number }
-        Returns: {
-          id: string
-          name: string
-          description: string
-          location: string
-          formatted_address: string
-          latitude: number
-          longitude: number
-          monthly_price: number
-          image_url: string
-          amenities: string[]
-          merchant_id: string
-          status: string
-          total_seats: number
-          average_rating: number
-          total_reviews: number
-          distance_km: number
-        }[]
-      }
       get_trial_plan_settings: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3001,10 +2919,6 @@ export type Database = {
       is_trial_expired: {
         Args: { subscription_id: string }
         Returns: boolean
-      }
-      log_security_event: {
-        Args: { p_event_type: string; p_user_id: string; p_details?: Json }
-        Returns: undefined
       }
       progress_booking_statuses: {
         Args: Record<PropertyKey, never>
@@ -3045,12 +2959,7 @@ export type Database = {
     Enums: {
       banner_status: "active" | "inactive"
       banner_target_audience: "user" | "merchant" | "both"
-      booking_period:
-        | "1_month"
-        | "2_months"
-        | "3_months"
-        | "6_months"
-        | "12_months"
+      booking_period: "daily" | "weekly" | "monthly"
       creator_type: "admin" | "institution" | "telemarketing_executive"
       news_visibility: "user" | "merchant" | "both"
       review_status: "approved" | "pending" | "hidden"
@@ -3194,13 +3103,7 @@ export const Constants = {
     Enums: {
       banner_status: ["active", "inactive"],
       banner_target_audience: ["user", "merchant", "both"],
-      booking_period: [
-        "1_month",
-        "2_months",
-        "3_months",
-        "6_months",
-        "12_months",
-      ],
+      booking_period: ["daily", "weekly", "monthly"],
       creator_type: ["admin", "institution", "telemarketing_executive"],
       news_visibility: ["user", "merchant", "both"],
       review_status: ["approved", "pending", "hidden"],
