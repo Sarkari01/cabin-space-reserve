@@ -190,26 +190,40 @@ export const useStudyHalls = () => {
         return { data: null, error: { message } };
       }
 
-      // Prepare data for database insertion - only include fields that exist in the database
+      // Validate and prepare data for database insertion with proper type conversion
       const dbData = {
-        name: studyHallData.name,
-        description: studyHallData.description || '',
-        location: studyHallData.location,
-        formatted_address: studyHallData.formatted_address || '',
-        total_seats: studyHallData.total_seats,
-        rows: studyHallData.rows,
-        seats_per_row: studyHallData.seats_per_row,
-        custom_row_names: studyHallData.custom_row_names,
-        amenities: studyHallData.amenities,
-        monthly_price: studyHallData.monthly_price,
-        image_url: studyHallData.image_url || '',
-        latitude: studyHallData.latitude || null,
-        longitude: studyHallData.longitude || null,
+        name: studyHallData.name?.trim(),
+        description: studyHallData.description?.trim() || '',
+        location: studyHallData.location?.trim(),
+        formatted_address: studyHallData.formatted_address?.trim() || '',
+        total_seats: Number(studyHallData.total_seats) || 0,
+        rows: Number(studyHallData.rows) || 1,
+        seats_per_row: Number(studyHallData.seats_per_row) || 1,
+        custom_row_names: Array.isArray(studyHallData.custom_row_names) ? studyHallData.custom_row_names : [],
+        amenities: Array.isArray(studyHallData.amenities) ? studyHallData.amenities : [],
+        monthly_price: Number(studyHallData.monthly_price) || 0,
+        image_url: studyHallData.image_url?.trim() || null,
+        latitude: studyHallData.latitude ? Number(studyHallData.latitude) : null,
+        longitude: studyHallData.longitude ? Number(studyHallData.longitude) : null,
         status: studyHallData.status || 'active',
         layout_mode: studyHallData.layout_mode || 'fixed',
         row_seat_config: studyHallData.row_seat_config || null,
         merchant_id: user.id,
       };
+
+      // Validate required fields
+      if (!dbData.name) {
+        throw new Error('Study hall name is required');
+      }
+      if (!dbData.location) {
+        throw new Error('Location is required');
+      }
+      if (dbData.monthly_price <= 0) {
+        throw new Error('Monthly price must be greater than 0');
+      }
+      if (dbData.total_seats <= 0) {
+        throw new Error('Total seats must be greater than 0');
+      }
 
       console.log('📤 Sending to database:', dbData);
 
