@@ -44,12 +44,12 @@ export function EnhancedStudyHallModal({
     formatted_address: "",
     latitude: 0,
     longitude: 0,
-    total_seats: 1,
-    rows: 1,
-    seats_per_row: 1,
+    total_seats: 20,
+    rows: 4,
+    seats_per_row: 5,
     custom_row_names: [] as string[],
     amenities: [] as string[],
-    monthly_price: 0,
+    monthly_price: 1000,
     image_url: "",
   });
 
@@ -101,12 +101,12 @@ export function EnhancedStudyHallModal({
         formatted_address: "",
         latitude: 0,
         longitude: 0,
-        total_seats: 1,
-        rows: 1,
-        seats_per_row: 1,
+        total_seats: 20,
+        rows: 4,
+        seats_per_row: 5,
         custom_row_names: [],
         amenities: [],
-        monthly_price: 0,
+        monthly_price: 1000,
         image_url: "",
       });
       setSelectedAmenities([]);
@@ -169,10 +169,19 @@ export function EnhancedStudyHallModal({
     
     if (mode === "view") return;
     
-    if (!formData.name || !formData.description || !formData.location) {
+    if (!formData.name?.trim() || !formData.location?.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in name and location",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.monthly_price || formData.monthly_price <= 0) {
+      toast({
+        title: "Invalid Price",
+        description: "Monthly price must be greater than 0",
         variant: "destructive",
       });
       return;
