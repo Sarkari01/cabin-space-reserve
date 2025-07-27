@@ -20,9 +20,30 @@ const Login = () => {
 
   // Redirect authenticated users to their dashboard
   useEffect(() => {
-    if (user && userRole) {
-      const dashboard = getRoleBasedDashboard(userRole);
-      navigate(dashboard, { replace: true });
+    if (user) {
+      console.log('User detected in Login:', user.id, 'Role:', userRole);
+      
+      if (userRole) {
+        // Both user and role are available, redirect immediately
+        const dashboard = getRoleBasedDashboard(userRole);
+        console.log('Redirecting to dashboard:', dashboard);
+        navigate(dashboard, { replace: true });
+      } else {
+        // User exists but role is still loading, wait a bit longer
+        console.log('User exists but role is still loading, waiting...');
+        const timeout = setTimeout(() => {
+          if (userRole) {
+            const dashboard = getRoleBasedDashboard(userRole);
+            navigate(dashboard, { replace: true });
+          } else {
+            // Fallback: redirect to a default dashboard after timeout
+            console.warn('Role not loaded after timeout, redirecting to default');
+            navigate('/', { replace: true });
+          }
+        }, 3000); // 3 second timeout
+
+        return () => clearTimeout(timeout);
+      }
     }
   }, [user, userRole, navigate]);
 
@@ -61,6 +82,7 @@ const Login = () => {
         description: "Logged in successfully",
       });
       
+      console.log('Login successful, waiting for redirect...');
       // Redirect will be handled by useEffect when user and role are available
     } catch (error: any) {
       toast({
