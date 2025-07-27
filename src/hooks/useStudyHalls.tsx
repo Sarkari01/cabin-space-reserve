@@ -176,6 +176,8 @@ export const useStudyHalls = () => {
   const createStudyHall = async (studyHallData: Omit<StudyHall, 'id' | 'merchant_id' | 'created_at' | 'updated_at'>) => {
     try {
       console.log('Starting study hall creation process...');
+      console.log('Current user:', user?.id);
+      console.log('Current session:', session?.access_token ? 'exists' : 'missing');
       
       // Simple authentication check
       if (!user || !session) {
@@ -188,7 +190,27 @@ export const useStudyHalls = () => {
         return { data: null, error: { message: 'User not authenticated' } };
       }
 
-      // Verify session is valid
+      // Verify session and database connection
+      console.log('Testing database connection...');
+      const { data: testData, error: testError } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('id', user.id)
+        .single();
+      
+      if (testError) {
+        console.error('Database connection test failed:', testError);
+        toast({
+          title: "Database Connection Error",
+          description: `Database error: ${testError.message}`,
+          variant: "destructive",
+        });
+        return { data: null, error: testError };
+      }
+      
+      console.log('Database connection test successful. User profile:', testData);
+      
+      // Verify session is valid and ensure JWT is properly set
       const sessionValid = await verifySession();
       if (!sessionValid) {
         console.error('Session verification failed');
@@ -245,6 +267,27 @@ export const useStudyHalls = () => {
 
       // Create the study hall
       console.log('Creating study hall with data:', studyHallData);
+      console.log('Merchant ID:', user.id);
+      
+      // Test if study_halls table is accessible
+      console.log('Testing study_halls table access...');
+      const { data: testAccess, error: testAccessError } = await supabase
+        .from('study_halls')
+        .select('id')
+        .limit(1);
+      
+      if (testAccessError) {
+        console.error('Study halls table access test failed:', testAccessError);
+        toast({
+          title: "Database Table Error",
+          description: `Cannot access study_halls table: ${testAccessError.message}`,
+          variant: "destructive",
+        });
+        return { data: null, error: testAccessError };
+      }
+      
+      console.log('Study halls table access test successful');
+      
       const { data, error } = await supabase
         .from('study_halls')
         .insert([{
