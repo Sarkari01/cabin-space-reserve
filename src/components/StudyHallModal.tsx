@@ -106,25 +106,44 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
   useEffect(() => {
     const loadPricingPlan = async () => {
       if (studyHall?.id && (mode === "edit" || mode === "view")) {
+        console.log('Loading pricing plan for study hall:', studyHall.id);
         setPricingPlanLoading(true);
         try {
           const plan = await getPricingPlan(studyHall.id);
           if (plan) {
+            console.log('Loaded pricing plan:', plan);
             setPricingPlan({
               monthly_enabled: plan.monthly_enabled,
               monthly_price: plan.monthly_price || undefined,
             });
+          } else {
+            console.log('No pricing plan found, using defaults');
+            setPricingPlan({
+              monthly_enabled: true,
+              monthly_price: studyHall.monthly_price || undefined,
+            });
           }
         } catch (error) {
           console.error('Error loading pricing plan:', error);
+          // Set defaults on error to prevent infinite loops
+          setPricingPlan({
+            monthly_enabled: true,
+            monthly_price: studyHall.monthly_price || undefined,
+          });
         } finally {
           setPricingPlanLoading(false);
         }
+      } else if (mode === "add") {
+        // Reset to defaults for new study halls
+        setPricingPlan({
+          monthly_enabled: true,
+          monthly_price: undefined,
+        });
       }
     };
 
     loadPricingPlan();
-  }, [studyHall?.id, mode, getPricingPlan]);
+  }, [studyHall?.id, studyHall?.monthly_price, mode]); // Removed getPricingPlan from dependencies to prevent infinite loops
 
   useEffect(() => {
     if (selectedImage) {

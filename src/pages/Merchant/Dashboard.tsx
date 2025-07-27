@@ -10,6 +10,7 @@ import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, 
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { StudyHallModal } from "@/components/StudyHallModal";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,7 +26,6 @@ import { MerchantTransactionsTab } from "@/components/merchant/MerchantTransacti
 import { MerchantSubscriptionTab } from "@/components/merchant/MerchantSubscriptionTab";
 import { MerchantSubscriptionTransactionsTab } from "@/components/merchant/MerchantSubscriptionTransactionsTab";
 import { MerchantSettlementsTab } from "@/components/merchant/MerchantSettlementsTab";
-import ErrorBoundary from "@/components/ErrorBoundary";
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
@@ -1575,16 +1575,18 @@ const MerchantDashboard = () => {
           </div>
         )}
 
-        <StudyHallModal
-          open={studyHallModalOpen}
-          onOpenChange={setStudyHallModalOpen}
-          onSuccess={() => {
-            // Modal handles save internally, just refresh data
-            // The hooks should automatically refetch
-          }}
-          studyHall={selectedStudyHall}
-          mode={studyHallModalMode}
-        />
+        <ErrorBoundary>
+          <StudyHallModal
+            open={studyHallModalOpen}
+            onOpenChange={setStudyHallModalOpen}
+            onSuccess={() => {
+              // Modal handles save internally, just refresh data
+              // The hooks should automatically refetch
+            }}
+            studyHall={selectedStudyHall}
+            mode={studyHallModalMode}
+          />
+        </ErrorBoundary>
 
         {/* Booking Detail Modal */}
         <BookingDetailModal

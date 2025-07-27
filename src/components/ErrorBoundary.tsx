@@ -1,78 +1,65 @@
-import React, { Component, ErrorInfo, ReactNode } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-}
-
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false
-  };
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
 
-  public static getDerivedStateFromError(error: Error): State {
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
-  private handleRetry = () => {
+  resetError = () => {
     this.setState({ hasError: false, error: undefined });
   };
 
-  public render() {
+  render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
       return (
-        <div className="min-h-[400px] flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                <AlertTriangle className="h-6 w-6 text-destructive" />
-              </div>
-              <CardTitle>Something went wrong</CardTitle>
-              <CardDescription>
-                An unexpected error occurred. Please try refreshing the page.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Alert variant="destructive" className="m-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Something went wrong</AlertTitle>
+          <AlertDescription className="mt-2">
+            <div className="space-y-2">
+              <p>An error occurred while rendering this component.</p>
               {this.state.error && (
-                <details className="rounded border p-2 text-xs">
-                  <summary className="cursor-pointer font-medium">Error Details</summary>
-                  <pre className="mt-2 whitespace-pre-wrap text-muted-foreground">
-                    {this.state.error.message}
-                  </pre>
-                </details>
+                <p className="text-xs font-mono bg-muted p-2 rounded">
+                  {this.state.error.message}
+                </p>
               )}
-              <div className="flex gap-2">
-                <Button onClick={this.handleRetry} className="flex-1">
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Try Again
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.location.reload()}
-                  className="flex-1"
-                >
-                  Refresh Page
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={this.resetError}
+                className="mt-2"
+              >
+                Try Again
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
       );
     }
 
