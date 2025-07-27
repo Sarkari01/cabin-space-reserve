@@ -43,6 +43,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        // Set default role as fallback to prevent stuck states
+        setUserRole('student');
         return;
       }
 
@@ -51,35 +53,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole(data.role);
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      // Set default role as fallback to prevent stuck states
+      setUserRole('student');
     }
   };
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state change:', event, 'Session exists:', !!session, 'User ID:', session?.user?.id);
-        
-        // Explicitly sync session with Supabase client for JWT token propagation
-        if (session) {
-          try {
-            await supabase.auth.setSession({
-              access_token: session.access_token,
-              refresh_token: session.refresh_token
-            });
-            console.log('Session synchronized with Supabase client');
-          } catch (error) {
-            console.error('Failed to sync session with Supabase client:', error);
-          }
-        }
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          console.log('Fetching profile for user:', session.user.id);
-          // Fetch user profile immediately when user is authenticated
-          await fetchUserProfile(session.user.id);
+          console.log('User authenticated, deferring profile fetch');
+          // Defer profile fetching to avoid race conditions
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
         } else {
           // Clear profile data when user logs out
           setUserProfile(null);
@@ -92,20 +85,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Get initial session
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Initial session check:', !!session, session?.user?.id);
-      
-      if (session?.user) {
-        setSession(session);
-        setUser(session.user);
-        await fetchUserProfile(session.user.id);
-      } else {
-        console.log('No initial session found');
-        setUserProfile(null);
-        setUserRole(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session check:', !!session, session?.user?.id);
+        
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          // Defer profile fetching to avoid blocking initialization
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
+        } else {
+          console.log('No initial session found');
+          setUserProfile(null);
+          setUserRole(null);
+        }
+      } catch (error) {
+        console.error('Error during auth initialization:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     initializeAuth();
