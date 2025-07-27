@@ -87,8 +87,8 @@ export interface CreateStudyHallData {
   total_seats: number;
   rows: number;
   seats_per_row: number;
-  custom_row_names: string[];
-  amenities: string[];
+  custom_row_names?: string[]; // Optional - let database use defaults
+  amenities?: string[]; // Optional - let database use defaults
   monthly_price: number;
   image_url?: string;
   latitude?: number;

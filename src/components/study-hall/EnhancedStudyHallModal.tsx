@@ -200,8 +200,6 @@ export function EnhancedStudyHallModal({
           total_seats: Number(formData.total_seats),
           rows: Number(formData.rows),
           seats_per_row: Number(formData.seats_per_row),
-          custom_row_names: formData.custom_row_names.length > 0 ? formData.custom_row_names : [],
-          amenities: selectedAmenities.length > 0 ? selectedAmenities : [],
           monthly_price: Number(formData.monthly_price),
           image_url: formData.image_url?.trim() || undefined,
           latitude: formData.latitude || undefined,
@@ -209,6 +207,16 @@ export function EnhancedStudyHallModal({
           status: "active",
           layout_mode: "fixed",
         };
+
+        // Only include custom_row_names if they have meaningful values
+        if (formData.custom_row_names.length > 0 && formData.custom_row_names.some(name => name.trim())) {
+          createData.custom_row_names = formData.custom_row_names.filter(name => name.trim());
+        }
+
+        // Only include amenities if they are selected
+        if (selectedAmenities.length > 0) {
+          createData.amenities = selectedAmenities;
+        }
 
         console.log('🎯 Submitting study hall creation with data:', createData);
         

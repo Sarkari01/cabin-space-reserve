@@ -235,19 +235,16 @@ export const useStudyHalls = () => {
         dbData.formatted_address = studyHallData.formatted_address.trim();
       }
 
-      // Handle custom_row_names - use null instead of empty array to let DB use defaults
-      if (Array.isArray(studyHallData.custom_row_names) && studyHallData.custom_row_names.length > 0) {
+      // Handle optional fields - only include if provided
+      if (studyHallData.custom_row_names && studyHallData.custom_row_names.length > 0) {
         const filteredNames = studyHallData.custom_row_names.filter(name => name?.trim());
         if (filteredNames.length > 0) {
           dbData.custom_row_names = filteredNames;
         }
-        // Don't include empty array - let database use its default
       }
 
-      // Handle amenities - use null instead of empty array to let DB use defaults
-      if (Array.isArray(studyHallData.amenities) && studyHallData.amenities.length > 0) {
+      if (studyHallData.amenities && studyHallData.amenities.length > 0) {
         dbData.amenities = studyHallData.amenities;
-        // Don't include empty array - let database use its default
       }
 
       if (studyHallData.image_url?.trim()) {
@@ -296,15 +293,33 @@ export const useStudyHalls = () => {
       });
       
       return { data, error: null };
-    } catch (error: any) {
-      console.error('❌ Create study hall error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create study hall",
-        variant: "destructive",
-      });
-      return { data: null, error };
-    }
+      } catch (error: any) {
+        console.error('❌ Create study hall error:', error);
+        
+        // Provide more specific error messages based on the error
+        let errorMessage = "Failed to create study hall";
+        
+        if (error.message?.includes('relation "study_halls" does not exist')) {
+          errorMessage = "Database table not found. Please contact support.";
+        } else if (error.message?.includes('violates not-null constraint')) {
+          errorMessage = "Required fields are missing. Please fill all required information.";
+        } else if (error.message?.includes('permission denied')) {
+          errorMessage = "You don't have permission to create study halls. Please check your account status.";
+        } else if (error.code === '23505') {
+          errorMessage = "A study hall with this information already exists.";
+        } else if (error.code === '23503') {
+          errorMessage = "Invalid reference data. Please check your input.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return { data: null, error };
+      }
   };
 
   const updateStudyHall = async (id: string, updates: Partial<StudyHall>) => {
