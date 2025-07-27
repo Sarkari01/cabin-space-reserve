@@ -53,7 +53,7 @@ const Index = () => {
     
     let matchesPrice = true;
     if (priceRange) {
-      const dailyPrice = studyHall.daily_price;
+      <span className="text-lg font-semibold">₹{hall.monthly_price}</span>
       switch (priceRange) {
         case "0-100":
           matchesPrice = dailyPrice <= 100;

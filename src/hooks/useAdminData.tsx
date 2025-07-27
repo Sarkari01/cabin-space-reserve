@@ -30,8 +30,6 @@ export interface StudyHallWithOwner {
   total_seats: number;
   rows: number;
   seats_per_row: number;
-  daily_price: number;
-  weekly_price: number;
   monthly_price: number;
   image_url: string | null;
   status: string;

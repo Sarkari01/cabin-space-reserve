@@ -47,8 +47,6 @@ interface StudyHall {
   name: string;
   location: string;
   total_seats: number;
-  daily_price: number;
-  weekly_price: number;
   monthly_price: number;
   status: string;
   created_at: string;
