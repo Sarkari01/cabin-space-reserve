@@ -8,7 +8,7 @@ export const bookingSchema = z.object({
   seat_id: z.string().min(1, "Seat selection is required"),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
-  booking_period: z.enum(["daily", "weekly", "monthly"]),
+  booking_period: z.enum(["1_month", "2_months", "3_months", "6_months", "12_months"]),
 }).refine((data) => {
   const start = new Date(data.start_date);
   const end = new Date(data.end_date);

@@ -15,8 +15,6 @@ interface StudyHallDetails {
   description: string;
   location: string;
   formatted_address?: string;
-  daily_price: number;
-  weekly_price: number;
   monthly_price: number;
   amenities: string[];
   image_url?: string;
@@ -117,7 +115,7 @@ export default function PublicBooking() {
           .from('study_halls')
           .select(`
             id, name, description, location, formatted_address,
-            daily_price, weekly_price, monthly_price, amenities,
+            monthly_price, amenities,
             image_url, total_seats, rows, seats_per_row,
             custom_row_names, layout_mode, row_seat_config,
             qr_booking_enabled, status
@@ -264,17 +262,9 @@ export default function PublicBooking() {
               )}
               
               {/* Pricing */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Daily</p>
-                  <p className="text-lg font-bold">₹{studyHall.daily_price}</p>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Weekly</p>
-                  <p className="text-lg font-bold">₹{studyHall.weekly_price}</p>
-                </div>
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Monthly</p>
+                  <p className="text-sm text-muted-foreground">Monthly Rate</p>
                   <p className="text-lg font-bold">₹{studyHall.monthly_price}</p>
                 </div>
               </div>

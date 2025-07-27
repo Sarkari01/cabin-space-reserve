@@ -39,8 +39,6 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
     seats_per_row: 1,
     custom_row_names: [] as string[],
     amenities: [] as string[],
-    daily_price: 0,
-    weekly_price: 0,
     monthly_price: 0,
     image_url: "",
   });
@@ -54,10 +52,6 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
   
   // Add pricing plan state
   const [pricingPlan, setPricingPlan] = useState({
-    daily_enabled: true,
-    daily_price: undefined as number | undefined,
-    weekly_enabled: true,
-    weekly_price: undefined as number | undefined,
     monthly_enabled: true,
     monthly_price: undefined as number | undefined,
   });
@@ -81,8 +75,6 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
         seats_per_row: studyHall.seats_per_row,
         custom_row_names: studyHall.custom_row_names,
         amenities: studyHall.amenities,
-        daily_price: studyHall.daily_price,
-        weekly_price: studyHall.weekly_price,
         monthly_price: studyHall.monthly_price,
         image_url: studyHall.image_url || "",
       });
@@ -102,8 +94,6 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
         seats_per_row: 1,
         custom_row_names: [] as string[],
         amenities: [] as string[],
-        daily_price: 0,
-        weekly_price: 0,
         monthly_price: 0,
         image_url: "",
       });
@@ -121,10 +111,6 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
           const plan = await getPricingPlan(studyHall.id);
           if (plan) {
             setPricingPlan({
-              daily_enabled: plan.daily_enabled,
-              daily_price: plan.daily_price || undefined,
-              weekly_enabled: plan.weekly_enabled,
-              weekly_price: plan.weekly_price || undefined,
               monthly_enabled: plan.monthly_enabled,
               monthly_price: plan.monthly_price || undefined,
             });
@@ -242,8 +228,6 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
           seats_per_row: Math.min(seatingCapacity, 10),
           custom_row_names: formData.custom_row_names,
           amenities: selectedAmenities,
-          daily_price: formData.daily_price,
-          weekly_price: formData.weekly_price,
           monthly_price: formData.monthly_price,
           image_url: formData.image_url,
           status: "active",
@@ -279,8 +263,6 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
           longitude: formData.longitude,
           total_seats: seatingCapacity,
           amenities: selectedAmenities,
-          daily_price: formData.daily_price,
-          weekly_price: formData.weekly_price,
           monthly_price: formData.monthly_price,
           image_url: formData.image_url,
         });
@@ -288,11 +270,9 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
         // Update pricing plan
         if (studyHallId) {
           await savePricingPlan({
-            merchant_id: studyHall!.merchant_id,
+            merchant_id: studyHall!.merchant_id!,
             study_hall_id: studyHallId,
             ...pricingPlan,
-            daily_price: pricingPlan.daily_enabled ? pricingPlan.daily_price : null,
-            weekly_price: pricingPlan.weekly_enabled ? pricingPlan.weekly_price : null,
             monthly_price: pricingPlan.monthly_enabled ? pricingPlan.monthly_price : null,
           });
         }

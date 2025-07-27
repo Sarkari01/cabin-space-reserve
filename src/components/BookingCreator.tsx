@@ -5,7 +5,7 @@ import { useBookingAvailability } from "@/hooks/useBookingAvailability";
 interface BookingIntent {
   study_hall_id: string;
   seat_id: string;
-  booking_period: "daily" | "weekly" | "monthly";
+  booking_period: "1_month" | "2_months" | "3_months" | "6_months" | "12_months";
   start_date: string;
   end_date: string;
   total_amount: number;
@@ -74,7 +74,7 @@ export const createBookingFromIntent = async (
     console.log('Validating payment amount...');
     const { data: studyHall, error: hallError } = await supabase
       .from('study_halls')
-      .select('daily_price, weekly_price, monthly_price')
+      .select('monthly_price')
       .eq('id', bookingIntent.study_hall_id)
       .single();
 
@@ -83,29 +83,27 @@ export const createBookingFromIntent = async (
       throw new Error('Failed to validate booking details');
     }
 
-    // Calculate expected amount and validate
+    // Calculate expected amount based on booking period and monthly price
     const start = new Date(bookingIntent.start_date);
     const end = new Date(bookingIntent.end_date);
     const timeDiff = end.getTime() - start.getTime();
     const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
-    const dailyTotal = days * studyHall.daily_price;
-    const weeklyTotal = Math.ceil(days / 7) * studyHall.weekly_price;
-    const monthlyTotal = Math.ceil(days / 30) * studyHall.monthly_price;
+    // Determine expected months based on booking period
+    let expectedMonths = 1;
+    if (bookingIntent.booking_period === "2_months") expectedMonths = 2;
+    else if (bookingIntent.booking_period === "3_months") expectedMonths = 3;
+    else if (bookingIntent.booking_period === "6_months") expectedMonths = 6;
+    else if (bookingIntent.booking_period === "12_months") expectedMonths = 12;
 
-    let expectedAmount = dailyTotal;
-    if (days >= 7 && weeklyTotal < expectedAmount) {
-      expectedAmount = weeklyTotal;
-    }
-    if (days >= 30 && monthlyTotal < expectedAmount) {
-      expectedAmount = monthlyTotal;
-    }
+    const expectedAmount = expectedMonths * studyHall.monthly_price;
 
     // Allow for small rounding differences (up to 1 rupee)
     if (Math.abs(bookingIntent.total_amount - expectedAmount) > 1) {
       console.error('Payment amount mismatch:', {
         provided: bookingIntent.total_amount,
         expected: expectedAmount,
+        months: expectedMonths,
         days: days
       });
       throw new Error(`Invalid payment amount. Expected ₹${expectedAmount}, got ₹${bookingIntent.total_amount}`);

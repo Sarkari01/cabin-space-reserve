@@ -14,14 +14,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { CouponInput } from "./CouponInput";
 import { RewardsInput } from "./RewardsInput";
+import { calculateBookingAmountWithFees } from "@/utils/feeCalculations";
 
 interface StudyHall {
   id: string;
   name: string;
   location: string;
-  daily_price: number;
-  weekly_price: number;
+  daily_price?: number; // Legacy field for compatibility
+  weekly_price?: number; // Legacy field for compatibility
   monthly_price: number;
+  total_seats: number;
+  status: string;
   image_url?: string;
 }
 
@@ -43,7 +46,7 @@ interface BookingModalProps {
 
 export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }: BookingModalProps) {
   const [selectedSeat, setSelectedSeat] = useState<string>("");
-  const [bookingPeriod, setBookingPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [bookingPeriod, setBookingPeriod] = useState<"1_month" | "2_months" | "3_months" | "6_months" | "12_months">("1_month");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
@@ -53,17 +56,12 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string>("");
   const [calculatedAmount, setCalculatedAmount] = useState<{
-    amount: number; 
-    baseAmount?: number;
-    discountAmount?: number;
-    finalAmount?: number;
-    days: number; 
+    baseAmount: number;
+    discountAmount: number;
+    finalAmount: number;
+    days: number;
     method: string;
-    priceBreakdown?: {
-      baseDaily: number;
-      baseWeekly: number;
-      baseMonthly: number;
-    };
+    months: number;
   } | null>(null);
   
   // Coupon and Rewards state
@@ -79,15 +77,8 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
   } | null>(null);
 
   const { toast } = useToast();
-  const { checkSeatAvailability, getSeatAvailabilityMap, calculateBookingAmount } = useBookingAvailability();
-  const { getPricingPlan, calculateBookingAmountWithMerchantPlans } = useMerchantPricingPlans();
+  const { checkSeatAvailability, getSeatAvailabilityMap } = useBookingAvailability();
   
-  // Merchant pricing state with better initialization
-  const [merchantPricingPlan, setMerchantPricingPlan] = useState<any>(null);
-  const [availablePeriods, setAvailablePeriods] = useState<string[]>(["daily"]);
-  const [pricingPlanLoading, setPricingPlanLoading] = useState(false);
-  const [pricingPlanError, setPricingPlanError] = useState<string>("");
-
   // Filter seats based on date-specific availability
   const getAvailableSeats = () => {
     if (Object.keys(availabilityMap).length === 0) {
@@ -98,102 +89,14 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
   const availableSeats = getAvailableSeats();
 
-  // Load merchant pricing plan when study hall changes
-  useEffect(() => {
-    const loadMerchantPricing = async () => {
-      if (!studyHall?.id) {
-        console.log('No study hall ID, using default periods');
-        setAvailablePeriods(["daily", "weekly", "monthly"]);
-        setMerchantPricingPlan(null);
-        setPricingPlanError("");
-        return;
-      }
-      
-      setPricingPlanLoading(true);
-      setPricingPlanError("");
-      
-      try {
-        console.log('🔍 Loading merchant pricing for study hall:', studyHall.id);
-        const plan = await getPricingPlan(studyHall.id);
-        console.log('📋 Retrieved pricing plan:', plan);
-        
-        setMerchantPricingPlan(plan);
-        
-        if (plan) {
-          // Only include enabled periods with valid prices > 0
-          const periods: string[] = [];
-          
-          console.log('🧮 Evaluating pricing periods:');
-          console.log('  Daily:', { enabled: plan.daily_enabled, price: plan.daily_price });
-          console.log('  Weekly:', { enabled: plan.weekly_enabled, price: plan.weekly_price });
-          console.log('  Monthly:', { enabled: plan.monthly_enabled, price: plan.monthly_price });
-          
-          if (plan.daily_enabled && plan.daily_price && plan.daily_price > 0) {
-            periods.push("daily");
-            console.log('  ✅ Daily pricing enabled');
-          }
-          
-          if (plan.weekly_enabled && plan.weekly_price && plan.weekly_price > 0) {
-            periods.push("weekly");
-            console.log('  ✅ Weekly pricing enabled');
-          }
-          
-          if (plan.monthly_enabled && plan.monthly_price && plan.monthly_price > 0) {
-            periods.push("monthly");
-            console.log('  ✅ Monthly pricing enabled');
-          }
-          
-          console.log('🎯 Final available periods:', periods);
-          
-          if (periods.length > 0) {
-            setAvailablePeriods(periods);
-            
-            // Set default period to first available, or update current if not available
-            if (!periods.includes(bookingPeriod)) {
-              const newPeriod = periods[0] as "daily" | "weekly" | "monthly";
-              console.log('🔄 Updating booking period from', bookingPeriod, 'to', newPeriod);
-              setBookingPeriod(newPeriod);
-            }
-          } else {
-            console.warn('⚠️ No pricing periods enabled for this study hall');
-            setAvailablePeriods(["daily"]);
-            setBookingPeriod("daily");
-            setPricingPlanError("No pricing plans are enabled for this study hall");
-          }
-        } else {
-          // No merchant pricing plan found, use study hall default pricing
-          console.log('📝 No merchant pricing plan found, using study hall default pricing');
-          setAvailablePeriods(["daily", "weekly", "monthly"]);
-        }
-      } catch (error: any) {
-        console.error('❌ Error loading merchant pricing:', error);
-        setPricingPlanError(`Failed to load pricing: ${error.message}`);
-        // Fallback to default periods on error
-        setAvailablePeriods(["daily", "weekly", "monthly"]);
-        setMerchantPricingPlan(null);
-      } finally {
-        setPricingPlanLoading(false);
-      }
-    };
-
-    loadMerchantPricing();
-  }, [studyHall?.id, getPricingPlan]);
-
   // Check availability when dates change
   useEffect(() => {
     let isCancelled = false;
-    const timeoutId = setTimeout(() => {
-      if (!isCancelled) {
-        setCheckingAvailability(false);
-        setAvailabilityError("Request timeout - please try again");
-      }
-    }, 15000);
 
     const checkAvailability = async () => {
       if (!studyHall || !startDate || !endDate) {
         setAvailabilityMap({});
         setCalculatedAmount(null);
-        clearTimeout(timeoutId);
         return;
       }
 
@@ -203,38 +106,12 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
       try {
         console.log('Starting availability check for dates:', startDate, 'to', endDate);
         
-        // Calculate amount using merchant pricing if available
-        let amountCalc;
-        if (merchantPricingPlan) {
-          try {
-            amountCalc = calculateBookingAmountWithMerchantPlans(
-              startDate, 
-              endDate, 
-              merchantPricingPlan
-            );
-            console.log('Using merchant pricing calculation:', amountCalc);
-          } catch (error: any) {
-            console.error('Error with merchant pricing:', error);
-            // Fallback to study hall pricing
-            amountCalc = calculateBookingAmount(
-              startDate, 
-              endDate, 
-              studyHall.daily_price, 
-              studyHall.weekly_price, 
-              studyHall.monthly_price
-            );
-            console.log('Fallback to study hall pricing:', amountCalc);
-          }
-        } else {
-          amountCalc = calculateBookingAmount(
-            startDate, 
-            endDate, 
-            studyHall.daily_price, 
-            studyHall.weekly_price, 
-            studyHall.monthly_price
-          );
-          console.log('Using study hall pricing:', amountCalc);
-        }
+        // Calculate amount using fee calculations
+        const amountCalc = calculateBookingAmountWithFees(
+          startDate, 
+          endDate, 
+          studyHall.monthly_price
+        );
         
         if (!isCancelled) {
           setCalculatedAmount(amountCalc);
@@ -264,7 +141,6 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
           setAvailabilityError(error.message || "Failed to check availability for selected dates");
         }
       } finally {
-        clearTimeout(timeoutId);
         if (!isCancelled) {
           setCheckingAvailability(false);
         }
@@ -275,9 +151,8 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     
     return () => {
       isCancelled = true;
-      clearTimeout(timeoutId);
     };
-  }, [studyHall, startDate, endDate, selectedSeat, merchantPricingPlan]);
+  }, [studyHall, startDate, endDate, selectedSeat]);
 
   useEffect(() => {
     if (open && studyHall) {
@@ -295,23 +170,6 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     }
   }, [open, studyHall]);
 
-  // Lock body scroll and prevent interactions when payment modal is open
-  useEffect(() => {
-    if (showPayment) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.height = '100%';
-      
-      return () => {
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.height = '';
-      };
-    }
-  }, [showPayment]);
-
   // Update end date when booking period changes
   useEffect(() => {
     if (!startDate) return;
@@ -319,61 +177,28 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
     const start = new Date(startDate);
     let end = new Date(start);
     
-    if (bookingPeriod === "weekly") {
-      end.setDate(end.getDate() + 6);
-    } else if (bookingPeriod === "monthly") {
+    if (bookingPeriod === "1_month") {
       end.setMonth(end.getMonth() + 1);
+      end.setDate(end.getDate() - 1);
+    } else if (bookingPeriod === "2_months") {
+      end.setMonth(end.getMonth() + 2);
+      end.setDate(end.getDate() - 1);
+    } else if (bookingPeriod === "3_months") {
+      end.setMonth(end.getMonth() + 3);
+      end.setDate(end.getDate() - 1);
+    } else if (bookingPeriod === "6_months") {
+      end.setMonth(end.getMonth() + 6);
+      end.setDate(end.getDate() - 1);
+    } else if (bookingPeriod === "12_months") {
+      end.setMonth(end.getMonth() + 12);
       end.setDate(end.getDate() - 1);
     }
     
     setEndDate(end.toISOString().split('T')[0]);
   }, [bookingPeriod, startDate]);
 
-  // Get the correct price for display based on merchant pricing
-  const getPriceForPeriod = (period: string) => {
-    console.log('💰 Getting price for period:', period, 'with merchant plan:', merchantPricingPlan);
-    
-    if (merchantPricingPlan) {
-      switch (period) {
-        case "daily":
-          const dailyPrice = merchantPricingPlan.daily_enabled && merchantPricingPlan.daily_price 
-            ? merchantPricingPlan.daily_price 
-            : null;
-          console.log('  Daily price:', dailyPrice);
-          return dailyPrice;
-        case "weekly":
-          const weeklyPrice = merchantPricingPlan.weekly_enabled && merchantPricingPlan.weekly_price 
-            ? merchantPricingPlan.weekly_price 
-            : null;
-          console.log('  Weekly price:', weeklyPrice);
-          return weeklyPrice;
-        case "monthly":
-          const monthlyPrice = merchantPricingPlan.monthly_enabled && merchantPricingPlan.monthly_price 
-            ? merchantPricingPlan.monthly_price 
-            : null;
-          console.log('  Monthly price:', monthlyPrice);
-          return monthlyPrice;
-        default:
-          return null;
-      }
-    }
-    
-    // Fallback to study hall pricing
-    console.log('  Using study hall fallback pricing');
-    switch (period) {
-      case "daily":
-        return studyHall?.daily_price || 0;
-      case "weekly":
-        return studyHall?.weekly_price || 0;
-      case "monthly":
-        return studyHall?.monthly_price || 0;
-      default:
-        return 0;
-    }
-  };
-
   const getCurrentAmount = () => {
-    return calculatedAmount?.amount || 0;
+    return calculatedAmount?.baseAmount || 0;
   };
 
   const getTotalDiscount = () => {
@@ -416,8 +241,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
       const intent = {
         study_hall_id: studyHall.id,
         seat_id: selectedSeat,
-        booking_period: calculatedAmount?.method === 'daily' ? 'daily' : 
-                       calculatedAmount?.method === 'weekly' ? 'weekly' : 'monthly',
+        booking_period: bookingPeriod,
         start_date: startDate,
         end_date: endDate,
         total_amount: getFinalAmount(),
@@ -504,20 +328,6 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             </Alert>
           )}
 
-          {pricingPlanError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>Pricing Error: {pricingPlanError}</AlertDescription>
-            </Alert>
-          )}
-
-          {pricingPlanLoading && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>Loading pricing plans...</AlertDescription>
-            </Alert>
-          )}
-
           {checkingAvailability && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
@@ -595,34 +405,19 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
             <Label htmlFor="period">Booking Period</Label>
             <Select 
               value={bookingPeriod} 
-              onValueChange={(value: "daily" | "weekly" | "monthly") => setBookingPeriod(value)}
-              disabled={pricingPlanLoading}
+              onValueChange={(value: "1_month" | "2_months" | "3_months" | "6_months" | "12_months") => setBookingPeriod(value)}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {availablePeriods.map((period) => {
-                  const price = getPriceForPeriod(period);
-                  if (price === null || price <= 0) {
-                    console.log('⏭️ Skipping period', period, 'due to invalid price:', price);
-                    return null;
-                  }
-                  
-                  return (
-                    <SelectItem key={period} value={period}>
-                      {period.charAt(0).toUpperCase() + period.slice(1)} - ₹{price}
-                      {merchantPricingPlan && (
-                        <span className="text-xs text-muted-foreground ml-1">(Custom)</span>
-                      )}
-                    </SelectItem>
-                  );
-                })}
+                <SelectItem value="1_month">1 Month</SelectItem>
+                <SelectItem value="2_months">2 Months</SelectItem>
+                <SelectItem value="3_months">3 Months</SelectItem>
+                <SelectItem value="6_months">6 Months</SelectItem>
+                <SelectItem value="12_months">12 Months</SelectItem>
               </SelectContent>
             </Select>
-            {availablePeriods.length === 0 && (
-              <p className="text-xs text-red-600">No pricing periods available</p>
-            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -711,9 +506,6 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                     
                     <div className="text-sm text-muted-foreground">
                       {calculatedAmount.days} day{calculatedAmount.days !== 1 ? 's' : ''} • {calculatedAmount.method} pricing
-                      {merchantPricingPlan && (
-                        <span className="ml-1">(custom merchant pricing)</span>
-                      )}
                     </div>
                   </>
                 )}
@@ -748,34 +540,8 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
       </Dialog>
 
       {showPayment && bookingIntent && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onScroll={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
-          <div 
-            className="bg-background w-full max-w-md rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto pointer-events-auto touch-manipulation"
-            onMouseDown={(e) => {
-              e.stopPropagation();
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            style={{ 
-              position: 'relative',
-              zIndex: 10000
-            }}
-          >
+        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-background w-full max-w-md rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto">
             <PaymentProcessor
               bookingIntent={bookingIntent}
               onPaymentSuccess={handlePaymentSuccess}
