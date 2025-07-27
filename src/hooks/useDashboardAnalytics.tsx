@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -98,27 +99,29 @@ export const useDashboardAnalytics = () => {
         const dateStr = date.toISOString().split('T')[0];
         
         const dayBookings = trendData?.filter(booking => 
-          booking.created_at.startsWith(dateStr)
+          booking.created_at && booking.created_at.startsWith(dateStr)
         ) || [];
         
         bookingsTrend.push({
           date: dateStr,
           bookings: dayBookings.length,
-          revenue: dayBookings.reduce((sum, b) => sum + Number(b.total_amount), 0)
+          revenue: dayBookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0)
         });
       }
 
       // Calculate total revenue and growth
-      const totalRevenue = trendData?.reduce((sum, b) => sum + Number(b.total_amount), 0) || 0;
+      const totalRevenue = trendData?.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
       const lastMonthRevenue = trendData?.filter(booking => {
+        if (!booking.created_at) return false;
         const bookingDate = new Date(booking.created_at);
         return bookingDate >= lastMonth && bookingDate < currentMonth;
-      }).reduce((sum, b) => sum + Number(b.total_amount), 0) || 0;
+      }).reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
       
       const currentMonthRevenue = trendData?.filter(booking => {
+        if (!booking.created_at) return false;
         const bookingDate = new Date(booking.created_at);
         return bookingDate >= currentMonth;
-      }).reduce((sum, b) => sum + Number(b.total_amount), 0) || 0;
+      }).reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
       
       const revenueGrowth = lastMonthRevenue > 0 ? 
         ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
@@ -137,7 +140,7 @@ export const useDashboardAnalytics = () => {
         const totalStudyHalls = allStudyHalls?.length || 0;
         const totalBookings = allBookings?.length || 0;
         const monthlyRevenue = allBookings?.filter(b => b.status === 'completed')
-          .reduce((sum, b) => sum + Number(b.total_amount), 0) || 0;
+          .reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
         const averageBookingValue = totalBookings > 0 ? monthlyRevenue / totalBookings : 0;
 
         // Generate user growth data
@@ -148,7 +151,7 @@ export const useDashboardAnalytics = () => {
           const dateStr = date.toISOString().split('T')[0];
           
           const dayUsers = allUsers?.filter(user => 
-            user.created_at.startsWith(dateStr)
+            user.created_at && user.created_at.startsWith(dateStr)
           ) || [];
           
           userGrowth.push({
@@ -178,18 +181,24 @@ export const useDashboardAnalytics = () => {
           .select('id, name, total_seats, status')
           .eq('merchant_id', user.id);
 
-        const { data: merchantBookings } = await supabase
-          .from('bookings')
-          .select('study_hall_id, total_amount, status')
-          .in('study_hall_id', merchantStudyHalls?.map(sh => sh.id) || []);
+        const studyHallIds = merchantStudyHalls?.map(sh => sh.id) || [];
+        let merchantBookings = [];
+        
+        if (studyHallIds.length > 0) {
+          const { data: bookingsData } = await supabase
+            .from('bookings')
+            .select('study_hall_id, total_amount, status')
+            .in('study_hall_id', studyHallIds);
+          merchantBookings = bookingsData || [];
+        }
 
         const studyHallPerformance = merchantStudyHalls?.map(hall => {
           const hallBookings = merchantBookings?.filter(b => b.study_hall_id === hall.id) || [];
-          const revenue = hallBookings.reduce((sum, b) => sum + Number(b.total_amount), 0);
+          const revenue = hallBookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0);
           const occupancy = hall.total_seats > 0 ? (hallBookings.length / hall.total_seats) * 100 : 0;
           
           return {
-            name: hall.name,
+            name: hall.name || 'Unnamed Hall',
             bookings: hallBookings.length,
             revenue,
             occupancy
@@ -198,8 +207,8 @@ export const useDashboardAnalytics = () => {
 
         const totalStudyHalls = merchantStudyHalls?.length || 0;
         const activeStudyHalls = merchantStudyHalls?.filter(h => h.status === 'active').length || 0;
-        const totalSeats = merchantStudyHalls?.reduce((sum, h) => sum + h.total_seats, 0) || 0;
-        const monthlyEarnings = merchantBookings?.reduce((sum, b) => sum + Number(b.total_amount), 0) || 0;
+        const totalSeats = merchantStudyHalls?.reduce((sum, h) => sum + (h.total_seats || 0), 0) || 0;
+        const monthlyEarnings = merchantBookings?.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
         const averageBookingValue = merchantBookings && merchantBookings.length > 0 ? 
           monthlyEarnings / merchantBookings.length : 0;
 
@@ -225,11 +234,11 @@ export const useDashboardAnalytics = () => {
 
         const totalBookings = studentBookings?.length || 0;
         const totalSpent = studentBookings?.filter(b => b.status === 'completed')
-          .reduce((sum, b) => sum + Number(b.total_amount), 0) || 0;
+          .reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
         const favoriteHalls = favorites?.length || 0;
         const upcomingBookings = studentBookings?.filter(b => 
-          ['confirmed', 'pending'].includes(b.status) && 
-          new Date(b.start_date) >= new Date()
+          b.status && ['confirmed', 'pending'].includes(b.status) && 
+          b.start_date && new Date(b.start_date) >= new Date()
         ).length || 0;
         const completedBookings = studentBookings?.filter(b => b.status === 'completed').length || 0;
 
