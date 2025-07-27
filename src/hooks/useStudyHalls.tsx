@@ -190,39 +190,83 @@ export const useStudyHalls = () => {
         return { data: null, error: { message } };
       }
 
-      // Validate and prepare data for database insertion with proper type conversion
-      const dbData = {
-        name: studyHallData.name?.trim(),
-        description: studyHallData.description?.trim() || '',
-        location: studyHallData.location?.trim(),
-        formatted_address: studyHallData.formatted_address?.trim() || '',
-        total_seats: Number(studyHallData.total_seats) || 0,
-        rows: Number(studyHallData.rows) || 1,
-        seats_per_row: Number(studyHallData.seats_per_row) || 1,
-        custom_row_names: Array.isArray(studyHallData.custom_row_names) ? studyHallData.custom_row_names : [],
-        amenities: Array.isArray(studyHallData.amenities) ? studyHallData.amenities : [],
-        monthly_price: Number(studyHallData.monthly_price) || 0,
-        image_url: studyHallData.image_url?.trim() || null,
-        latitude: studyHallData.latitude ? Number(studyHallData.latitude) : null,
-        longitude: studyHallData.longitude ? Number(studyHallData.longitude) : null,
-        status: studyHallData.status || 'active',
-        layout_mode: studyHallData.layout_mode || 'fixed',
-        row_seat_config: studyHallData.row_seat_config || null,
+      // Validate required fields first
+      const monthlyPrice = Number(studyHallData.monthly_price);
+      const totalSeats = Number(studyHallData.total_seats);
+      const rows = Number(studyHallData.rows);
+      const seatsPerRow = Number(studyHallData.seats_per_row);
+
+      if (!studyHallData.name?.trim()) {
+        throw new Error('Study hall name is required');
+      }
+      if (!studyHallData.location?.trim()) {
+        throw new Error('Location is required');
+      }
+      if (!monthlyPrice || monthlyPrice <= 0) {
+        throw new Error('Monthly price must be greater than 0');
+      }
+      if (!totalSeats || totalSeats <= 0) {
+        throw new Error('Total seats must be greater than 0');
+      }
+      if (!rows || rows <= 0) {
+        throw new Error('Number of rows must be greater than 0');
+      }
+      if (!seatsPerRow || seatsPerRow <= 0) {
+        throw new Error('Seats per row must be greater than 0');
+      }
+
+      // Prepare data for database insertion - only include meaningful values
+      const dbData: any = {
+        name: studyHallData.name.trim(),
+        location: studyHallData.location.trim(),
+        total_seats: totalSeats,
+        rows: rows,
+        seats_per_row: seatsPerRow,
+        monthly_price: monthlyPrice,
         merchant_id: user.id,
       };
 
-      // Validate required fields
-      if (!dbData.name) {
-        throw new Error('Study hall name is required');
+      // Only include optional fields if they have meaningful values
+      if (studyHallData.description?.trim()) {
+        dbData.description = studyHallData.description.trim();
       }
-      if (!dbData.location) {
-        throw new Error('Location is required');
+      
+      if (studyHallData.formatted_address?.trim()) {
+        dbData.formatted_address = studyHallData.formatted_address.trim();
       }
-      if (dbData.monthly_price <= 0) {
-        throw new Error('Monthly price must be greater than 0');
+
+      // Only include custom_row_names if it has actual custom names
+      if (Array.isArray(studyHallData.custom_row_names) && studyHallData.custom_row_names.length > 0) {
+        const filteredNames = studyHallData.custom_row_names.filter(name => name?.trim());
+        if (filteredNames.length > 0) {
+          dbData.custom_row_names = filteredNames;
+        }
       }
-      if (dbData.total_seats <= 0) {
-        throw new Error('Total seats must be greater than 0');
+
+      // Only include amenities if provided
+      if (Array.isArray(studyHallData.amenities) && studyHallData.amenities.length > 0) {
+        dbData.amenities = studyHallData.amenities;
+      }
+
+      if (studyHallData.image_url?.trim()) {
+        dbData.image_url = studyHallData.image_url.trim();
+      }
+
+      if (studyHallData.latitude && studyHallData.longitude) {
+        dbData.latitude = Number(studyHallData.latitude);
+        dbData.longitude = Number(studyHallData.longitude);
+      }
+
+      if (studyHallData.status) {
+        dbData.status = studyHallData.status;
+      }
+
+      if (studyHallData.layout_mode) {
+        dbData.layout_mode = studyHallData.layout_mode;
+      }
+
+      if (studyHallData.row_seat_config) {
+        dbData.row_seat_config = studyHallData.row_seat_config;
       }
 
       console.log('📤 Sending to database:', dbData);
