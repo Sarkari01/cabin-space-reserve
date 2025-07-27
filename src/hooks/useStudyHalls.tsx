@@ -98,6 +98,7 @@ export const useStudyHalls = () => {
         return {
           ...hall,
           amenities: Array.isArray(hall.amenities) ? hall.amenities : [],
+          row_seat_config: typeof hall.row_seat_config === 'object' && hall.row_seat_config ? hall.row_seat_config as Record<string, { seats: number }> : undefined,
           incharges: assignedIncharges
         };
       }) as StudyHall[];
