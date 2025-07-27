@@ -137,6 +137,7 @@ export type Database = {
       bookings: {
         Row: {
           booking_number: number | null
+          booking_period: Database["public"]["Enums"]["booking_period"]
           created_at: string
           end_date: string
           guest_email: string | null
@@ -154,6 +155,7 @@ export type Database = {
         }
         Insert: {
           booking_number?: number | null
+          booking_period?: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date: string
           guest_email?: string | null
@@ -171,6 +173,7 @@ export type Database = {
         }
         Update: {
           booking_number?: number | null
+          booking_period?: Database["public"]["Enums"]["booking_period"]
           created_at?: string
           end_date?: string
           guest_email?: string | null

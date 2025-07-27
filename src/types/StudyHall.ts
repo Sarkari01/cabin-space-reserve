@@ -11,8 +11,6 @@ export interface StudyHallData {
   seats_per_row: number;
   custom_row_names: string[];
   amenities: string[];
-  daily_price: number;
-  weekly_price: number;
   monthly_price: number;
   image_url?: string;
   latitude?: number;

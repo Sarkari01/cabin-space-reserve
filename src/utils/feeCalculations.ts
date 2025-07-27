@@ -62,54 +62,51 @@ export const formatPriceWithDiscount = (merchantPrice: number): {
 };
 
 /**
- * Calculate booking amount with fee handling
+ * Calculate booking amount with fee handling (using monthly pricing only)
  */
 export const calculateBookingAmountWithFees = (
   startDate: string,
   endDate: string,
-  dailyMerchantPrice: number,
-  weeklyMerchantPrice: number,
   monthlyMerchantPrice: number
 ): {
   baseAmount: number;
   discountAmount: number;
   finalAmount: number;
   days: number;
-  method: string;
-  priceBreakdown: {
-    baseDaily: number;
-    baseWeekly: number;
-    baseMonthly: number;
-  };
+  method: "1_month" | "2_months" | "3_months" | "6_months" | "12_months";
+  months: number;
 } => {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const timeDiff = end.getTime() - start.getTime();
   const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
-  // Calculate customer original prices (merchant price - ₹100)
-  const baseDailyPrice = calculateBasePrice(dailyMerchantPrice);
-  const baseWeeklyPrice = calculateBasePrice(weeklyMerchantPrice);
+  // Calculate customer original price (merchant price - ₹100)
   const baseMonthlyPrice = calculateBasePrice(monthlyMerchantPrice);
 
-  // Calculate totals for each method
-  const dailyTotal = days * baseDailyPrice;
-  const weeklyTotal = Math.ceil(days / 7) * baseWeeklyPrice;
-  const monthlyTotal = Math.ceil(days / 30) * baseMonthlyPrice;
+  // Determine the appropriate booking period based on duration
+  let months = 1;
+  let method: "1_month" | "2_months" | "3_months" | "6_months" | "12_months" = "1_month";
 
-  let baseAmount = dailyTotal;
-  let method = 'daily';
-
-  // Choose the most cost-effective option
-  if (days >= 7 && weeklyTotal < baseAmount) {
-    baseAmount = weeklyTotal;
-    method = 'weekly';
+  if (days <= 30) {
+    months = 1;
+    method = "1_month";
+  } else if (days <= 60) {
+    months = 2;
+    method = "2_months";
+  } else if (days <= 90) {
+    months = 3;
+    method = "3_months";
+  } else if (days <= 180) {
+    months = 6;
+    method = "6_months";
+  } else {
+    months = 12;
+    method = "12_months";
   }
 
-  if (days >= 30 && monthlyTotal < baseAmount) {
-    baseAmount = monthlyTotal;
-    method = 'monthly';
-  }
+  // Calculate base amount
+  const baseAmount = months * baseMonthlyPrice;
 
   const discountAmount = calculateDiscountAmount(baseAmount);
   const finalAmount = calculateFinalAmount(baseAmount);
@@ -120,10 +117,6 @@ export const calculateBookingAmountWithFees = (
     finalAmount,
     days,
     method,
-    priceBreakdown: {
-      baseDaily: baseDailyPrice,
-      baseWeekly: baseWeeklyPrice,
-      baseMonthly: baseMonthlyPrice
-    }
+    months
   };
 };
