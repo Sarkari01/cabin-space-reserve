@@ -170,10 +170,20 @@ export const useStudyHalls = () => {
       }
 
       // Proceed with creation if limits check passes
+      // Filter out fields that don't exist in the database
+      const {
+        incharges,
+        operating_hours,
+        holidays,
+        pricing_plans,
+        analytics_data,
+        ...dbFields
+      } = studyHallData;
+
       const { data, error } = await supabase
         .from('study_halls')
         .insert([{
-          ...studyHallData,
+          ...dbFields,
           merchant_id: user.id,
         }])
         .select()
