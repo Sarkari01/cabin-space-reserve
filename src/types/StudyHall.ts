@@ -77,3 +77,23 @@ export interface Seat {
   seat_number: number;
   is_available: boolean;
 }
+
+// Type for creating new study halls - makes database-generated fields optional
+export interface CreateStudyHallData {
+  name: string;
+  description?: string;
+  location: string;
+  formatted_address?: string;
+  total_seats: number;
+  rows: number;
+  seats_per_row: number;
+  custom_row_names: string[];
+  amenities: string[];
+  monthly_price: number;
+  image_url?: string;
+  latitude?: number;
+  longitude?: number;
+  status?: string;
+  layout_mode?: 'fixed' | 'custom';
+  row_seat_config?: Record<string, { seats: number }>;
+}

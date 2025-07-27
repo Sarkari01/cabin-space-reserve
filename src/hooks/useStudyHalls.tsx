@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
-import { StudyHallData as StudyHall, Seat } from '@/types/StudyHall';
+import { StudyHallData as StudyHall, CreateStudyHallData, Seat } from '@/types/StudyHall';
 
 export const useStudyHalls = () => {
   const [studyHalls, setStudyHalls] = useState<StudyHall[]>([]);
@@ -13,6 +13,8 @@ export const useStudyHalls = () => {
   const fetchStudyHalls = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Fetching study halls for user:', user?.id);
+      
       let query = supabase
         .from('study_halls')
         .select('*');
@@ -25,14 +27,22 @@ export const useStudyHalls = () => {
           .eq('id', user.id)
           .single();
           
+        console.log('👤 User profile:', profile);
+          
         if (profile?.role === 'merchant') {
           query = query.eq('merchant_id', user.id);
+          console.log('🏪 Fetching study halls for merchant:', user.id);
         }
       }
       
       const { data: studyHallsData, error: studyHallsError } = await query.order('created_at', { ascending: false });
       
-      if (studyHallsError) throw studyHallsError;
+      if (studyHallsError) {
+        console.error('❌ Error fetching study halls:', studyHallsError);
+        throw studyHallsError;
+      }
+      
+      console.log('📊 Raw study halls fetched:', studyHallsData?.length || 0);
       
       // Fetch incharges separately
       const { data: inchargesData, error: inchargesError } = await supabase
@@ -123,8 +133,19 @@ export const useStudyHalls = () => {
     }
   };
 
-  const createStudyHall = async (studyHallData: Omit<StudyHall, 'id' | 'merchant_id' | 'created_at' | 'updated_at'>) => {
-    if (!user) throw new Error('User not authenticated');
+  const createStudyHall = async (studyHallData: CreateStudyHallData) => {
+    if (!user) {
+      const error = new Error('User not authenticated');
+      console.error('Create study hall failed:', error);
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return { data: null, error };
+    }
+    
+    console.log('🚀 Creating study hall with data:', studyHallData);
     
     // Check subscription limits before creating
     try {
@@ -169,36 +190,54 @@ export const useStudyHalls = () => {
         return { data: null, error: { message } };
       }
 
-      // Proceed with creation if limits check passes
-      // Filter out fields that don't exist in the database
-      const {
-        incharges,
-        operating_hours,
-        holidays,
-        pricing_plans,
-        analytics_data,
-        ...dbFields
-      } = studyHallData;
+      // Prepare data for database insertion - only include fields that exist in the database
+      const dbData = {
+        name: studyHallData.name,
+        description: studyHallData.description || '',
+        location: studyHallData.location,
+        formatted_address: studyHallData.formatted_address || '',
+        total_seats: studyHallData.total_seats,
+        rows: studyHallData.rows,
+        seats_per_row: studyHallData.seats_per_row,
+        custom_row_names: studyHallData.custom_row_names,
+        amenities: studyHallData.amenities,
+        monthly_price: studyHallData.monthly_price,
+        image_url: studyHallData.image_url || '',
+        latitude: studyHallData.latitude || null,
+        longitude: studyHallData.longitude || null,
+        status: studyHallData.status || 'active',
+        layout_mode: studyHallData.layout_mode || 'fixed',
+        row_seat_config: studyHallData.row_seat_config || null,
+        merchant_id: user.id,
+      };
+
+      console.log('📤 Sending to database:', dbData);
 
       const { data, error } = await supabase
         .from('study_halls')
-        .insert([{
-          ...dbFields,
-          merchant_id: user.id,
-        }])
+        .insert([dbData])
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database insert error:', error);
+        throw error;
+      }
       
+      console.log('✅ Study hall created successfully:', data);
+      
+      // Force refresh the study halls list
+      console.log('🔄 Refreshing study halls list...');
       await fetchStudyHalls();
+      
       toast({
         title: "Success",
-        description: "Study hall created successfully",
+        description: `Study hall "${data.name}" created successfully`,
       });
       
       return { data, error: null };
     } catch (error: any) {
+      console.error('❌ Create study hall error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create study hall",

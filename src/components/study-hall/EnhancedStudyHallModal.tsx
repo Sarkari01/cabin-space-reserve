@@ -20,7 +20,7 @@ import { StudyHallTemplates } from "./StudyHallTemplates";
 import { StudyHallAnalytics } from "./StudyHallAnalytics";
 import { Dialog as LocationDialog } from "@/components/ui/dialog";
 
-import { StudyHallData } from "@/types/StudyHall";
+import { StudyHallData, CreateStudyHallData } from "@/types/StudyHall";
 
 interface EnhancedStudyHallModalProps {
   open: boolean;
@@ -181,15 +181,36 @@ export function EnhancedStudyHallModal({
     setLoading(true);
     
     try {
-      const studyHallData = {
-        ...formData,
-        amenities: selectedAmenities,
-        status: "active",
-      };
-
       if (mode === "add") {
-        const result = await createStudyHall(studyHallData);
+        const createData: CreateStudyHallData = {
+          name: formData.name,
+          description: formData.description,
+          location: formData.location,
+          formatted_address: formData.formatted_address,
+          total_seats: formData.total_seats,
+          rows: formData.rows,
+          seats_per_row: formData.seats_per_row,
+          custom_row_names: formData.custom_row_names,
+          amenities: selectedAmenities,
+          monthly_price: formData.monthly_price,
+          image_url: formData.image_url,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          status: "active",
+          layout_mode: "fixed",
+        };
+
+        console.log('🎯 Submitting study hall creation with data:', createData);
+        
+        const result = await createStudyHall(createData);
+        
+        if (result?.error) {
+          console.error('❌ Creation failed:', result.error);
+          return;
+        }
+        
         if (result?.data?.id) {
+          console.log('✅ Study hall created, saving pricing plan...');
           // Save additional configurations
           await savePricingPlan({
             merchant_id: result.data.merchant_id || "", 
@@ -197,27 +218,25 @@ export function EnhancedStudyHallModal({
             ...pricingPlan,
           });
         }
-        toast({
-          title: "Success",
-          description: "Study hall created successfully with advanced configuration",
-        });
       } else if (mode === "edit") {
-        await updateStudyHall(studyHall!.id, studyHallData);
+        const updateData = {
+          ...formData,
+          amenities: selectedAmenities,
+          status: "active",
+        };
+        
+        await updateStudyHall(studyHall!.id, updateData);
         await savePricingPlan({
           merchant_id: studyHall!.merchant_id!,
           study_hall_id: studyHall!.id,
           ...pricingPlan,
-        });
-        toast({
-          title: "Success",
-          description: "Study hall updated successfully",
         });
       }
       
       onSuccess?.();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error saving study hall:', error);
+      console.error('❌ Error saving study hall:', error);
       toast({
         title: "Error",
         description: "Failed to save study hall",
