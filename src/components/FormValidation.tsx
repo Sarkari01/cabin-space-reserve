@@ -30,21 +30,35 @@ export const studyHallSchema = z.object({
   name: z.string().min(1, "Study hall name is required").max(100, "Name too long"),
   location: z.string().min(1, "Location is required").max(200, "Location too long"),
   description: z.string().max(500, "Description too long").optional(),
-  daily_price: z.number().min(1, "Daily price must be greater than 0"),
-  weekly_price: z.number().min(1, "Weekly price must be greater than 0"),
   monthly_price: z.number().min(1, "Monthly price must be greater than 0"),
   rows: z.number().min(1, "Must have at least 1 row").max(10, "Maximum 10 rows"),
   seats_per_row: z.number().min(1, "Must have at least 1 seat per row").max(20, "Maximum 20 seats per row"),
+  total_seats: z.number().min(1, "Must have at least 1 seat").max(200, "Maximum 200 seats"),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  formatted_address: z.string().optional(),
+  amenities: z.array(z.string()).optional(),
 }).refine((data) => {
-  return data.weekly_price < data.daily_price * 7;
+  return data.rows * data.seats_per_row <= data.total_seats;
 }, {
-  message: "Weekly price should be less than 7 times daily price",
-  path: ["weekly_price"]
-}).refine((data) => {
-  return data.monthly_price < data.daily_price * 30;
-}, {
-  message: "Monthly price should be less than 30 times daily price",
-  path: ["monthly_price"]
+  message: "Total seats must match or exceed rows × seats per row",
+  path: ["total_seats"]
+});
+
+// Image validation schema
+export const imageValidationSchema = z.object({
+  file: z.instanceof(File).refine((file) => {
+    return file.size <= 5 * 1024 * 1024; // 5MB limit
+  }, "Image must be less than 5MB").refine((file) => {
+    return ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+  }, "Only JPEG, PNG, and WebP images are allowed"),
+});
+
+// Location validation schema
+export const locationValidationSchema = z.object({
+  latitude: z.number().min(-90).max(90, "Invalid latitude"),
+  longitude: z.number().min(-180).max(180, "Invalid longitude"),
+  formattedAddress: z.string().min(1, "Address is required"),
 });
 
 export const profileSchema = z.object({

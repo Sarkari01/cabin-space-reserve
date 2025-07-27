@@ -14,7 +14,9 @@ import { Building2, MapPin, Users, Calendar, DollarSign, Wifi, Car, Coffee, Prin
 import { useToast } from "@/hooks/use-toast";
 import { useStudyHalls } from "@/hooks/useStudyHalls";
 import { useMerchantPricingPlans } from "@/hooks/useMerchantPricingPlans";
-// MapLocationPicker component will be implemented when needed
+import { useStudyHallImages } from "@/hooks/useStudyHallImages";
+import { LocationPicker } from "@/components/maps/LocationPicker";
+import { Dialog as LocationDialog } from "@/components/ui/dialog";
 
 import { StudyHallData } from "@/types/StudyHall";
 
@@ -45,8 +47,8 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [imageUploadLoading, setImageUploadLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [seatingCapacity, setSeatingCapacity] = useState(1);
   
@@ -60,6 +62,7 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
   const { toast } = useToast();
   const { createStudyHall, updateStudyHall } = useStudyHalls();
   const { getPricingPlan, savePricingPlan } = useMerchantPricingPlans();
+  const { images: hallImages, loading: imagesLoading, uploadImages, fetchImages } = useStudyHallImages(studyHall?.id);
 
   useEffect(() => {
     if (studyHall) {
@@ -146,16 +149,22 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
   }, [studyHall?.id, studyHall?.monthly_price, mode]); // Removed getPricingPlan from dependencies to prevent infinite loops
 
   useEffect(() => {
-    if (selectedImage) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(selectedImage);
+    if (selectedImages.length > 0) {
+      const previews: string[] = [];
+      selectedImages.forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          previews.push(reader.result as string);
+          if (previews.length === selectedImages.length) {
+            setPreviewImages(previews);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     } else {
-      setPreviewImage(null);
+      setPreviewImages([]);
     }
-  }, [selectedImage]);
+  }, [selectedImages]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -173,10 +182,19 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
   };
 
   const handleImageUpload = async () => {
-    if (!selectedImage) {
+    if (selectedImages.length === 0) {
       toast({
         title: "Error",
-        description: "Please select an image to upload",
+        description: "Please select images to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!studyHall?.id && mode !== "add") {
+      toast({
+        title: "Error",
+        description: "Study hall must be created first before uploading images",
         variant: "destructive",
       });
       return;
@@ -185,17 +203,34 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
     setImageUploadLoading(true);
 
     try {
-      // For now, we'll just show the preview - actual upload functionality to be implemented
-      setFormData(prev => ({ ...prev, image_url: previewImage || "" }));
-      toast({
-        title: "Success",
-        description: "Image selected successfully",
-      });
-    } catch (error) {
-      console.error('Error processing image:', error);
+      // Validate image files
+      for (const file of selectedImages) {
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error(`Image ${file.name} is too large. Maximum size is 5MB.`);
+        }
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+          throw new Error(`Image ${file.name} has invalid format. Only JPEG, PNG, and WebP are allowed.`);
+        }
+      }
+
+      if (studyHall?.id) {
+        // Upload images for existing study hall
+        await uploadImages(studyHall.id, selectedImages);
+        setSelectedImages([]);
+        setPreviewImages([]);
+        await fetchImages(studyHall.id);
+      } else {
+        // For new study halls, store images temporarily (will be uploaded after creation)
+        toast({
+          title: "Images Ready",
+          description: "Images will be uploaded after creating the study hall",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error uploading images:', error);
       toast({
         title: "Error",
-        description: "Failed to process image",
+        description: error.message || "Failed to upload images",
         variant: "destructive",
       });
     } finally {
@@ -204,13 +239,18 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
   };
 
   const handleRemoveImage = () => {
-    setFormData(prev => ({ ...prev, image_url: "" }));
-    setSelectedImage(null);
-    setPreviewImage(null);
+    setSelectedImages([]);
+    setPreviewImages([]);
   };
 
-  const handleLocationSelect = (location: string, address: string, latitude: number, longitude: number) => {
-    setFormData(prev => ({ ...prev, location, formatted_address: address, latitude, longitude }));
+  const handleLocationSelect = (locationData: { latitude: number; longitude: number; formattedAddress: string }) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      location: locationData.formattedAddress,
+      formatted_address: locationData.formattedAddress, 
+      latitude: locationData.latitude, 
+      longitude: locationData.longitude 
+    }));
     setLocationPickerOpen(false);
   };
 
@@ -422,60 +462,96 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
                     Upload images of the study hall.
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="image">Select Image</Label>
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          setSelectedImage(file);
-                        }}
-                        disabled={mode === "view"}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={handleImageUpload}
-                      disabled={imageUploadLoading || mode === "view"}
-                    >
-                      {imageUploadLoading ? "Uploading..." : "Upload"}
-                    </Button>
-                  </div>
+                 <CardContent className="space-y-4">
+                   <div className="space-y-4">
+                     <div className="flex items-center space-x-4">
+                       <div className="space-y-2 flex-1">
+                         <Label htmlFor="images">Select Images (Multiple)</Label>
+                         <Input
+                           id="images"
+                           type="file"
+                           accept="image/*"
+                           multiple
+                           onChange={(e) => {
+                             const files = Array.from(e.target.files || []);
+                             setSelectedImages(files);
+                           }}
+                           disabled={mode === "view"}
+                         />
+                         <p className="text-xs text-muted-foreground">
+                           Max 5MB per image. JPEG, PNG, WebP supported.
+                         </p>
+                       </div>
+                       <Button
+                         type="button"
+                         onClick={handleImageUpload}
+                         disabled={imageUploadLoading || selectedImages.length === 0 || mode === "view"}
+                       >
+                         {imageUploadLoading ? "Uploading..." : "Upload"}
+                       </Button>
+                     </div>
 
-                  {previewImage && (
-                    <div className="aspect-w-16 aspect-h-9">
-                      <img
-                        src={previewImage}
-                        alt="Preview"
-                        className="object-cover rounded-md"
-                      />
-                    </div>
-                  )}
+                     {/* Preview selected images */}
+                     {previewImages.length > 0 && (
+                       <div className="space-y-2">
+                         <Label>Selected Images Preview</Label>
+                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                           {previewImages.map((preview, index) => (
+                             <div key={index} className="relative">
+                               <img
+                                 src={preview}
+                                 alt={`Preview ${index + 1}`}
+                                 className="w-full h-24 object-cover rounded-md"
+                               />
+                               <Button
+                                 variant="destructive"
+                                 size="icon"
+                                 className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                                 onClick={() => {
+                                   const newImages = selectedImages.filter((_, i) => i !== index);
+                                   setSelectedImages(newImages);
+                                 }}
+                               >
+                                 <X className="h-3 w-3" />
+                               </Button>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
 
-                  {formData.image_url && (
-                    <div className="relative max-w-md">
-                      <img
-                        src={formData.image_url}
-                        alt="Study Hall"
-                        className="object-cover rounded-md aspect-video w-full"
-                      />
-                      {mode !== "view" && (
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 rounded-full"
-                          onClick={handleRemoveImage}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
+                     {/* Existing uploaded images */}
+                     {studyHall?.id && (
+                       <div className="space-y-2">
+                         <Label>Uploaded Images</Label>
+                         {imagesLoading ? (
+                           <div className="text-center py-4">
+                             <div className="text-sm text-muted-foreground">Loading images...</div>
+                           </div>
+                         ) : hallImages.length > 0 ? (
+                           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                             {hallImages.map((image) => (
+                               <div key={image.id} className="relative">
+                                 <img
+                                   src={image.image_url}
+                                   alt="Study Hall"
+                                   className="w-full h-24 object-cover rounded-md"
+                                 />
+                                 {image.is_main && (
+                                   <Badge className="absolute top-1 left-1 text-xs">Main</Badge>
+                                 )}
+                               </div>
+                             ))}
+                           </div>
+                         ) : (
+                           <div className="text-center py-4 text-sm text-muted-foreground">
+                             No images uploaded yet
+                           </div>
+                         )}
+                       </div>
+                     )}
+                   </div>
+                 </CardContent>
               </Card>
             </TabsContent>
 
@@ -617,13 +693,43 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
                       disabled={mode === "view"}
                     />
                   </div>
-                  <Button
-                    type="button"
-                    onClick={() => setLocationPickerOpen(true)}
-                    disabled={mode === "view"}
-                  >
-                    Pick Location on Map
-                  </Button>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                       <Label htmlFor="latitude">Latitude</Label>
+                       <Input
+                         id="latitude"
+                         name="latitude"
+                         type="number"
+                         step="any"
+                         value={formData.latitude || ''}
+                         onChange={handleInputChange}
+                         disabled={mode === "view"}
+                         placeholder="e.g., 28.6139"
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="longitude">Longitude</Label>
+                       <Input
+                         id="longitude"
+                         name="longitude"
+                         type="number"
+                         step="any"
+                         value={formData.longitude || ''}
+                         onChange={handleInputChange}
+                         disabled={mode === "view"}
+                         placeholder="e.g., 77.2090"
+                       />
+                     </div>
+                   </div>
+                   <Button
+                     type="button"
+                     onClick={() => setLocationPickerOpen(true)}
+                     disabled={mode === "view"}
+                     className="w-full"
+                   >
+                     <MapPin className="h-4 w-4 mr-2" />
+                     Pick Location on Map
+                   </Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -642,7 +748,26 @@ export function StudyHallModal({ open, onOpenChange, studyHall, mode, onSuccess 
         </form>
       </DialogContent>
 
-      {/* MapLocationPicker component will be implemented when needed */}
+      {/* Location Picker Dialog */}
+      <LocationDialog open={locationPickerOpen} onOpenChange={setLocationPickerOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Select Study Hall Location</DialogTitle>
+          </DialogHeader>
+          <LocationPicker
+            onLocationSelect={handleLocationSelect}
+            initialLocation={
+              formData.latitude && formData.longitude
+                ? {
+                    latitude: formData.latitude,
+                    longitude: formData.longitude,
+                    formattedAddress: formData.formatted_address || formData.location,
+                  }
+                : undefined
+            }
+          />
+        </DialogContent>
+      </LocationDialog>
     </Dialog>
   );
 }
