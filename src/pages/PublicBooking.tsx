@@ -24,6 +24,8 @@ interface StudyHallDetails {
   custom_row_names: string[];
   layout_mode?: string;
   row_seat_config?: any;
+  daily_price?: number; // For backward compatibility
+  weekly_price?: number; // For backward compatibility
 }
 
 interface Seat {

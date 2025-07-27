@@ -189,12 +189,12 @@ export const TelemarketingStudyHallsTab = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Daily Price</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Monthly Price</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{studyHalls.length > 0 ? Math.round(studyHalls.reduce((sum, hall) => sum + (hall.daily_price || 0), 0) / studyHalls.length) : 0}
+              ₹{studyHalls.length > 0 ? Math.round(studyHalls.reduce((sum, hall) => sum + (hall.monthly_price || 0), 0) / studyHalls.length) : 0}
             </div>
           </CardContent>
         </Card>

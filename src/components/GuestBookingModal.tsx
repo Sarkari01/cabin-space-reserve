@@ -16,8 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface StudyHall {
   id: string;
   name: string;
-  daily_price: number;
-  weekly_price: number;
+  daily_price?: number; // Optional for backward compatibility
+  weekly_price?: number; // Optional for backward compatibility
   monthly_price: number;
 }
 
@@ -61,27 +61,20 @@ export function GuestBookingModal({
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'ekqr'>('razorpay');
 
   const calculateAmount = () => {
-    if (!studyHall) return { amount: 0, period: 'daily' };
+    if (!studyHall) return { amount: 0, period: 'monthly' };
     
     const days = Math.max(1, differenceInDays(endDate, startDate) + 1);
     
-    let amount = days * studyHall.daily_price;
-    let period = 'daily';
+    // Use monthly pricing only now
+    let months = 1;
+    if (days <= 30) months = 1;
+    else if (days <= 60) months = 2;
+    else if (days <= 90) months = 3;
+    else if (days <= 180) months = 6;
+    else months = 12;
     
-    // Check for better pricing
-    if (days >= 30) {
-      const monthlyTotal = Math.ceil(days / 30) * studyHall.monthly_price;
-      if (monthlyTotal < amount) {
-        amount = monthlyTotal;
-        period = 'monthly';
-      }
-    } else if (days >= 7) {
-      const weeklyTotal = Math.ceil(days / 7) * studyHall.weekly_price;
-      if (weeklyTotal < amount) {
-        amount = weeklyTotal;
-        period = 'weekly';
-      }
-    }
+    const amount = months * studyHall.monthly_price;
+    const period = `${months} month${months > 1 ? 's' : ''}`;
     
     return { amount, period };
   };

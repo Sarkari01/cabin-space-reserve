@@ -719,7 +719,7 @@ const AdminDashboard = () => {
                             <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
                               {studyHall.status}
                             </Badge>
-                            <p className="text-sm font-medium">₹{studyHall.daily_price}/day</p>
+                            <p className="text-sm font-medium">₹{studyHall.monthly_price}/month</p>
                           </div>
                         </div>
                       ))}

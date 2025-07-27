@@ -253,8 +253,7 @@ export function MerchantDetailModal({
       key: 'pricing',
       render: (_: any, hall: StudyHall) => (
         <div className="text-sm">
-          <div>Daily: {formatCurrency(hall.daily_price)}</div>
-          <div className="text-muted-foreground">Monthly: {formatCurrency(hall.monthly_price)}</div>
+          <div>Monthly: {formatCurrency(hall.monthly_price)}</div>
         </div>
       )
     },
