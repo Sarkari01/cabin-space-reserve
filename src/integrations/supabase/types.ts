@@ -2815,6 +2815,28 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_study_hall_with_context: {
+        Args: {
+          p_name: string
+          p_description: string
+          p_location: string
+          p_total_seats: number
+          p_rows: number
+          p_seats_per_row: number
+          p_monthly_price: number
+          p_amenities?: Json
+          p_custom_row_names?: string[]
+          p_formatted_address?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_image_url?: string
+        }
+        Returns: Json
+      }
+      debug_auth_context: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       generate_invitation_token: {
         Args: Record<PropertyKey, never>
         Returns: string
