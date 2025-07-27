@@ -4,31 +4,92 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { StudyHallData as StudyHall, Seat } from '@/types/StudyHall';
 
-// Enhanced session verification utility
+// Enhanced session verification utility with JWT token refresh
 const verifySession = async (): Promise<boolean> => {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    console.log('Starting enhanced session verification...');
     
-    if (error) {
-      console.error('Session verification error:', error);
+    // First, try to refresh the session to ensure we have a valid JWT token
+    const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+    
+    if (refreshError) {
+      console.log('Session refresh failed, trying current session:', refreshError.message);
+      // Fall back to getting the current session
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !currentSession) {
+        console.error('No valid session available:', sessionError?.message);
+        return false;
+      }
+      // Use current session if refresh failed
+      await supabase.auth.setSession(currentSession);
+      console.log('Using current session for user:', currentSession.user.id);
+    } else if (refreshedSession) {
+      // Use refreshed session - this ensures JWT token is fresh
+      await supabase.auth.setSession(refreshedSession);
+      console.log('Using refreshed session for user:', refreshedSession.user.id);
+    }
+
+    // Additional step: Force the client to use the latest session context
+    // by making a quick authenticated request to verify JWT is working
+    const { data: authTest, error: authTestError } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1)
+      .single();
+    
+    if (authTestError && authTestError.code === 'PGRST116') {
+      // PGRST116 means no rows found, which is fine - it means auth is working
+      console.log('Session verification successful - auth context is working');
+    } else if (authTestError) {
+      console.error('Session verification failed - auth context not working:', authTestError);
       return false;
+    } else {
+      console.log('Session verification successful - found user profile');
     }
     
-    if (!session?.user) {
-      console.log('No valid session found');
-      return false;
-    }
-    
-    // Ensure session is properly set in Supabase client for JWT propagation
-    await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token
-    });
-    
-    console.log('Session verified and synchronized for user:', session.user.id);
     return true;
   } catch (error) {
     console.error('Session verification failed:', error);
+    return false;
+  }
+};
+
+// Function to ensure database context is properly authenticated
+const ensureAuthenticatedContext = async (userId: string): Promise<boolean> => {
+  try {
+    console.log('Ensuring authenticated context for user:', userId);
+    
+    // Step 1: Verify the session is properly set
+    const sessionValid = await verifySession();
+    if (!sessionValid) {
+      console.error('Session validation failed');
+      return false;
+    }
+
+    // Step 2: Test that auth.uid() works in database context
+    // We'll do this by checking if we can access user's profile
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Database authentication context test failed:', error);
+      
+      // If it's a permission error, it means auth.uid() is returning null
+      if (error.code === '42501' || error.message.includes('permission denied')) {
+        console.error('Permission denied - auth.uid() is likely returning null');
+        return false;
+      }
+      
+      return false;
+    }
+
+    console.log('Database authentication context verified for user:', data.id);
+    return true;
+  } catch (error) {
+    console.error('Failed to ensure authenticated context:', error);
     return false;
   }
 };
@@ -190,37 +251,20 @@ export const useStudyHalls = () => {
         return { data: null, error: { message: 'User not authenticated' } };
       }
 
-      // Verify session and database connection
-      console.log('Testing database connection...');
-      const { data: testData, error: testError } = await supabase
-        .from('profiles')
-        .select('id, role')
-        .eq('id', user.id)
-        .single();
-      
-      if (testError) {
-        console.error('Database connection test failed:', testError);
+      // Ensure authenticated context with enhanced JWT verification
+      console.log('Ensuring authenticated database context...');
+      const authContextValid = await ensureAuthenticatedContext(user.id);
+      if (!authContextValid) {
+        console.error('Authentication context verification failed');
         toast({
-          title: "Database Connection Error",
-          description: `Database error: ${testError.message}`,
+          title: "Authentication Error",
+          description: "Unable to verify your authentication. Please sign out and sign in again.",
           variant: "destructive",
         });
-        return { data: null, error: testError };
+        return { data: null, error: { message: 'Authentication context failed' } };
       }
       
-      console.log('Database connection test successful. User profile:', testData);
-      
-      // Verify session is valid and ensure JWT is properly set
-      const sessionValid = await verifySession();
-      if (!sessionValid) {
-        console.error('Session verification failed');
-        toast({
-          title: "Session Expired",
-          description: "Your session has expired. Please sign in again.",
-          variant: "destructive",
-        });
-        return { data: null, error: { message: 'Session expired' } };
-      }
+      console.log('Authentication context verified successfully');
 
       // Check subscription limits
       console.log('Checking subscription limits...');
