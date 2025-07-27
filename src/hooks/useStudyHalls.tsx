@@ -147,8 +147,47 @@ export const useStudyHalls = () => {
     
     console.log('🚀 Creating study hall with data:', studyHallData);
     
+    // Add comprehensive debugging
+    console.log('🔍 Authentication Debug:', {
+      user: user?.id,
+      userEmail: user?.email,
+      userRole: user?.user_metadata?.role,
+      authUID: (await supabase.auth.getUser()).data.user?.id
+    });
+
+    // Test database connection with a simple query
+    console.log('🔍 Testing database connection...');
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('id', user.id)
+        .single();
+      
+      console.log('✅ Database connection test result:', { testData, testError });
+      
+      if (testError) {
+        console.error('❌ Database connection test failed:', testError);
+        toast({
+          title: "Database Connection Error",
+          description: `Cannot connect to database: ${testError.message}`,
+          variant: "destructive"
+        });
+        return { data: null, error: testError };
+      }
+    } catch (dbTestError: any) {
+      console.error('❌ Database connection test exception:', dbTestError);
+      toast({
+        title: "Database Connection Error", 
+        description: `Database test failed: ${dbTestError.message}`,
+        variant: "destructive"
+      });
+      return { data: null, error: dbTestError };
+    }
+
     // Check subscription limits before creating
     try {
+      console.log('🔍 Checking subscription limits for user:', user.id);
       const { data: limitsData, error: limitsError } = await supabase
         .rpc('get_merchant_subscription_limits', {
           p_merchant_id: user.id
@@ -294,30 +333,29 @@ export const useStudyHalls = () => {
       
       return { data, error: null };
       } catch (error: any) {
-        console.error('❌ Create study hall error:', error);
+        // Log complete error details for debugging
+        console.error('❌ Create study hall error (FULL DETAILS):', {
+          error,
+          errorMessage: error?.message,
+          errorCode: error?.code,
+          errorDetails: error?.details,
+          errorHint: error?.hint,
+          stack: error?.stack,
+          userData: {
+            userId: user.id,
+            userEmail: user?.email
+          }
+        });
         
-        // Provide more specific error messages based on the error
-        let errorMessage = "Failed to create study hall";
-        
-        if (error.message?.includes('relation "study_halls" does not exist')) {
-          errorMessage = "Database table not found. Please contact support.";
-        } else if (error.message?.includes('violates not-null constraint')) {
-          errorMessage = "Required fields are missing. Please fill all required information.";
-        } else if (error.message?.includes('permission denied')) {
-          errorMessage = "You don't have permission to create study halls. Please check your account status.";
-        } else if (error.code === '23505') {
-          errorMessage = "A study hall with this information already exists.";
-        } else if (error.code === '23503') {
-          errorMessage = "Invalid reference data. Please check your input.";
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
+        // Show the actual error message to help identify the real issue
+        const actualErrorMessage = error?.message || "Unknown error occurred";
         
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "Database Error", 
+          description: `${actualErrorMessage} (Code: ${error?.code || 'unknown'})`,
           variant: "destructive",
         });
+        
         return { data: null, error };
       }
   };
