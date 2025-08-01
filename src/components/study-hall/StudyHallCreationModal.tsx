@@ -79,15 +79,19 @@ export const StudyHallCreationModal = ({ open, onOpenChange, onSuccess }: StudyH
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    const rows = parseInt(formData.rows);
+    const customRowNames = Array.from({ length: rows }, (_, i) => String.fromCharCode(65 + i));
+
     const result = await createStudyHall({
       name: formData.name.trim(),
       description: formData.description.trim(),
       location: formData.location.trim(),
       total_seats: parseInt(formData.total_seats),
-      rows: parseInt(formData.rows),
+      rows: rows,
       seats_per_row: parseInt(formData.seats_per_row),
       monthly_price: parseFloat(formData.monthly_price),
-      amenities: formData.amenities
+      amenities: formData.amenities,
+      custom_row_names: customRowNames
     });
 
     if (result.success) {

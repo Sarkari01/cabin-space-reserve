@@ -9,6 +9,7 @@ export interface StudyHallCreationData {
   seats_per_row: number;
   monthly_price: number;
   amenities: string[];
+  custom_row_names: string[];
   latitude?: number;
   longitude?: number;
   image_url?: string;
