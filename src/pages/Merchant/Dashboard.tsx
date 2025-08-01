@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock, TrendingUp, Power, PowerOff, TestTube } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { StudyHallCreationModal } from "@/components/study-hall/StudyHallCreationModal";
+import { EnhancedStudyHallCreationModal } from "@/components/study-hall/EnhancedStudyHallCreationModal";
 import { StudyHallTestHelper } from "@/components/study-hall/StudyHallTestHelper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BannerCarousel } from "@/components/BannerCarousel";
@@ -1570,7 +1570,7 @@ const MerchantDashboard = () => {
         )}
 
         <ErrorBoundary>
-          <StudyHallCreationModal
+          <EnhancedStudyHallCreationModal
             open={studyHallModalOpen}
             onOpenChange={setStudyHallModalOpen}
             onSuccess={() => {

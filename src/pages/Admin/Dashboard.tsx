@@ -62,7 +62,7 @@ import { EnhancedMerchantExperienceTab } from "@/components/admin/EnhancedMercha
 import { TrialActivationLogsTab } from "@/components/admin/TrialActivationLogsTab";
 import { PolicyPagesTab } from "@/components/admin/PolicyPagesTab";
 import { AIAssistantTab } from "@/components/admin/AIAssistantTab";
-import { AdminStudyHallCreationModal } from "@/components/admin/AdminStudyHallCreationModal";
+import { EnhancedAdminStudyHallCreationModal } from "@/components/admin/EnhancedAdminStudyHallCreationModal";
 
 
 const AdminDashboard = () => {
@@ -1492,7 +1492,7 @@ const AdminDashboard = () => {
         }}
       />
 
-      <AdminStudyHallCreationModal
+      <EnhancedAdminStudyHallCreationModal
         open={adminStudyHallModalOpen}
         onOpenChange={setAdminStudyHallModalOpen}
         onSuccess={() => {
