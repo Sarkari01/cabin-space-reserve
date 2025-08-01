@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock, TrendingUp, Power, PowerOff } from "lucide-react";
+import { Plus, Home, Calendar, Users, DollarSign, Star, LogOut, BarChart3, Eye, Edit, Filter, Download, Phone, Mail, User, Clock, TrendingUp, Power, PowerOff, TestTube } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { StudyHallCreationModal } from "@/components/study-hall/StudyHallCreationModal";
+import { StudyHallTestHelper } from "@/components/study-hall/StudyHallTestHelper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { useToast } from "@/hooks/use-toast";
@@ -497,7 +498,22 @@ const MerchantDashboard = () => {
                 </Card>
               ))}
             </div>
-          </TabsContent>
+        </TabsContent>
+
+        <TabsContent value="testing" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Development Testing</h2>
+              <p className="text-muted-foreground">Test study hall creation functionality</p>
+            </div>
+            <Badge variant="outline" className="flex items-center gap-2">
+              <TestTube className="h-4 w-4" />
+              Dev Mode
+            </Badge>
+          </div>
+          
+          <StudyHallTestHelper />
+        </TabsContent>
 
           {/* Bookings Tab */}
           <TabsContent value="bookings" className="space-y-6">
