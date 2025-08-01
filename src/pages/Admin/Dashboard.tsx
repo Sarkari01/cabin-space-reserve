@@ -62,6 +62,7 @@ import { EnhancedMerchantExperienceTab } from "@/components/admin/EnhancedMercha
 import { TrialActivationLogsTab } from "@/components/admin/TrialActivationLogsTab";
 import { PolicyPagesTab } from "@/components/admin/PolicyPagesTab";
 import { AIAssistantTab } from "@/components/admin/AIAssistantTab";
+import { AdminStudyHallCreationModal } from "@/components/admin/AdminStudyHallCreationModal";
 
 
 const AdminDashboard = () => {
@@ -103,6 +104,7 @@ const AdminDashboard = () => {
   const [selectedStudyHall, setSelectedStudyHall] = useState<any>(null);
   const [studyHallSearchTerm, setStudyHallSearchTerm] = useState("");
   const [bookingSearchTerm, setBookingSearchTerm] = useState("");
+  const [adminStudyHallModalOpen, setAdminStudyHallModalOpen] = useState(false);
 
   // Redirect to login if not authenticated or not admin
   useEffect(() => {
@@ -833,6 +835,14 @@ const AdminDashboard = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-semibold">Study Hall Management</h3>
+                <Button 
+                  size="sm" 
+                  onClick={() => setAdminStudyHallModalOpen(true)}
+                  className="ml-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Study Hall
+                </Button>
               </div>
 
               <ResponsiveTable
@@ -1482,7 +1492,13 @@ const AdminDashboard = () => {
         }}
       />
 
-      {/* Study hall modal temporarily removed */}
+      <AdminStudyHallCreationModal
+        open={adminStudyHallModalOpen}
+        onOpenChange={setAdminStudyHallModalOpen}
+        onSuccess={() => {
+          fetchData(); // Refresh data after creation
+        }}
+      />
     </>
   );
 };

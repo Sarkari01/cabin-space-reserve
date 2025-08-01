@@ -24,6 +24,26 @@ export const useStudyHallCreation = () => {
       console.log('🚀 Creating study hall:', data);
       console.log('🔐 User context:', { id: user.id, email: user.email });
 
+      // Debug auth context
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      console.log('🔍 Current user:', currentUser?.id, currentUser?.email);
+
+      // Verify session is fresh
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        console.log('❌ No active session found, refreshing...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          toast({
+            title: "Session Expired",
+            description: "Please log out and log back in",
+            variant: "destructive"
+          });
+          return { success: false, error: refreshError };
+        }
+        console.log('✅ Session refreshed successfully');
+      }
+
       // Generate custom row names if not provided (A, B, C, D, etc.)
       const customRowNames = data.custom_row_names?.length > 0 
         ? data.custom_row_names 
@@ -78,11 +98,13 @@ export const useStudyHallCreation = () => {
         let errorMessage = "Failed to create study hall";
         
         if (error.message?.includes('violates row-level security')) {
-          errorMessage = "Authentication error. Please log out and log back in.";
+          errorMessage = "Permission denied. Please log out and log back in, then try again.";
         } else if (error.message?.includes('duplicate key')) {
           errorMessage = "A study hall with this name already exists.";
         } else if (error.message?.includes('not-null constraint')) {
           errorMessage = "Missing required information. Please fill all fields.";
+        } else if (error.message?.includes('permission denied')) {
+          errorMessage = "You don't have permission to create study halls. Please contact support.";
         } else if (error.message) {
           errorMessage = error.message;
         }
@@ -97,9 +119,17 @@ export const useStudyHallCreation = () => {
 
       console.log('✅ Study hall created successfully:', studyHall);
       
+      // Verify seats were created
+      const { data: seatCount } = await supabase
+        .from('seats')
+        .select('id', { count: 'exact' })
+        .eq('study_hall_id', studyHall.id);
+      
+      console.log(`🪑 ${seatCount?.length || 0} seats created for study hall`);
+      
       toast({
         title: "Success!",
-        description: `${data.name} has been created successfully`,
+        description: `${data.name} has been created successfully with ${seatCount?.length || 0} seats`,
         variant: "default"
       });
 
