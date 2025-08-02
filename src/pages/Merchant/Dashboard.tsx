@@ -39,6 +39,7 @@ import { useSubscriptionLimits } from "@/hooks/useSubscriptionLimits";
 import { InchargeManagementTab } from "@/components/merchant/InchargeManagementTab";
 import { MerchantReviewsTab } from "@/components/merchant/MerchantReviewsTab";
 import { MerchantReportsTab } from "@/components/reports/MerchantReportsTab";
+import { PrivateHallsTab } from "@/components/merchant/PrivateHallsTab";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
@@ -367,6 +368,11 @@ const MerchantDashboard = () => {
         {/* Reports Tab */}
         {activeTab === "reports" && (
           <MerchantReportsTab />
+        )}
+
+        {/* Private Halls Tab */}
+        {activeTab === "privatehalls" && (
+          <PrivateHallsTab />
         )}
 
         {/* Main Content based on active tab */}

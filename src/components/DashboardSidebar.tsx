@@ -106,6 +106,7 @@ const sidebarItems = {
     coreOps: [
       { title: "Dashboard", url: "/merchant/dashboard", icon: Home, tab: "overview" },
       { title: "My Study Halls", url: "/merchant/dashboard", icon: Building, tab: "studyhalls" },
+      { title: "Private Halls", url: "/merchant/dashboard", icon: Users, tab: "privatehalls" },
       { title: "Bookings", url: "/merchant/dashboard", icon: Calendar, tab: "bookings" },
       { title: "Incharges", url: "/merchant/dashboard", icon: UserPlus, tab: "incharges" },
     ],

@@ -399,6 +399,137 @@ export type Database = {
         }
         Relationships: []
       }
+      cabin_bookings: {
+        Row: {
+          booking_number: number | null
+          cabin_id: string
+          created_at: string
+          end_date: string
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
+          id: string
+          monthly_amount: number
+          months_booked: number
+          payment_status: string | null
+          private_hall_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["cabin_booking_status"] | null
+          total_amount: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          booking_number?: number | null
+          cabin_id: string
+          created_at?: string
+          end_date: string
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          monthly_amount: number
+          months_booked: number
+          payment_status?: string | null
+          private_hall_id: string
+          start_date: string
+          status?: Database["public"]["Enums"]["cabin_booking_status"] | null
+          total_amount: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          booking_number?: number | null
+          cabin_id?: string
+          created_at?: string
+          end_date?: string
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          monthly_amount?: number
+          months_booked?: number
+          payment_status?: string | null
+          private_hall_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["cabin_booking_status"] | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cabin_bookings_cabin_id_fkey"
+            columns: ["cabin_id"]
+            isOneToOne: false
+            referencedRelation: "cabins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cabin_bookings_private_hall_id_fkey"
+            columns: ["private_hall_id"]
+            isOneToOne: false
+            referencedRelation: "private_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cabins: {
+        Row: {
+          amenities: string[] | null
+          cabin_name: string
+          cabin_number: number
+          created_at: string
+          id: string
+          max_occupancy: number | null
+          monthly_price: number | null
+          position_x: number | null
+          position_y: number | null
+          private_hall_id: string
+          size_sqft: number | null
+          status: Database["public"]["Enums"]["cabin_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          amenities?: string[] | null
+          cabin_name: string
+          cabin_number: number
+          created_at?: string
+          id?: string
+          max_occupancy?: number | null
+          monthly_price?: number | null
+          position_x?: number | null
+          position_y?: number | null
+          private_hall_id: string
+          size_sqft?: number | null
+          status?: Database["public"]["Enums"]["cabin_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          amenities?: string[] | null
+          cabin_name?: string
+          cabin_number?: number
+          created_at?: string
+          id?: string
+          max_occupancy?: number | null
+          monthly_price?: number | null
+          position_x?: number | null
+          position_y?: number | null
+          private_hall_id?: string
+          size_sqft?: number | null
+          status?: Database["public"]["Enums"]["cabin_status"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cabins_private_hall_id_fkey"
+            columns: ["private_hall_id"]
+            isOneToOne: false
+            referencedRelation: "private_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_logs: {
         Row: {
           call_duration: number | null
@@ -1597,6 +1728,107 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      private_hall_images: {
+        Row: {
+          display_order: number | null
+          file_path: string
+          file_size: number | null
+          id: string
+          image_url: string
+          is_main: boolean | null
+          mime_type: string | null
+          private_hall_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          display_order?: number | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          image_url: string
+          is_main?: boolean | null
+          mime_type?: string | null
+          private_hall_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          display_order?: number | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          image_url?: string
+          is_main?: boolean | null
+          mime_type?: string | null
+          private_hall_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_hall_images_private_hall_id_fkey"
+            columns: ["private_hall_id"]
+            isOneToOne: false
+            referencedRelation: "private_halls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_halls: {
+        Row: {
+          amenities: string[] | null
+          cabin_count: number | null
+          cabin_layout_json: Json | null
+          created_at: string
+          description: string | null
+          formatted_address: string | null
+          id: string
+          latitude: number | null
+          location: string
+          longitude: number | null
+          merchant_id: string
+          monthly_price: number
+          name: string
+          status: Database["public"]["Enums"]["private_hall_status"] | null
+          total_revenue: number | null
+          updated_at: string
+        }
+        Insert: {
+          amenities?: string[] | null
+          cabin_count?: number | null
+          cabin_layout_json?: Json | null
+          created_at?: string
+          description?: string | null
+          formatted_address?: string | null
+          id?: string
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          merchant_id: string
+          monthly_price: number
+          name: string
+          status?: Database["public"]["Enums"]["private_hall_status"] | null
+          total_revenue?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amenities?: string[] | null
+          cabin_count?: number | null
+          cabin_layout_json?: Json | null
+          created_at?: string
+          description?: string | null
+          formatted_address?: string | null
+          id?: string
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          merchant_id?: string
+          monthly_price?: number
+          name?: string
+          status?: Database["public"]["Enums"]["private_hall_status"] | null
+          total_revenue?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -2840,6 +3072,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      debug_study_hall_creation: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       generate_invitation_token: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -2889,6 +3125,10 @@ export type Database = {
           confirmed_future: number
           completed_today: number
         }[]
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_eligible_bookings_for_review: {
         Args: { p_user_id: string }
@@ -3001,6 +3241,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_merchant: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_trial_expired: {
         Args: { subscription_id: string }
         Returns: boolean
@@ -3054,8 +3298,11 @@ export type Database = {
         | "3_months"
         | "6_months"
         | "12_months"
+      cabin_booking_status: "active" | "completed" | "cancelled" | "pending"
+      cabin_status: "available" | "occupied" | "maintenance"
       creator_type: "admin" | "institution" | "telemarketing_executive"
       news_visibility: "user" | "merchant" | "both"
+      private_hall_status: "active" | "inactive" | "draft"
       review_status: "approved" | "pending" | "hidden"
       user_role:
         | "admin"
@@ -3204,8 +3451,11 @@ export const Constants = {
         "6_months",
         "12_months",
       ],
+      cabin_booking_status: ["active", "completed", "cancelled", "pending"],
+      cabin_status: ["available", "occupied", "maintenance"],
       creator_type: ["admin", "institution", "telemarketing_executive"],
       news_visibility: ["user", "merchant", "both"],
+      private_hall_status: ["active", "inactive", "draft"],
       review_status: ["approved", "pending", "hidden"],
       user_role: [
         "admin",
