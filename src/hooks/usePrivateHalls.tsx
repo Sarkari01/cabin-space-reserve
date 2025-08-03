@@ -39,6 +39,12 @@ export const usePrivateHalls = () => {
 
   const createPrivateHall = async (hallData: Omit<PrivateHall, 'id' | 'created_at' | 'updated_at' | 'cabin_count' | 'total_revenue'>) => {
     try {
+      // Auto-set merchant_id if not provided and user is merchant
+      const { data: user } = await supabase.auth.getUser();
+      if (!hallData.merchant_id && user?.user?.id && userRole === 'merchant') {
+        hallData.merchant_id = user.user.id;
+      }
+
       const { data, error } = await supabase
         .from('private_halls')
         .insert([hallData])

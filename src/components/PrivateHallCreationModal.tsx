@@ -10,6 +10,7 @@ import { CabinLayoutDesigner } from '@/components/CabinLayoutDesigner';
 import { LocationPicker } from '@/components/maps/LocationPicker';
 import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PrivateHall, CabinLayoutData } from '@/types/PrivateHall';
 
@@ -106,8 +107,30 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
       const createdHall = await createPrivateHall(hallData);
       
       if (createdHall) {
-        // TODO: Upload images and create cabins
-        toast.success('Private hall created successfully!');
+        // Create cabin records from layout
+        const cabinsToCreate = cabinLayout.cabins.map((cabin, index) => ({
+          private_hall_id: createdHall.id,
+          cabin_number: index + 1,
+          cabin_name: cabin.name,
+          monthly_price: cabin.monthly_price || formData.monthly_price,
+          max_occupancy: 1,
+          amenities: cabin.amenities || [],
+          position_x: cabin.x,
+          position_y: cabin.y,
+          status: 'available' as const,
+        }));
+
+        const { error: cabinsError } = await supabase
+          .from('cabins')
+          .insert(cabinsToCreate);
+
+        if (cabinsError) {
+          console.error('Error creating cabins:', cabinsError);
+          toast.error('Private hall created but failed to create cabins');
+        } else {
+          toast.success('Private hall and cabins created successfully!');
+        }
+
         onClose();
         resetForm();
       }

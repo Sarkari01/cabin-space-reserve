@@ -7,6 +7,7 @@ import {
   Settings,
   BarChart3,
   Building,
+  Building2,
   BookOpen,
   Shield,
   ShieldCheck,
@@ -92,6 +93,7 @@ const sidebarItems = {
   student: [
     { title: "Dashboard", url: "/student/dashboard", icon: Home, tab: "overview" },
     { title: "Browse Study Halls", url: "/student/dashboard", icon: Building, tab: "browse" },
+    { title: "Private Halls", url: "/student/dashboard", icon: Building2, tab: "privatehalls" },
     { title: "My Bookings", url: "/student/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Rewards & Coupons", url: "/student/dashboard", icon: Gift, tab: "rewards" },
     { title: "Favorites", url: "/student/dashboard", icon: BookOpen, tab: "favorites" },
@@ -141,6 +143,7 @@ const sidebarItems = {
     ],
     businessMgmt: [
       { title: "Study Halls", url: "/admin/dashboard", icon: Building, tab: "studyhalls" },
+      { title: "Private Halls", url: "/admin/dashboard", icon: Building2, tab: "privatehalls" },
       { title: "All Merchants", url: "/admin/dashboard", icon: Users, tab: "all-merchants" },
       { title: "Merchant Verification", url: "/admin/dashboard", icon: ShieldCheck, tab: "merchantverification" },
       { title: "Trial Activation Logs", url: "/admin/dashboard", icon: Activity, tab: "trial-logs" },

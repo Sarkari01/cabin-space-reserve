@@ -18,6 +18,7 @@ import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
 import { StudentTransactionsTab } from "@/components/student/StudentTransactionsTab";
 import { RewardsTab } from "@/components/student/RewardsTab";
+import { PrivateHallsTab } from "@/components/student/PrivateHallsTab";
 import { StudentReviewsTab } from "@/components/student/StudentReviewsTab";
 import { RatingDisplay } from "@/components/reviews/RatingDisplay";
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
@@ -376,6 +377,9 @@ const StudentDashboard = () => {
               )}
             </div>
           )}
+
+          {/* Private Halls Tab */}
+          {activeTab === "privatehalls" && <PrivateHallsTab />}
 
           {/* My Bookings Tab */}
           {activeTab === "bookings" && (

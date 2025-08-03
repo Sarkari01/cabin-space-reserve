@@ -27,6 +27,7 @@ import { BookingEditModal } from "@/components/BookingEditModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { MerchantDetailModal } from "@/components/admin/MerchantDetailModal";
 import { MerchantEditModal } from "@/components/admin/MerchantEditModal";
+import { AdminPrivateHallsTab } from "@/components/admin/AdminPrivateHallsTab";
 import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RealTimeIndicator } from "@/components/dashboard/RealTimeIndicator";
@@ -854,6 +855,9 @@ const AdminDashboard = () => {
               />
             </div>
           )}
+
+          {/* Private Halls Tab */}
+          {activeTab === "privatehalls" && <AdminPrivateHallsTab />}
 
           {/* Bookings Tab */}
           {activeTab === "bookings" && (
