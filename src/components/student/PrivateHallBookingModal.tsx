@@ -125,7 +125,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         status: 'pending' as const,
       };
 
-      const { data, error } = await supabase
+      const { data: booking, error } = await supabase
         .from('cabin_bookings')
         .insert([bookingData])
         .select()
@@ -137,20 +137,108 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         return;
       }
 
-      // Update cabin status to occupied
-      await supabase
-        .from('cabins')
-        .update({ status: 'occupied' })
-        .eq('id', selectedCabin.id);
+      // Initiate payment process
+      await initiatePayment(booking.id, bookingDetails.totalAmount);
 
-      toast.success('Booking created successfully! Please proceed with payment.');
-      onClose();
     } catch (error) {
       console.error('Error:', error);
       toast.error('Failed to create booking');
     } finally {
       setLoading(false);
     }
+  };
+
+  const initiatePayment = async (bookingId: string, amount: number) => {
+    try {
+      // Create payment order
+      const { data: orderData, error } = await supabase.functions.invoke('cabin-booking-payment', {
+        body: {
+          action: 'create_order',
+          booking_id: bookingId,
+          amount: amount,
+        }
+      });
+
+      if (error) {
+        console.error('Error creating payment order:', error);
+        toast.error('Failed to initiate payment');
+        return;
+      }
+
+      // Load Razorpay script if not already loaded
+      if (!window.Razorpay) {
+        await loadRazorpayScript();
+      }
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: privateHall?.name || 'Private Hall Booking',
+        description: `Cabin booking for ${orderData.booking_details?.months} month(s)`,
+        order_id: orderData.order_id,
+        handler: async function (response: any) {
+          await verifyPayment(response, bookingId);
+        },
+        prefill: {
+          name: user?.user_metadata?.full_name || '',
+          email: user?.email || '',
+        },
+        theme: {
+          color: '#3B82F6'
+        },
+        modal: {
+          ondismiss: function() {
+            toast.error('Payment cancelled');
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      toast.error('Failed to initiate payment');
+    }
+  };
+
+  const verifyPayment = async (paymentResponse: any, bookingId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('cabin-booking-payment', {
+        body: {
+          action: 'verify_payment',
+          razorpay_payment_id: paymentResponse.razorpay_payment_id,
+          razorpay_order_id: paymentResponse.razorpay_order_id,
+          razorpay_signature: paymentResponse.razorpay_signature,
+          booking_id: bookingId,
+        }
+      });
+
+      if (error) {
+        console.error('Payment verification failed:', error);
+        toast.error('Payment verification failed');
+        return;
+      }
+
+      toast.success('Payment successful! Your cabin has been booked.');
+      onClose();
+      // Optionally refresh the page or redirect to bookings page
+      
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      toast.error('Payment verification failed');
+    }
+  };
+
+  const loadRazorpayScript = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Razorpay script'));
+      document.head.appendChild(script);
+    });
   };
 
   const bookingDetails = calculateBookingDetails();

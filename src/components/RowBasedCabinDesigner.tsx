@@ -191,31 +191,35 @@ export const RowBasedCabinDesigner: React.FC<RowBasedCabinDesignerProps> = ({
               minHeight: '100%',
             }}
           >
-            {layout.cabins.map((cabin) => {
-              const rowName = cabin.name.charAt(0);
-              const cabinNumber = cabin.name.slice(1);
-              const isOdd = parseInt(cabinNumber) % 2 === 1;
-              
-              return (
-                <div
-                  key={cabin.id}
-                  className={`absolute border-2 rounded text-xs flex flex-col justify-center items-center transition-all ${
-                    isOdd 
-                      ? 'bg-primary/20 border-primary/60' 
-                      : 'bg-secondary/20 border-secondary/60'
-                  }`}
-                  style={{
-                    left: cabin.x,
-                    top: cabin.y,
-                    width: cabin.width,
-                    height: cabin.height,
-                  }}
-                >
-                  <div className="font-semibold">{cabin.name}</div>
-                  <div className="text-[10px] text-muted-foreground">₹{cabin.monthly_price}</div>
-                </div>
-              );
-            })}
+      {layout.cabins.map((cabin) => {
+        const rowName = cabin.name.charAt(0);
+        const cabinNumber = cabin.name.slice(1);
+        const isAvailable = true; // Default to available in designer mode
+        
+        return (
+          <div
+            key={cabin.id}
+            className={`absolute border-2 rounded-lg text-xs flex flex-col justify-center items-center transition-all cursor-pointer hover:shadow-lg ${
+              isAvailable 
+                ? 'bg-green-100 border-green-400 hover:bg-green-200' 
+                : 'bg-red-100 border-red-400'
+            }`}
+            style={{
+              left: cabin.x,
+              top: cabin.y,
+              width: cabin.width,
+              height: cabin.height,
+            }}
+            title={`${cabin.name} - ${isAvailable ? 'Available' : 'Occupied'} - ₹${cabin.monthly_price}/month`}
+          >
+            <div className="font-bold text-center">{cabin.name}</div>
+            <div className={`text-[9px] font-medium ${isAvailable ? 'text-green-700' : 'text-red-700'}`}>
+              {isAvailable ? 'Available' : 'Occupied'}
+            </div>
+            <div className="text-[8px] text-gray-600">₹{cabin.monthly_price}</div>
+          </div>
+        );
+      })}
             
             {/* Stage/Front Indicator */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-accent/80 px-3 py-1 rounded text-xs font-medium">

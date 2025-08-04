@@ -7,6 +7,7 @@ import { Building, MapPin, Users, DollarSign, Search, Eye, Edit, Trash2 } from '
 import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { PrivateHallCreationModal } from '@/components/PrivateHallCreationModal';
 import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
+import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
 
@@ -16,6 +17,7 @@ export const AdminPrivateHallsTab: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedHall, setSelectedHall] = useState<PrivateHall | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const filteredHalls = privateHalls.filter(hall =>
     hall.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -31,6 +33,11 @@ export const AdminPrivateHallsTab: React.FC = () => {
   const handleView = (hall: PrivateHall) => {
     setSelectedHall(hall);
     setIsDetailModalOpen(true);
+  };
+
+  const handleEdit = (hall: PrivateHall) => {
+    setSelectedHall(hall);
+    setIsEditModalOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -196,6 +203,13 @@ export const AdminPrivateHallsTab: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => handleEdit(hall)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleDelete(hall)}
                     className="text-destructive hover:text-destructive"
                   >
@@ -217,6 +231,12 @@ export const AdminPrivateHallsTab: React.FC = () => {
       <PrivateHallDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
+        privateHall={selectedHall}
+      />
+
+      <PrivateHallEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
         privateHall={selectedHall}
       />
     </div>

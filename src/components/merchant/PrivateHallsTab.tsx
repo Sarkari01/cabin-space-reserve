@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { PrivateHallCreationModal } from '@/components/PrivateHallCreationModal';
 import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
+import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
 import { Plus, MapPin, Calendar, DollarSign, Users, Eye, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
@@ -13,6 +14,7 @@ export const PrivateHallsTab: React.FC = () => {
   const { privateHalls, loading, updatePrivateHall, deletePrivateHall } = usePrivateHalls();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedHall, setSelectedHall] = useState<PrivateHall | null>(null);
 
   const getStatusColor = (status: string) => {
@@ -172,6 +174,17 @@ export const PrivateHallsTab: React.FC = () => {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => {
+                        setSelectedHall(hall);
+                        setShowEditModal(true);
+                      }}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => handleToggleStatus(hall)}
                     >
                       {hall.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -201,6 +214,15 @@ export const PrivateHallsTab: React.FC = () => {
         isOpen={showDetailModal}
         onClose={() => {
           setShowDetailModal(false);
+          setSelectedHall(null);
+        }}
+        privateHall={selectedHall}
+      />
+
+      <PrivateHallEditModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
           setSelectedHall(null);
         }}
         privateHall={selectedHall}
