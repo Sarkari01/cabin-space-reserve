@@ -3126,6 +3126,10 @@ export type Database = {
           completed_today: number
         }[]
       }
+      get_cabin_id_mapping: {
+        Args: { p_private_hall_id: string; p_layout_cabin_id: string }
+        Returns: string
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3264,6 +3268,10 @@ export type Database = {
       send_booking_reminders: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      sync_private_hall_cabins: {
+        Args: { p_private_hall_id: string; p_layout_json: Json }
+        Returns: Json
       }
       update_user_rewards: {
         Args: {

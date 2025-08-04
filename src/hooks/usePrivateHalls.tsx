@@ -57,6 +57,24 @@ export const usePrivateHalls = () => {
         return null;
       }
 
+      // If cabin layout exists, sync cabin records
+      if (data.cabin_layout_json) {
+        try {
+          const { error: syncError } = await supabase.rpc('sync_private_hall_cabins', {
+            p_private_hall_id: data.id,
+            p_layout_json: data.cabin_layout_json
+          });
+          
+          if (syncError) {
+            console.error('Error syncing cabins for new private hall:', syncError);
+            // Don't fail the hall creation, just log the error
+            console.warn('Private hall created but cabin sync failed. Cabins will be synced on first booking attempt.');
+          }
+        } catch (syncErr) {
+          console.error('Cabin sync exception:', syncErr);
+        }
+      }
+
       toast.success('Private hall created successfully');
       await fetchPrivateHalls();
       return data;

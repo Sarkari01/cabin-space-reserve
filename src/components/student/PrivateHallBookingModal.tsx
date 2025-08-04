@@ -31,28 +31,88 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
   const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('');
 
-  const handleCabinSelectFromLayout = (cabinId: string) => {
+  const handleCabinSelectFromLayout = async (cabinId: string) => {
     setSelectedCabinFromLayout(cabinId);
-    // Find the cabin in the layout and set it as selected
-    const layoutCabin = privateHall?.cabin_layout_json?.cabins?.find(c => c.id === cabinId);
-    if (layoutCabin) {
-      // Convert layout cabin to Cabin type for booking
-      const cabin: Cabin = {
-        id: cabinId,
-        private_hall_id: privateHall.id,
-        cabin_name: layoutCabin.name,
-        cabin_number: parseInt(layoutCabin.name.slice(-1)) || 1, // Extract number from name
-        monthly_price: layoutCabin.monthly_price,
-        max_occupancy: 1,
-        amenities: layoutCabin.amenities || [],
-        status: 'available' as const,
-        position_x: layoutCabin.x,
-        position_y: layoutCabin.y,
-        size_sqft: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+    
+    if (!privateHall) return;
+    
+    try {
+      // Get the actual database cabin ID for this layout cabin
+      const { data: dbCabinId, error } = await supabase.rpc('get_cabin_id_mapping', {
+        p_private_hall_id: privateHall.id,
+        p_layout_cabin_id: cabinId
+      });
+
+      if (error) {
+        console.error('Error getting cabin ID mapping:', error);
+        toast.error('Failed to select cabin. Please try again.');
+        return;
+      }
+
+      if (!dbCabinId) {
+        // If no database cabin found, try to sync the layout first
+        console.warn('No database cabin found for layout cabin:', cabinId);
+        
+        // Attempt to sync cabins if layout exists
+        if (privateHall.cabin_layout_json) {
+          const { error: syncError } = await supabase.rpc('sync_private_hall_cabins', {
+            p_private_hall_id: privateHall.id,
+            p_layout_json: privateHall.cabin_layout_json
+          });
+          
+          if (syncError) {
+            console.error('Error syncing cabins:', syncError);
+            toast.error('Failed to sync cabin data. Please contact support.');
+            return;
+          }
+          
+          // Try to get the cabin ID again after sync
+          const { data: retryDbCabinId, error: retryError } = await supabase.rpc('get_cabin_id_mapping', {
+            p_private_hall_id: privateHall.id,
+            p_layout_cabin_id: cabinId
+          });
+          
+          if (retryError || !retryDbCabinId) {
+            console.error('Failed to find cabin after sync:', retryError);
+            toast.error('Cabin not available. Please try a different cabin.');
+            return;
+          }
+          
+          // Use the cabin ID from retry
+          await selectCabinById(retryDbCabinId, cabinId);
+        } else {
+          toast.error('Cabin not available. Please try a different cabin.');
+        }
+        return;
+      }
+
+      // Fetch the actual cabin data from database
+      await selectCabinById(dbCabinId, cabinId);
+      
+    } catch (error) {
+      console.error('Error in handleCabinSelectFromLayout:', error);
+      toast.error('Failed to select cabin. Please try again.');
+    }
+  };
+
+  const selectCabinById = async (dbCabinId: string, layoutCabinId: string) => {
+    try {
+      const { data: cabin, error } = await supabase
+        .from('cabins')
+        .select('*')
+        .eq('id', dbCabinId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching cabin:', error);
+        toast.error('Failed to load cabin details.');
+        return;
+      }
+
       setSelectedCabin(cabin);
+    } catch (error) {
+      console.error('Error in selectCabinById:', error);
+      toast.error('Failed to load cabin details.');
     }
   };
 
