@@ -8,6 +8,7 @@ import { MapPin, Users, Building, DollarSign, Image as ImageIcon } from 'lucide-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedRowBasedCabinDesigner } from '@/components/EnhancedRowBasedCabinDesigner';
+import { useAuth } from '@/hooks/useAuth';
 import type { PrivateHall } from '@/types/PrivateHall';
 
 interface PrivateHallDetailModalProps {
@@ -21,6 +22,7 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
   onClose,
   privateHall,
 }) => {
+  const { userRole } = useAuth();
   const [images, setImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -68,12 +70,12 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
 
         <div className="space-y-6">
           {/* Image Gallery */}
-          {images.length > 0 && (
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <ImageIcon className="h-4 w-4" />
-                Images
-              </h3>
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Images
+            </h3>
+            {images.length > 0 ? (
               <Carousel className="w-full max-w-lg mx-auto">
                 <CarouselContent>
                   {images.map((image, index) => (
@@ -96,8 +98,19 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
                 <CarouselPrevious />
                 <CarouselNext />
               </Carousel>
-            </Card>
-          )}
+            ) : (
+              <div className="aspect-video relative overflow-hidden rounded-lg bg-muted">
+                <img
+                  src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&h=400&fit=crop"
+                  alt={privateHall.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                  <Badge variant="secondary">No images uploaded yet</Badge>
+                </div>
+              </div>
+            )}
+          </Card>
 
           {/* Status and Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -120,10 +133,13 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
                   <span className="font-medium">₹{privateHall.monthly_price}</span>
                 </div>
                 
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Revenue</span>
-                  <span className="font-medium">₹{privateHall.total_revenue}</span>
-                </div>
+                {/* Only show Total Revenue to merchants and admins */}
+                {(userRole === 'merchant' || userRole === 'admin') && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Total Revenue</span>
+                    <span className="font-medium">₹{privateHall.total_revenue}</span>
+                  </div>
+                )}
               </div>
             </Card>
 
