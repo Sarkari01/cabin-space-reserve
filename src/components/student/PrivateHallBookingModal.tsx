@@ -42,7 +42,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const [endDate, setEndDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { error, handleError, clearError, retry } = useCabinBookingErrorHandler();
 
   const handleCabinSelectFromLayout = async (cabinId: string) => {
@@ -217,6 +217,15 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       setLoading(true);
       clearError(); // Clear any previous errors
 
+      // Ensure we have a valid session before proceeding
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error('Authentication error:', sessionError);
+        throw new ValidationError('authentication session');
+      }
+
+      console.log('User authenticated, session valid:', session.user.id);
+
       // Check cabin availability
       const isAvailable = await checkCabinAvailability(selectedCabin.id, startDate, endDate);
       if (!isAvailable) {
@@ -224,7 +233,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       }
 
       const bookingData = {
-        user_id: user.id,
+        user_id: session.user.id, // Use session.user.id instead of user.id
         cabin_id: selectedCabin.id,
         private_hall_id: privateHall.id,
         start_date: format(startDate, 'yyyy-MM-dd'),
@@ -236,6 +245,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         status: 'pending' as const,
       };
 
+      console.log('Creating booking with data:', bookingData);
+
       const { data: booking, error } = await supabase
         .from('cabin_bookings')
         .insert([bookingData])
@@ -244,8 +255,14 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       if (error) {
         console.error('Error creating booking:', error);
-        throw new CabinBookingError('Failed to create booking. Please try again.', 'BOOKING_CREATION_FAILED', true);
+        // Provide more specific error details
+        if (error.code === '42501') {
+          throw new CabinBookingError('Authentication failed. Please log out and log back in.', 'AUTH_FAILED', true);
+        }
+        throw new CabinBookingError(`Failed to create booking: ${error.message}`, 'BOOKING_CREATION_FAILED', true);
       }
+
+      console.log('Booking created successfully:', booking);
 
       // Initiate payment process
       await initiatePayment(booking.id, bookingDetails.totalAmount);
