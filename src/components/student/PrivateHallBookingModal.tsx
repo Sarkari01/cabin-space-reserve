@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,6 +58,7 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const { user } = useAuth();
 
   const fetchCabins = async () => {
@@ -101,6 +102,7 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
 
   const checkCabinAvailability = async (cabinId: string, start: Date, end: Date): Promise<boolean> => {
     try {
+      setAvailabilityLoading(true);
       const { data, error } = await supabase
         .from('cabin_bookings')
         .select('*')
@@ -110,13 +112,17 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
 
       if (error) {
         console.error('Error checking availability:', error);
+        toast.error('Unable to check cabin availability. Please try again.');
         return false;
       }
 
       return data.length === 0; // Available if no conflicting bookings
     } catch (error) {
       console.error('Error:', error);
+      toast.error('Availability check failed. Please try again.');
       return false;
+    } finally {
+      setAvailabilityLoading(false);
     }
   };
 
@@ -188,7 +194,13 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
 
       if (error) {
         console.error('Error creating payment order:', error);
-        toast.error('Failed to initiate payment');
+        toast.error('Failed to initiate payment. Please try again or contact support.');
+        return;
+      }
+
+      if (!orderData?.order_id) {
+        console.error('Invalid order data received:', orderData);
+        toast.error('Payment setup failed. Please try again.');
         return;
       }
 
@@ -226,7 +238,7 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
 
     } catch (error) {
       console.error('Error initiating payment:', error);
-      toast.error('Failed to initiate payment');
+      toast.error('Payment system error. Please try again or contact support.');
     }
   };
 
@@ -244,7 +256,13 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
 
       if (error) {
         console.error('Payment verification failed:', error);
-        toast.error('Payment verification failed');
+        toast.error('Payment verification failed. Please contact support if amount was deducted.');
+        return;
+      }
+
+      if (!data?.success) {
+        console.error('Payment verification unsuccessful:', data);
+        toast.error('Payment could not be verified. Please contact support.');
         return;
       }
 
@@ -254,7 +272,7 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
       
     } catch (error) {
       console.error('Error verifying payment:', error);
-      toast.error('Payment verification failed');
+      toast.error('Payment verification error. Please contact support if amount was deducted.');
     }
   };
 
@@ -277,6 +295,9 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Book Cabin - {privateHall.name}</DialogTitle>
+          <DialogDescription>
+            Select a cabin, choose your dates, and complete your booking with secure payment.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -440,9 +461,9 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
             </Button>
             <Button 
               onClick={handleBooking} 
-              disabled={!selectedCabin || !startDate || !endDate || loading}
+              disabled={!selectedCabin || !startDate || !endDate || loading || availabilityLoading}
             >
-              {loading ? 'Creating Booking...' : 'Book Now'}
+              {loading ? 'Creating Booking...' : availabilityLoading ? 'Checking Availability...' : 'Book Now'}
             </Button>
           </div>
         </div>
