@@ -25,6 +25,7 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
   const { userRole } = useAuth();
   const [images, setImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [imageRefreshKey, setImageRefreshKey] = useState(0);
 
   const fetchImages = async () => {
     if (!privateHall) return;
@@ -50,10 +51,37 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
     }
   };
 
+  // Refresh images when modal opens or when explicitly requested
+  const refreshImages = () => {
+    setImageRefreshKey(prev => prev + 1);
+    fetchImages();
+  };
+
   useEffect(() => {
     if (isOpen && privateHall) {
       fetchImages();
     }
+  }, [isOpen, privateHall, imageRefreshKey]);
+
+  // Set up real-time subscription for image changes
+  useEffect(() => {
+    if (!isOpen || !privateHall) return;
+
+    const channel = supabase
+      .channel('private-hall-images-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'private_hall_images',
+        filter: `private_hall_id=eq.${privateHall.id}`
+      }, () => {
+        refreshImages();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isOpen, privateHall]);
 
   if (!privateHall) return null;

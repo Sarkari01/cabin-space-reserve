@@ -47,18 +47,44 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
 }) => {
   const [availability, setAvailability] = useState<CabinAvailability>({});
   const [loading, setLoading] = useState(false);
+  const [cabinIdMapping, setCabinIdMapping] = useState<{[layoutId: string]: string}>({});
 
-  // Fetch real-time availability data
+  // Create a mapping between layout cabin IDs and database cabin UUIDs
+  const createCabinIdMapping = async () => {
+    try {
+      const mapping: {[layoutId: string]: string} = {};
+      
+      for (const layoutCabin of layout.cabins) {
+        const { data: dbCabinId, error } = await supabase.rpc('get_cabin_id_mapping', {
+          p_private_hall_id: privateHallId,
+          p_layout_cabin_id: layoutCabin.id
+        });
+        
+        if (!error && dbCabinId) {
+          mapping[layoutCabin.id] = dbCabinId;
+        }
+      }
+      
+      setCabinIdMapping(mapping);
+    } catch (error) {
+      console.error('Error creating cabin ID mapping:', error);
+    }
+  };
+
+  // Fetch real-time availability data using database cabin IDs
   const fetchAvailability = async () => {
     try {
       setLoading(true);
 
-      // Fetch cabins with their current bookings
+      // Create cabin ID mapping first
+      await createCabinIdMapping();
+
+      // Fetch cabins with their current bookings using database IDs
       const { data: cabins, error } = await supabase
         .from('cabins')
         .select(`
           *,
-          cabin_bookings!inner(
+          cabin_bookings(
             id,
             status,
             start_date,
@@ -74,14 +100,24 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
       }
 
       const availabilityMap: CabinAvailability = {};
-      cabins?.forEach(cabin => {
-        const activeBookings = cabin.cabin_bookings?.filter(
-          booking => booking.status === 'active' && booking.payment_status === 'paid'
+      
+      // Map database cabin availability back to layout cabin IDs
+      cabins?.forEach(dbCabin => {
+        const activeBookings = dbCabin.cabin_bookings?.filter(
+          (booking: any) => booking.status === 'active' && booking.payment_status === 'paid'
         ) || [];
-        availabilityMap[cabin.id] = {
-          status: activeBookings.length > 0 ? 'occupied' : 'available',
-          bookings: activeBookings.length
-        };
+        
+        // Find the layout cabin ID that corresponds to this database cabin
+        const layoutCabinId = Object.keys(cabinIdMapping).find(
+          layoutId => cabinIdMapping[layoutId] === dbCabin.id
+        );
+        
+        if (layoutCabinId) {
+          availabilityMap[layoutCabinId] = {
+            status: activeBookings.length > 0 ? 'occupied' : 'available',
+            bookings: activeBookings.length
+          };
+        }
       });
 
       setAvailability(availabilityMap);

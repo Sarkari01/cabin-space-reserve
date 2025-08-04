@@ -15,6 +15,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type { PrivateHall, Cabin } from '@/types/PrivateHall';
 import { StudentCabinLayoutViewer } from './StudentCabinLayoutViewer';
+import { 
+  CabinBookingErrorHandler, 
+  useCabinBookingErrorHandler,
+  CabinUnavailableError,
+  PaymentError,
+  ValidationError
+} from '@/components/CabinBookingErrorHandler';
 
 interface PrivateHallBookingModalProps {
   isOpen: boolean;
@@ -30,6 +37,12 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
   const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('');
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  const [loading, setLoading] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const { user } = useAuth();
+  const { error, handleError, clearError, retry } = useCabinBookingErrorHandler();
 
   const handleCabinSelectFromLayout = async (cabinId: string) => {
     setSelectedCabinFromLayout(cabinId);
@@ -116,11 +129,6 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
     }
   };
 
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [loading, setLoading] = useState(false);
-  const [availabilityLoading, setAvailabilityLoading] = useState(false);
-  const { user } = useAuth();
 
   const fetchCabins = async () => {
     if (!privateHall) return;
@@ -361,168 +369,185 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Clean Student Cabin Layout */}
-          {privateHall.cabin_layout_json ? (
-            <StudentCabinLayoutViewer
-              layout={privateHall.cabin_layout_json}
-              privateHallId={privateHall.id}
-              privateHallName={privateHall.name}
-              onCabinSelect={handleCabinSelectFromLayout}
-              selectedCabinId={selectedCabinFromLayout || undefined}
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-              onClose={onClose}
-              onBookNow={() => {
-                if (selectedCabinFromLayout && startDate && endDate) {
-                  handleBooking();
-                } else {
-                  toast.error('Please select a cabin and dates before booking');
-                }
-              }}
-            />
-          ) : (
-            <>
-              {/* Fallback Cabin Selection */}
-              <div>
-                <Label className="text-base font-semibold">Available Cabins</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-                  {cabins.map((cabin) => (
-                    <Card
-                      key={cabin.id}
-                      className={cn(
-                        'p-3 cursor-pointer transition-all hover:shadow-md',
-                        selectedCabin?.id === cabin.id ? 'ring-2 ring-primary' : ''
-                      )}
-                      onClick={() => setSelectedCabin(cabin)}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{cabin.cabin_name}</span>
-                          <Badge variant="outline">#{cabin.cabin_number}</Badge>
+        <CabinBookingErrorHandler
+          error={error}
+          loading={loading}
+          onRetry={() => retry(async () => {
+            clearError();
+            if (privateHall?.cabin_layout_json) {
+              // Retry cabin sync if needed
+              await supabase.rpc('sync_private_hall_cabins', {
+                p_private_hall_id: privateHall.id,
+                p_layout_json: privateHall.cabin_layout_json
+              });
+            }
+            await fetchCabins();
+          })}
+          fallbackMessage="Unable to load cabin booking interface"
+        >
+          <div className="space-y-6">
+            {/* Clean Student Cabin Layout */}
+            {privateHall.cabin_layout_json ? (
+              <StudentCabinLayoutViewer
+                layout={privateHall.cabin_layout_json}
+                privateHallId={privateHall.id}
+                privateHallName={privateHall.name}
+                onCabinSelect={handleCabinSelectFromLayout}
+                selectedCabinId={selectedCabinFromLayout || undefined}
+                startDate={startDate}
+                endDate={endDate}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+                onClose={onClose}
+                onBookNow={() => {
+                  if (selectedCabinFromLayout && startDate && endDate) {
+                    handleBooking();
+                  } else {
+                    handleError(new ValidationError('cabin and dates'));
+                  }
+                }}
+              />
+            ) : (
+              <>
+                {/* Fallback Cabin Selection */}
+                <div>
+                  <Label className="text-base font-semibold">Available Cabins</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                    {cabins.map((cabin) => (
+                      <Card
+                        key={cabin.id}
+                        className={cn(
+                          'p-3 cursor-pointer transition-all hover:shadow-md',
+                          selectedCabin?.id === cabin.id ? 'ring-2 ring-primary' : ''
+                        )}
+                        onClick={() => setSelectedCabin(cabin)}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{cabin.cabin_name}</span>
+                            <Badge variant="outline">#{cabin.cabin_number}</Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <DollarSign className="h-4 w-4" />
+                            ₹{cabin.monthly_price || privateHall.monthly_price}/month
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            Max {cabin.max_occupancy} person(s)
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <DollarSign className="h-4 w-4" />
-                          ₹{cabin.monthly_price || privateHall.monthly_price}/month
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Users className="h-4 w-4" />
-                          Max {cabin.max_occupancy} person(s)
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    ))}
+                  </div>
+                  {cabins.length === 0 && (
+                    <p className="text-center text-muted-foreground py-4">
+                      No available cabins at the moment
+                    </p>
+                  )}
                 </div>
-                {cabins.length === 0 && (
-                  <p className="text-center text-muted-foreground py-4">
-                    No available cabins at the moment
-                  </p>
-                )}
-              </div>
-            </>
-          )}
+              </>
+            )}
 
-          {/* Date Selection */}
-          {selectedCabin && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Start Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !startDate && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, 'PPP') : 'Pick start date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+            {/* Date Selection */}
+            {selectedCabin && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !startDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, 'PPP') : 'Pick start date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-              <div>
-                <Label>End Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !endDate && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, 'PPP') : 'Pick end date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                      disabled={(date) => date < (startDate || new Date())}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          )}
-
-          {/* Booking Summary */}
-          {bookingDetails && (
-            <Card className="p-4 bg-muted/50">
-              <h3 className="font-semibold mb-3">Booking Summary</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Cabin:</span>
-                  <span>{selectedCabin?.cabin_name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Duration:</span>
-                  <span>{bookingDetails.days} days ({bookingDetails.months} month(s))</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Monthly Rate:</span>
-                  <span>₹{bookingDetails.monthlyPrice}</span>
-                </div>
-                <div className="flex justify-between font-semibold text-base border-t pt-2">
-                  <span>Total Amount:</span>
-                  <span>₹{bookingDetails.totalAmount}</span>
+                <div>
+                  <Label>End Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !endDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, 'PPP') : 'Pick end date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) => date < (startDate || new Date())}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
-            </Card>
-          )}
+            )}
 
-          {/* Actions - Only show if layout is not available */}
-          {!privateHall.cabin_layout_json && (
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleBooking} 
-                disabled={!selectedCabin || !startDate || !endDate || loading || availabilityLoading}
-              >
-                {loading ? 'Creating Booking...' : availabilityLoading ? 'Checking Availability...' : 'Book Now'}
-              </Button>
-            </div>
-          )}
-        </div>
+            {/* Booking Summary */}
+            {bookingDetails && (
+              <Card className="p-4 bg-muted/50">
+                <h3 className="font-semibold mb-3">Booking Summary</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Cabin:</span>
+                    <span>{selectedCabin?.cabin_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Duration:</span>
+                    <span>{bookingDetails.days} days ({bookingDetails.months} month(s))</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Monthly Rate:</span>
+                    <span>₹{bookingDetails.monthlyPrice}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-base border-t pt-2">
+                    <span>Total Amount:</span>
+                    <span>₹{bookingDetails.totalAmount}</span>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Actions - Only show if layout is not available */}
+            {!privateHall.cabin_layout_json && (
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleBooking} 
+                  disabled={!selectedCabin || !startDate || !endDate || loading || availabilityLoading}
+                >
+                  {loading ? 'Creating Booking...' : availabilityLoading ? 'Checking Availability...' : 'Book Now'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </CabinBookingErrorHandler>
       </DialogContent>
     </Dialog>
   );
