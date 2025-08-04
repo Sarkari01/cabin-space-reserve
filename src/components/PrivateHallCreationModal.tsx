@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MultiImageUpload } from '@/components/MultiImageUpload';
+import { PrivateHallImageUpload } from '@/components/PrivateHallImageUpload';
 import { CabinLayoutDesigner } from '@/components/CabinLayoutDesigner';
+import { RowBasedCabinDesigner } from '@/components/RowBasedCabinDesigner';
 import { LocationPicker } from '@/components/maps/LocationPicker';
 import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { useAuth } from '@/hooks/useAuth';
@@ -46,6 +47,7 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
     cabins: [],
     layout: { width: 800, height: 600, scale: 1 },
   });
+  const [useRowBasedDesign, setUseRowBasedDesign] = useState(true);
 
   const [newAmenity, setNewAmenity] = useState('');
 
@@ -161,6 +163,7 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
       cabins: [],
       layout: { width: 800, height: 600, scale: 1 },
     });
+    setUseRowBasedDesign(true);
   };
 
   const renderStep = () => {
@@ -266,7 +269,7 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
           <div className="space-y-4">
             <div>
               <Label>Private Hall Images</Label>
-              <MultiImageUpload
+              <PrivateHallImageUpload
                 onImagesChange={setImages}
                 maxImages={10}
               />
@@ -279,11 +282,38 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
           <div className="space-y-4">
             <div>
               <Label>Cabin Layout Design</Label>
-              <CabinLayoutDesigner
-                layout={cabinLayout}
-                onChange={setCabinLayout}
-                basePrice={formData.monthly_price}
-              />
+              
+              {/* Layout Type Selection */}
+              <div className="flex gap-4 mb-6">
+                <Button
+                  type="button"
+                  variant={useRowBasedDesign ? "default" : "outline"}
+                  onClick={() => setUseRowBasedDesign(true)}
+                >
+                  Theater-Style Layout
+                </Button>
+                <Button
+                  type="button"
+                  variant={!useRowBasedDesign ? "default" : "outline"}
+                  onClick={() => setUseRowBasedDesign(false)}
+                >
+                  Custom Layout
+                </Button>
+              </div>
+
+              {useRowBasedDesign ? (
+                <RowBasedCabinDesigner
+                  layout={cabinLayout}
+                  onChange={setCabinLayout}
+                  basePrice={formData.monthly_price || 0}
+                />
+              ) : (
+                <CabinLayoutDesigner
+                  layout={cabinLayout}
+                  onChange={setCabinLayout}
+                  basePrice={formData.monthly_price || 0}
+                />
+              )}
             </div>
           </div>
         );
