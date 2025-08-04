@@ -29,7 +29,32 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 }) => {
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
-  const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('');
+const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('');
+
+  const handleCabinSelectFromLayout = (cabinId: string) => {
+    setSelectedCabinFromLayout(cabinId);
+    // Find the cabin in the layout and set it as selected
+    const layoutCabin = privateHall?.cabin_layout_json?.cabins?.find(c => c.id === cabinId);
+    if (layoutCabin) {
+      // Convert layout cabin to Cabin type for booking
+      const cabin: Cabin = {
+        id: cabinId,
+        private_hall_id: privateHall.id,
+        cabin_name: layoutCabin.name,
+        cabin_number: parseInt(layoutCabin.name.slice(-1)) || 1, // Extract number from name
+        monthly_price: layoutCabin.monthly_price,
+        max_occupancy: 1,
+        amenities: layoutCabin.amenities || [],
+        status: 'available' as const,
+        position_x: layoutCabin.x,
+        position_y: layoutCabin.y,
+        size_sqft: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setSelectedCabin(cabin);
+    }
+  };
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
@@ -262,14 +287,23 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
               Click on any available cabin in the layout below to select it
             </p>
             {privateHall.cabin_layout_json ? (
-              <div className="cursor-pointer">
+              <div className="border rounded-lg p-2">
                 <EnhancedRowBasedCabinDesigner
                   layout={privateHall.cabin_layout_json}
                   onChange={() => {}} // Read-only for booking
                   basePrice={privateHall.monthly_price}
                   privateHallId={privateHall.id}
                   showAvailability={true}
+                  readOnly={true}
+                  onCabinSelect={handleCabinSelectFromLayout}
                 />
+                {selectedCabinFromLayout && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                    <p className="text-sm text-green-700">
+                      ✓ Selected cabin from layout. You can also select from the list below or proceed with booking.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <Card className="p-6 text-center">

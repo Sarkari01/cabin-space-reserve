@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface CreatePaymentRequest {
@@ -64,10 +64,6 @@ serve(async (req) => {
 
 async function createCabinBookingOrder(data: CreatePaymentRequest) {
   try {
-    const stripe = new Stripe(Deno.env.get("RAZORPAY_KEY_SECRET") || "", {
-      apiVersion: "2023-10-16",
-    });
-
     // Create Supabase client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -86,6 +82,7 @@ async function createCabinBookingOrder(data: CreatePaymentRequest) {
       .single();
 
     if (bookingError || !booking) {
+      console.error('Booking fetch error:', bookingError);
       throw new Error('Booking not found');
     }
 
@@ -105,6 +102,8 @@ async function createCabinBookingOrder(data: CreatePaymentRequest) {
       }
     };
 
+    console.log('Creating Razorpay order:', orderData);
+
     const response = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
@@ -117,10 +116,11 @@ async function createCabinBookingOrder(data: CreatePaymentRequest) {
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Razorpay API error:', errorData);
-      throw new Error(`Razorpay API error: ${response.status}`);
+      throw new Error(`Razorpay API error: ${response.status} - ${errorData}`);
     }
 
     const order = await response.json();
+    console.log('Razorpay order created:', order);
 
     // Update booking with payment details
     await supabase
@@ -148,7 +148,10 @@ async function createCabinBookingOrder(data: CreatePaymentRequest) {
 
   } catch (error) {
     console.error('Error creating cabin booking order:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: 'Failed to create Razorpay order for cabin booking'
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
@@ -159,6 +162,10 @@ async function verifyCabinBookingPayment(data: VerifyPaymentRequest) {
   try {
     const keySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
     
+    if (!keySecret) {
+      throw new Error('Razorpay key secret not configured');
+    }
+
     // Verify signature
     const body = data.razorpay_order_id + "|" + data.razorpay_payment_id;
     const expectedSignature = await crypto.subtle
@@ -178,6 +185,12 @@ async function verifyCabinBookingPayment(data: VerifyPaymentRequest) {
           .map(b => b.toString(16).padStart(2, '0'))
           .join('');
       });
+
+    console.log('Signature verification:', {
+      expected: expectedSignature,
+      received: data.razorpay_signature,
+      match: expectedSignature === data.razorpay_signature
+    });
 
     if (expectedSignature !== data.razorpay_signature) {
       throw new Error('Invalid payment signature');
@@ -204,17 +217,25 @@ async function verifyCabinBookingPayment(data: VerifyPaymentRequest) {
       .single();
 
     if (updateError) {
+      console.error('Booking update error:', updateError);
       throw new Error(`Failed to update booking: ${updateError.message}`);
     }
 
+    console.log('Booking updated successfully:', booking);
+
     // Update cabin status to occupied
-    await supabase
+    const { error: cabinUpdateError } = await supabase
       .from('cabins')
       .update({ 
         status: 'occupied',
         updated_at: new Date().toISOString(),
       })
       .eq('id', booking.cabin_id);
+
+    if (cabinUpdateError) {
+      console.error('Cabin update error:', cabinUpdateError);
+      // Don't fail the whole operation for this
+    }
 
     return new Response(JSON.stringify({
       success: true,
@@ -228,7 +249,10 @@ async function verifyCabinBookingPayment(data: VerifyPaymentRequest) {
 
   } catch (error) {
     console.error('Error verifying cabin booking payment:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: 'Payment verification failed'
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

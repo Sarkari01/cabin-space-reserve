@@ -24,13 +24,17 @@ interface EnhancedRowBasedCabinDesignerProps {
   basePrice: number;
   privateHallId?: string;
   showAvailability?: boolean;
+  readOnly?: boolean;
+  onCabinSelect?: (cabinId: string) => void;
 }
 export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesignerProps> = ({
   layout,
   onChange,
   basePrice,
   privateHallId,
-  showAvailability = false
+  showAvailability = false,
+  readOnly = false,
+  onCabinSelect
 }) => {
   const [rows, setRows] = useState<RowConfig[]>([{
     name: 'A',
@@ -200,15 +204,17 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
   return <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold">Enhanced Theater-Style Layout</h3>
+          <h3 className="text-lg font-semibold">{readOnly ? "Cabin Layout" : "Enhanced Theater-Style Layout"}</h3>
           {showAvailability && <p className="text-sm text-muted-foreground">
               Real-time availability • {loading ? 'Updating...' : 'Live data'}
             </p>}
         </div>
-        <Button onClick={addRow} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Row
-        </Button>
+        {!readOnly && (
+          <Button onClick={addRow} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Row
+          </Button>
+        )}
       </div>
 
       {/* Real-time stats */}
@@ -233,43 +239,45 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
           </Card>
         </div>}
 
-      {/* Row Configuration */}
-      <div className="space-y-4">
-        <Label className="text-base font-medium">Row Configuration</Label>
-        {rows.map((row, index) => <Card key={index} className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div>
-                <Label htmlFor={`row-name-${index}`}>Row Name</Label>
-                <Input id={`row-name-${index}`} value={row.name} onChange={e => updateRow(index, {
-              name: e.target.value
-            })} placeholder="Row name" />
-              </div>
+      {/* Row Configuration - Hidden in read-only mode */}
+      {!readOnly && (
+        <div className="space-y-4">
+          <Label className="text-base font-medium">Row Configuration</Label>
+          {rows.map((row, index) => <Card key={index} className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                  <Label htmlFor={`row-name-${index}`}>Row Name</Label>
+                  <Input id={`row-name-${index}`} value={row.name} onChange={e => updateRow(index, {
+                name: e.target.value
+              })} placeholder="Row name" />
+                </div>
 
-              <div>
-                <Label htmlFor={`row-cabins-${index}`}>Number of Cabins</Label>
-                <Input id={`row-cabins-${index}`} type="number" min="1" max="20" value={row.cabins} onChange={e => updateRow(index, {
-              cabins: parseInt(e.target.value) || 1
-            })} />
-              </div>
+                <div>
+                  <Label htmlFor={`row-cabins-${index}`}>Number of Cabins</Label>
+                  <Input id={`row-cabins-${index}`} type="number" min="1" max="20" value={row.cabins} onChange={e => updateRow(index, {
+                cabins: parseInt(e.target.value) || 1
+              })} />
+                </div>
 
-              <div>
-                <Label htmlFor={`row-price-${index}`}>Price Override (Optional)</Label>
-                <Input id={`row-price-${index}`} type="number" value={row.priceOverride || ''} onChange={e => updateRow(index, {
-              priceOverride: e.target.value ? parseInt(e.target.value) : undefined
-            })} placeholder={`Default: ₹${basePrice}`} />
-              </div>
+                <div>
+                  <Label htmlFor={`row-price-${index}`}>Price Override (Optional)</Label>
+                  <Input id={`row-price-${index}`} type="number" value={row.priceOverride || ''} onChange={e => updateRow(index, {
+                priceOverride: e.target.value ? parseInt(e.target.value) : undefined
+              })} placeholder={`Default: ₹${basePrice}`} />
+                </div>
 
-              <div className="flex gap-2">
-                <Badge variant="outline" className="text-xs">
-                  {row.cabins} cabins
-                </Badge>
-                {rows.length > 1 && <Button variant="destructive" size="sm" onClick={() => removeRow(index)}>
-                    <Minus className="h-4 w-4" />
-                  </Button>}
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {row.cabins} cabins
+                  </Badge>
+                  {rows.length > 1 && <Button variant="destructive" size="sm" onClick={() => removeRow(index)}>
+                      <Minus className="h-4 w-4" />
+                    </Button>}
+                </div>
               </div>
-            </div>
-          </Card>)}
-      </div>
+            </Card>)}
+        </div>
+      )}
 
       {/* Enhanced Layout Preview */}
       <Card className="p-4">
@@ -286,21 +294,34 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
         }}>
             {layout.cabins.map(cabin => {
             const statusInfo = getCabinStatusInfo(cabin);
-            return <div key={cabin.id} className={`absolute border-2 rounded-lg text-xs flex flex-col justify-center items-center transition-all cursor-pointer hover:shadow-lg hover:scale-105 ${statusInfo.color}`} style={{
-              left: cabin.x,
-              top: cabin.y,
-              width: cabin.width,
-              height: cabin.height
-            }} title={`${cabin.name} - ${statusInfo.status} - ₹${cabin.monthly_price}/month`}>
-                  <div className="font-bold text-center text-sm">{cabin.name}</div>
-                  <div className={`text-[10px] font-medium ${statusInfo.textColor}`}>
-                    {statusInfo.status}
-                  </div>
-                  <div className="text-[9px] text-gray-600 flex items-center">
-                    <DollarSign className="h-2 w-2 mr-1" />
-                    ₹{cabin.monthly_price}
-                  </div>
-                </div>;
+            return <div 
+              key={cabin.id} 
+              className={`absolute border-2 rounded-lg text-xs flex flex-col justify-center items-center transition-all ${
+                readOnly && statusInfo.status === 'Available' ? 'cursor-pointer hover:shadow-lg hover:scale-105 hover:ring-2 hover:ring-primary' : 
+                !readOnly ? 'cursor-pointer hover:shadow-lg hover:scale-105' : 'cursor-not-allowed'
+              } ${statusInfo.color}`} 
+              style={{
+                left: cabin.x,
+                top: cabin.y,
+                width: cabin.width,
+                height: cabin.height
+              }} 
+              title={`${cabin.name} - ${statusInfo.status} - ₹${cabin.monthly_price}/month`}
+              onClick={() => {
+                if (readOnly && statusInfo.status === 'Available' && onCabinSelect) {
+                  onCabinSelect(cabin.id);
+                }
+              }}
+            >
+              <div className="font-bold text-center text-sm">{cabin.name}</div>
+              <div className={`text-[10px] font-medium ${statusInfo.textColor}`}>
+                {statusInfo.status}
+              </div>
+              <div className="text-[9px] text-gray-600 flex items-center">
+                <DollarSign className="h-2 w-2 mr-1" />
+                ₹{cabin.monthly_price}
+              </div>
+            </div>;
           })}
             
             {/* Entrance/Stage Indicator */}
@@ -328,29 +349,33 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
         </div>
       </Card>
 
-      {/* Enhanced Summary */}
-      <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50">
-        <Label className="text-base font-medium mb-3 block">Summary & Analytics</Label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Total Rows:</span>
-            <div className="font-bold text-lg">{rows.length}</div>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Total Cabins:</span>
-            <div className="font-bold text-lg">{totalCabins}</div>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Occupancy Rate:</span>
-            <div className="font-bold text-lg">
-              {totalCabins > 0 ? Math.round(occupiedCabins / totalCabins * 100) : 0}%
+      {/* Enhanced Summary - Only show in edit mode or if showing availability */}
+      {(!readOnly || showAvailability) && (
+        <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50">
+          <Label className="text-base font-medium mb-3 block">
+            {readOnly ? "Cabin Information" : "Summary & Analytics"}
+          </Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Total Rows:</span>
+              <div className="font-bold text-lg">{rows.length}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Total Cabins:</span>
+              <div className="font-bold text-lg">{totalCabins}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Occupancy Rate:</span>
+              <div className="font-bold text-lg">
+                {totalCabins > 0 ? Math.round(occupiedCabins / totalCabins * 100) : 0}%
+              </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Monthly Revenue Potential:</span>
+              <div className="font-bold text-lg text-green-600">₹{totalRevenue.toLocaleString()}</div>
             </div>
           </div>
-          <div>
-            <span className="text-muted-foreground">Monthly Revenue Potential:</span>
-            <div className="font-bold text-lg text-green-600">₹{totalRevenue.toLocaleString()}</div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
     </div>;
 };
