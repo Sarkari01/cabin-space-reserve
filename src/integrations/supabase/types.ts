@@ -413,6 +413,8 @@ export type Database = {
           months_booked: number
           payment_status: string | null
           private_hall_id: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["cabin_booking_status"] | null
           total_amount: number
@@ -432,6 +434,8 @@ export type Database = {
           months_booked: number
           payment_status?: string | null
           private_hall_id: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["cabin_booking_status"] | null
           total_amount: number
@@ -451,6 +455,8 @@ export type Database = {
           months_booked?: number
           payment_status?: string | null
           private_hall_id?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["cabin_booking_status"] | null
           total_amount?: number
@@ -3041,6 +3047,15 @@ export type Database = {
       calculate_total_seats_from_config: {
         Args: { row_seat_config: Json }
         Returns: number
+      }
+      check_cabin_availability_for_dates: {
+        Args: {
+          p_cabin_id: string
+          p_start_date: string
+          p_end_date: string
+          p_exclude_booking_id?: string
+        }
+        Returns: boolean
       }
       check_seat_availability: {
         Args: { p_seat_id: string; p_start_date: string; p_end_date: string }

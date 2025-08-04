@@ -179,24 +179,23 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const checkCabinAvailability = async (cabinId: string, start: Date, end: Date): Promise<boolean> => {
     try {
       setAvailabilityLoading(true);
-      const { data, error } = await supabase
-        .from('cabin_bookings')
-        .select('*')
-        .eq('cabin_id', cabinId)
-        .in('status', ['active', 'pending'])
-        .or(`start_date.lte.${format(end, 'yyyy-MM-dd')},end_date.gte.${format(start, 'yyyy-MM-dd')}`);
+      
+      // Use the new database function for availability checking
+      const { data, error } = await supabase.rpc('check_cabin_availability_for_dates', {
+        p_cabin_id: cabinId,
+        p_start_date: format(start, 'yyyy-MM-dd'),
+        p_end_date: format(end, 'yyyy-MM-dd')
+      });
 
       if (error) {
-        console.error('Error checking availability:', error);
-        toast.error('Unable to check cabin availability. Please try again.');
-        return false;
+        console.error('Error checking cabin availability:', error);
+        throw new ValidationError('cabin availability check');
       }
 
-      return data.length === 0; // Available if no conflicting bookings
+      return data === true;
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Availability check failed. Please try again.');
-      return false;
+      console.error('Cabin availability check failed:', error);
+      throw new ValidationError('cabin availability verification');
     } finally {
       setAvailabilityLoading(false);
     }
@@ -260,6 +259,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
   const initiatePayment = async (bookingId: string, amount: number) => {
     try {
+      console.log('Initiating payment for booking:', bookingId, 'Amount:', amount);
+      
       // Create payment order
       const { data: orderData, error } = await supabase.functions.invoke('cabin-booking-payment', {
         body: {
@@ -271,15 +272,15 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       if (error) {
         console.error('Error creating payment order:', error);
-        toast.error('Failed to initiate payment. Please try again or contact support.');
-        return;
+        throw new PaymentError(`Payment initiation failed: ${error.message}`);
       }
 
       if (!orderData?.order_id) {
         console.error('Invalid order data received:', orderData);
-        toast.error('Payment setup failed. Please try again.');
-        return;
+        throw new PaymentError('Invalid payment response from server');
       }
+
+      console.log('Payment order created:', orderData.order_id);
 
       // Load Razorpay script if not already loaded
       if (!window.Razorpay) {
@@ -305,7 +306,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         },
         modal: {
           ondismiss: function() {
-            toast.error('Payment cancelled');
+            console.log('Payment modal dismissed');
+            // Don't show error on manual dismissal
           }
         }
       };
@@ -315,12 +317,14 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
     } catch (error) {
       console.error('Error initiating payment:', error);
-      toast.error('Payment system error. Please try again or contact support.');
+      throw error instanceof PaymentError ? error : new PaymentError('Failed to initiate payment process');
     }
   };
 
   const verifyPayment = async (paymentResponse: any, bookingId: string) => {
     try {
+      console.log('Verifying payment:', paymentResponse);
+      
       const { data, error } = await supabase.functions.invoke('cabin-booking-payment', {
         body: {
           action: 'verify_payment',
@@ -333,23 +337,24 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       if (error) {
         console.error('Payment verification failed:', error);
-        toast.error('Payment verification failed. Please contact support if amount was deducted.');
-        return;
+        throw new PaymentError(`Payment verification failed: ${error.message}`);
       }
 
       if (!data?.success) {
         console.error('Payment verification unsuccessful:', data);
-        toast.error('Payment could not be verified. Please contact support.');
-        return;
+        throw new PaymentError('Payment verification was unsuccessful');
       }
 
+      console.log('Payment verified successfully:', data);
       toast.success('Payment successful! Your cabin has been booked.');
       onClose();
-      // Optionally refresh the page or redirect to bookings page
+      
+      // Refresh the page to show updated booking status
+      window.location.reload();
       
     } catch (error) {
       console.error('Error verifying payment:', error);
-      toast.error('Payment verification error. Please contact support if amount was deducted.');
+      handleError(error instanceof PaymentError ? error : new PaymentError('Payment verification failed'));
     }
   };
 
