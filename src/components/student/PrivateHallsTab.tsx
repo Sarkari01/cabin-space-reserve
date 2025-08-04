@@ -18,9 +18,9 @@ interface PrivateHallCardProps {
 }
 
 const PrivateHallCard: React.FC<PrivateHallCardProps> = ({ hall, onView, onBook }) => {
-  const { getMainImage } = usePrivateHallImages(hall.id);
+  const { images } = usePrivateHallImages(hall.id);
   const { isFavorite, toggleFavorite } = useFavorites();
-  const mainImage = getMainImage();
+  const mainImage = images.find(img => img.is_main) || images[0];
 
   // Calculate layout info from cabin_layout_json
   const getLayoutInfo = () => {
@@ -42,11 +42,11 @@ const PrivateHallCard: React.FC<PrivateHallCardProps> = ({ hall, onView, onBook 
       {/* Image Section */}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={mainImage?.image_url || "/api/placeholder/400/200"}
+          src={mainImage?.image_url || "https://images.unsplash.com/photo-1721322800607-8c38375eef04?w=400&h=200&fit=crop"}
           alt={hall.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
-            e.currentTarget.src = "/api/placeholder/400/200";
+            e.currentTarget.src = "https://images.unsplash.com/photo-1721322800607-8c38375eef04?w=400&h=200&fit=crop";
           }}
         />
         {/* Favorite Button */}
@@ -89,15 +89,25 @@ const PrivateHallCard: React.FC<PrivateHallCardProps> = ({ hall, onView, onBook 
           {hall.location}
         </div>
 
-        {/* View Button */}
-        <Button
-          onClick={() => onView(hall)}
-          className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 font-medium"
-          size="sm"
-        >
-          <Eye className="h-4 w-4 mr-2" />
-          View
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button
+            onClick={() => onView(hall)}
+            variant="outline"
+            className="flex-1 font-medium"
+            size="sm"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            View
+          </Button>
+          <Button
+            onClick={() => onBook(hall)}
+            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
+            size="sm"
+          >
+            Book Now
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

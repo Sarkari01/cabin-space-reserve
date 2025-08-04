@@ -172,6 +172,7 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
                 basePrice={privateHall.monthly_price}
                 privateHallId={privateHall.id}
                 showAvailability={true}
+                readOnly={true}
               />
             ) : (
               <div className="text-center text-muted-foreground py-8">
