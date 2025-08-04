@@ -13,7 +13,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import type { PrivateHall, Cabin } from '@/types/PrivateHall';
+import { EnhancedRowBasedCabinDesigner } from '@/components/EnhancedRowBasedCabinDesigner';
+import type { PrivateHall, Cabin, CabinLayoutData } from '@/types/PrivateHall';
 
 interface PrivateHallBookingModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 }) => {
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
+  const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('');
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
@@ -253,9 +255,32 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Cabin Selection */}
+          {/* Visual Cabin Selection */}
           <div>
-            <Label className="text-base font-semibold">Select Cabin</Label>
+            <Label className="text-base font-semibold">Select Cabin from Layout</Label>
+            <p className="text-sm text-muted-foreground mb-4">
+              Click on any available cabin in the layout below to select it
+            </p>
+            {privateHall.cabin_layout_json ? (
+              <div className="cursor-pointer">
+                <EnhancedRowBasedCabinDesigner
+                  layout={privateHall.cabin_layout_json}
+                  onChange={() => {}} // Read-only for booking
+                  basePrice={privateHall.monthly_price}
+                  privateHallId={privateHall.id}
+                  showAvailability={true}
+                />
+              </div>
+            ) : (
+              <Card className="p-6 text-center">
+                <p className="text-muted-foreground">No layout available. Please select from the list below.</p>
+              </Card>
+            )}
+          </div>
+
+          {/* Fallback Cabin Selection */}
+          <div>
+            <Label className="text-base font-semibold">Available Cabins</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
               {cabins.map((cabin) => (
                 <Card

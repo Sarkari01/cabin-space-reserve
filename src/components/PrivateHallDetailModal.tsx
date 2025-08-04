@@ -7,6 +7,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { MapPin, Users, Building, DollarSign, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { EnhancedRowBasedCabinDesigner } from '@/components/EnhancedRowBasedCabinDesigner';
 import type { PrivateHall } from '@/types/PrivateHall';
 
 interface PrivateHallDetailModalProps {
@@ -161,26 +162,22 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
             </Card>
           )}
 
-          {/* Cabin Layout Preview */}
+          {/* Enhanced Cabin Layout */}
           <Card className="p-4">
             <h3 className="font-semibold mb-3">Cabin Layout</h3>
-            <div className="relative bg-muted/20 border-2 border-dashed border-border rounded-lg p-4 min-h-[300px]">
-              {privateHall.cabin_layout_json?.cabins?.map((cabin: any) => (
-                <div
-                  key={cabin.id}
-                  className="absolute bg-primary/20 border-2 border-primary/50 rounded text-xs p-1"
-                  style={{
-                    left: cabin.x,
-                    top: cabin.y,
-                    width: cabin.width,
-                    height: cabin.height,
-                  }}
-                >
-                  <div className="font-medium">{cabin.name}</div>
-                  <div className="text-muted-foreground">₹{cabin.monthly_price}</div>
-                </div>
-              ))}
-            </div>
+            {privateHall.cabin_layout_json ? (
+              <EnhancedRowBasedCabinDesigner
+                layout={privateHall.cabin_layout_json}
+                onChange={() => {}} // Read-only in detail view
+                basePrice={privateHall.monthly_price}
+                privateHallId={privateHall.id}
+                showAvailability={true}
+              />
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                No layout configured yet
+              </div>
+            )}
           </Card>
 
           {/* Actions */}
