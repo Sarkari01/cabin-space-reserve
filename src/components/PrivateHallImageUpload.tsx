@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,13 +26,16 @@ interface PrivateHallImageUploadProps {
   maxImages?: number;
 }
 
-export function PrivateHallImageUpload({
+export const PrivateHallImageUpload = React.forwardRef<
+  { uploadImages: () => Promise<void> },
+  PrivateHallImageUploadProps
+>(({
   privateHallId,
   existingImages = [],
   onImagesChange,
   disabled = false,
   maxImages = 10
-}: PrivateHallImageUploadProps) {
+}, ref) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<UploadedImage[]>([]);
@@ -168,6 +171,11 @@ export function PrivateHallImageUpload({
     setImages(updatedImages);
     onImagesChange?.(updatedImages);
   };
+
+  // Expose uploadImages to parent via ref
+  useImperativeHandle(ref, () => ({
+    uploadImages
+  }));
 
   const uploadImages = async () => {
     if (!privateHallId || images.length === 0) return;
@@ -344,7 +352,9 @@ export function PrivateHallImageUpload({
       )}
     </div>
   );
-}
+});
+
+PrivateHallImageUpload.displayName = "PrivateHallImageUpload";
 
 // Helper function to convert file to base64
 async function fileToBase64(file: File): Promise<string> {

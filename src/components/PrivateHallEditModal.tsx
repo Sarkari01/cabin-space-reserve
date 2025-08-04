@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
   const [useRowBasedDesign, setUseRowBasedDesign] = useState(true);
   const [newAmenity, setNewAmenity] = useState('');
   const [loading, setLoading] = useState(false);
+  const imageUploadRef = useRef<{ uploadImages: () => Promise<void> }>(null);
 
   // Initialize form with private hall data
   useEffect(() => {
@@ -132,7 +133,20 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
       };
 
       await updatePrivateHall(privateHall.id, updateData);
-      toast.success('Private hall updated successfully!');
+
+      // Upload any new images
+      if (images.length > 0 && imageUploadRef.current) {
+        try {
+          await imageUploadRef.current.uploadImages();
+          toast.success('Private hall and images updated successfully!');
+        } catch (error) {
+          console.error('Error uploading images:', error);
+          toast.error('Private hall updated but failed to upload new images');
+        }
+      } else {
+        toast.success('Private hall updated successfully!');
+      }
+
       onClose();
     } catch (error) {
       console.error('Error updating private hall:', error);
@@ -264,6 +278,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
           <div>
             <Label>Private Hall Images</Label>
             <PrivateHallImageUpload
+              ref={imageUploadRef}
               privateHallId={privateHall.id}
               onImagesChange={setImages}
               maxImages={10}

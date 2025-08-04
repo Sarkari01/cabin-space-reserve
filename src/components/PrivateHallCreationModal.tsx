@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,14 +42,16 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
     amenities: [] as string[],
   });
 
-  const [images, setImages] = useState<Array<{ id: string; url: string; file: File; isMain: boolean }>>([]);
+const [images, setImages] = useState<Array<{ id: string; url: string; file: File; isMain: boolean }>>([]);
   const [cabinLayout, setCabinLayout] = useState<CabinLayoutData>({
     cabins: [],
     layout: { width: 800, height: 600, scale: 1 },
   });
   const [useRowBasedDesign, setUseRowBasedDesign] = useState(true);
+  const [createdHallId, setCreatedHallId] = useState<string | null>(null);
 
   const [newAmenity, setNewAmenity] = useState('');
+  const imageUploadRef = useRef<{ uploadImages: () => Promise<void> }>(null);
 
   const handleNext = () => {
     if (step < 4) setStep(step + 1);
@@ -109,6 +111,8 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
       const createdHall = await createPrivateHall(hallData);
       
       if (createdHall) {
+        setCreatedHallId(createdHall.id);
+        
         // Create cabin records from layout
         const cabinsToCreate = cabinLayout.cabins.map((cabin, index) => ({
           private_hall_id: createdHall.id,
@@ -129,6 +133,52 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
         if (cabinsError) {
           console.error('Error creating cabins:', cabinsError);
           toast.error('Private hall created but failed to create cabins');
+        }
+
+        // Upload images if any are selected
+        if (images.length > 0) {
+          try {
+            // Upload images directly using the new private hall ID
+            const uploadPromises = images.map(async (img, index) => {
+              const fileName = `private-halls/${createdHall.id}/${Date.now()}-${img.file.name}`;
+              
+              // Upload to Supabase Storage
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('private-hall-images')
+                .upload(fileName, img.file);
+
+              if (uploadError) throw uploadError;
+
+              // Get public URL
+              const { data: { publicUrl } } = supabase.storage
+                .from('private-hall-images')
+                .getPublicUrl(fileName);
+
+              // Save to database
+              const { data: imageData, error: dbError } = await supabase
+                .from('private_hall_images')
+                .insert({
+                  private_hall_id: createdHall.id,
+                  image_url: publicUrl,
+                  file_path: fileName,
+                  is_main: img.isMain,
+                  display_order: index,
+                  file_size: img.file.size,
+                  mime_type: img.file.type
+                })
+                .select()
+                .single();
+
+              if (dbError) throw dbError;
+              return imageData;
+            });
+
+            await Promise.all(uploadPromises);
+            toast.success('Private hall, cabins, and images created successfully!');
+          } catch (error) {
+            console.error('Error uploading images:', error);
+            toast.error('Private hall created but failed to upload images');
+          }
         } else {
           toast.success('Private hall and cabins created successfully!');
         }
@@ -159,6 +209,7 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
       amenities: [],
     });
     setImages([]);
+    setCreatedHallId(null);
     setCabinLayout({
       cabins: [],
       layout: { width: 800, height: 600, scale: 1 },
@@ -270,6 +321,7 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
             <div>
               <Label>Private Hall Images</Label>
               <PrivateHallImageUpload
+                ref={imageUploadRef}
                 onImagesChange={setImages}
                 maxImages={10}
               />
