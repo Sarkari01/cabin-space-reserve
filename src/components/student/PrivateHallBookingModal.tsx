@@ -4,17 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Users, DollarSign } from 'lucide-react';
-import { format, addMonths, differenceInDays } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { CalendarIcon, MapPin, Users, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format, differenceInDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { EnhancedRowBasedCabinDesigner } from '@/components/EnhancedRowBasedCabinDesigner';
-import type { PrivateHall, Cabin, CabinLayoutData } from '@/types/PrivateHall';
+import type { PrivateHall, Cabin } from '@/types/PrivateHall';
+import { StudentCabinLayoutViewer } from './StudentCabinLayoutViewer';
 
 interface PrivateHallBookingModalProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 }) => {
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
-const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('');
+  const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('');
 
   const handleCabinSelectFromLayout = (cabinId: string) => {
     setSelectedCabinFromLayout(cabinId);
@@ -55,6 +55,7 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
       setSelectedCabin(cabin);
     }
   };
+
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
@@ -301,74 +302,67 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Visual Cabin Selection */}
-          <div>
-            <Label className="text-base font-semibold">Select Cabin from Layout</Label>
-            <p className="text-sm text-muted-foreground mb-4">
-              Click on any available cabin in the layout below to select it
-            </p>
-            {privateHall.cabin_layout_json ? (
-              <div className="border rounded-lg p-2">
-                <EnhancedRowBasedCabinDesigner
-                  layout={privateHall.cabin_layout_json}
-                  onChange={() => {}} // Read-only for booking
-                  basePrice={privateHall.monthly_price}
-                  privateHallId={privateHall.id}
-                  showAvailability={true}
-                  readOnly={true}
-                  onCabinSelect={handleCabinSelectFromLayout}
-                />
-                {selectedCabinFromLayout && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-                    <p className="text-sm text-green-700">
-                      ✓ Selected cabin from layout. You can also select from the list below or proceed with booking.
-                    </p>
-                  </div>
+          {/* Clean Student Cabin Layout */}
+          {privateHall.cabin_layout_json ? (
+            <StudentCabinLayoutViewer
+              layout={privateHall.cabin_layout_json}
+              privateHallId={privateHall.id}
+              privateHallName={privateHall.name}
+              onCabinSelect={handleCabinSelectFromLayout}
+              selectedCabinId={selectedCabinFromLayout || undefined}
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+              onClose={onClose}
+              onBookNow={() => {
+                if (selectedCabinFromLayout && startDate && endDate) {
+                  handleBooking();
+                } else {
+                  toast.error('Please select a cabin and dates before booking');
+                }
+              }}
+            />
+          ) : (
+            <>
+              {/* Fallback Cabin Selection */}
+              <div>
+                <Label className="text-base font-semibold">Available Cabins</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                  {cabins.map((cabin) => (
+                    <Card
+                      key={cabin.id}
+                      className={cn(
+                        'p-3 cursor-pointer transition-all hover:shadow-md',
+                        selectedCabin?.id === cabin.id ? 'ring-2 ring-primary' : ''
+                      )}
+                      onClick={() => setSelectedCabin(cabin)}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{cabin.cabin_name}</span>
+                          <Badge variant="outline">#{cabin.cabin_number}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4" />
+                          ₹{cabin.monthly_price || privateHall.monthly_price}/month
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          Max {cabin.max_occupancy} person(s)
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+                {cabins.length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">
+                    No available cabins at the moment
+                  </p>
                 )}
               </div>
-            ) : (
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">No layout available. Please select from the list below.</p>
-              </Card>
-            )}
-          </div>
-
-          {/* Fallback Cabin Selection */}
-          <div>
-            <Label className="text-base font-semibold">Available Cabins</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-              {cabins.map((cabin) => (
-                <Card
-                  key={cabin.id}
-                  className={cn(
-                    'p-3 cursor-pointer transition-all hover:shadow-md',
-                    selectedCabin?.id === cabin.id ? 'ring-2 ring-primary' : ''
-                  )}
-                  onClick={() => setSelectedCabin(cabin)}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{cabin.cabin_name}</span>
-                      <Badge variant="outline">#{cabin.cabin_number}</Badge>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <DollarSign className="h-4 w-4" />
-                      ₹{cabin.monthly_price || privateHall.monthly_price}/month
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      Max {cabin.max_occupancy} person(s)
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-            {cabins.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">
-                No available cabins at the moment
-              </p>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Date Selection */}
           {selectedCabin && (
@@ -454,18 +448,20 @@ const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('
             </Card>
           )}
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleBooking} 
-              disabled={!selectedCabin || !startDate || !endDate || loading || availabilityLoading}
-            >
-              {loading ? 'Creating Booking...' : availabilityLoading ? 'Checking Availability...' : 'Book Now'}
-            </Button>
-          </div>
+          {/* Actions - Only show if layout is not available */}
+          {!privateHall.cabin_layout_json && (
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleBooking} 
+                disabled={!selectedCabin || !startDate || !endDate || loading || availabilityLoading}
+              >
+                {loading ? 'Creating Booking...' : availabilityLoading ? 'Checking Availability...' : 'Book Now'}
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
