@@ -18,6 +18,7 @@ import { StudentCabinLayoutViewer } from './StudentCabinLayoutViewer';
 import { 
   CabinBookingErrorHandler, 
   useCabinBookingErrorHandler,
+  CabinBookingError,
   CabinUnavailableError,
   PaymentError,
   ValidationError
@@ -154,6 +155,12 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
   useEffect(() => {
     if (isOpen && privateHall) {
+      // Reset state when modal opens
+      setSelectedCabin(null);
+      setSelectedCabinFromLayout('');
+      setStartDate(undefined);
+      setEndDate(undefined);
+      clearError();
       fetchCabins();
     }
   }, [isOpen, privateHall]);
@@ -197,21 +204,24 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
   const handleBooking = async () => {
     if (!user || !selectedCabin || !startDate || !endDate || !privateHall) {
-      toast.error('Please complete all required fields');
+      handleError(new ValidationError('all required fields'));
       return;
     }
 
     const bookingDetails = calculateBookingDetails();
-    if (!bookingDetails) return;
+    if (!bookingDetails) {
+      handleError(new ValidationError('booking details'));
+      return;
+    }
 
     try {
       setLoading(true);
+      clearError(); // Clear any previous errors
 
       // Check cabin availability
       const isAvailable = await checkCabinAvailability(selectedCabin.id, startDate, endDate);
       if (!isAvailable) {
-        toast.error('Selected cabin is not available for the chosen dates. Please select different dates or cabin.');
-        return;
+        throw new CabinUnavailableError(selectedCabin.cabin_name);
       }
 
       const bookingData = {
@@ -235,16 +245,14 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       if (error) {
         console.error('Error creating booking:', error);
-        toast.error('Failed to create booking');
-        return;
+        throw new CabinBookingError('Failed to create booking. Please try again.', 'BOOKING_CREATION_FAILED', true);
       }
 
       // Initiate payment process
       await initiatePayment(booking.id, bookingDetails.totalAmount);
 
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to create booking');
+      handleError(error);
     } finally {
       setLoading(false);
     }
@@ -507,30 +515,6 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
               </div>
             )}
 
-            {/* Booking Summary */}
-            {bookingDetails && (
-              <Card className="p-4 bg-muted/50">
-                <h3 className="font-semibold mb-3">Booking Summary</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Cabin:</span>
-                    <span>{selectedCabin?.cabin_name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Duration:</span>
-                    <span>{bookingDetails.days} days ({bookingDetails.months} month(s))</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Monthly Rate:</span>
-                    <span>₹{bookingDetails.monthlyPrice}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold text-base border-t pt-2">
-                    <span>Total Amount:</span>
-                    <span>₹{bookingDetails.totalAmount}</span>
-                  </div>
-                </div>
-              </Card>
-            )}
 
             {/* Actions - Only show if layout is not available */}
             {!privateHall.cabin_layout_json && (
