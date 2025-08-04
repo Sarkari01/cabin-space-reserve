@@ -72,6 +72,27 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
     return { days, months, monthlyPrice, totalAmount };
   };
 
+  const checkCabinAvailability = async (cabinId: string, start: Date, end: Date): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('cabin_bookings')
+        .select('*')
+        .eq('cabin_id', cabinId)
+        .in('status', ['active', 'pending'])
+        .or(`start_date.lte.${format(end, 'yyyy-MM-dd')},end_date.gte.${format(start, 'yyyy-MM-dd')}`);
+
+      if (error) {
+        console.error('Error checking availability:', error);
+        return false;
+      }
+
+      return data.length === 0; // Available if no conflicting bookings
+    } catch (error) {
+      console.error('Error:', error);
+      return false;
+    }
+  };
+
   const handleBooking = async () => {
     if (!user || !selectedCabin || !startDate || !endDate || !privateHall) {
       toast.error('Please complete all required fields');
@@ -83,6 +104,13 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
     try {
       setLoading(true);
+
+      // Check cabin availability
+      const isAvailable = await checkCabinAvailability(selectedCabin.id, startDate, endDate);
+      if (!isAvailable) {
+        toast.error('Selected cabin is not available for the chosen dates. Please select different dates or cabin.');
+        return;
+      }
 
       const bookingData = {
         user_id: user.id,
@@ -108,6 +136,12 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         toast.error('Failed to create booking');
         return;
       }
+
+      // Update cabin status to occupied
+      await supabase
+        .from('cabins')
+        .update({ status: 'occupied' })
+        .eq('id', selectedCabin.id);
 
       toast.success('Booking created successfully! Please proceed with payment.');
       onClose();

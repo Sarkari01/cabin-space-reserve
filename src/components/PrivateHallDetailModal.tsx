@@ -3,7 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { MapPin, Users, Building, DollarSign } from 'lucide-react';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { MapPin, Users, Building, DollarSign, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { PrivateHall } from '@/types/PrivateHall';
 
 interface PrivateHallDetailModalProps {
@@ -17,6 +20,39 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
   onClose,
   privateHall,
 }) => {
+  const [images, setImages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchImages = async () => {
+    if (!privateHall) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('private_hall_images')
+        .select('*')
+        .eq('private_hall_id', privateHall.id)
+        .order('display_order');
+
+      if (error) {
+        console.error('Error fetching images:', error);
+        return;
+      }
+
+      setImages(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && privateHall) {
+      fetchImages();
+    }
+  }, [isOpen, privateHall]);
+
   if (!privateHall) return null;
 
   return (
@@ -30,6 +66,38 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Image Gallery */}
+          {images.length > 0 && (
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Images
+              </h3>
+              <Carousel className="w-full max-w-lg mx-auto">
+                <CarouselContent>
+                  {images.map((image, index) => (
+                    <CarouselItem key={image.id}>
+                      <div className="aspect-video relative overflow-hidden rounded-lg">
+                        <img
+                          src={image.image_url}
+                          alt={`${privateHall.name} - Image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {image.is_main && (
+                          <Badge className="absolute top-2 left-2">
+                            Main Image
+                          </Badge>
+                        )}
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+              </Carousel>
+            </Card>
+          )}
+
           {/* Status and Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="p-4">

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { PrivateHallCreationModal } from '@/components/PrivateHallCreationModal';
+import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { Plus, MapPin, Calendar, DollarSign, Users, Eye, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
@@ -11,6 +12,7 @@ import type { PrivateHall } from '@/types/PrivateHall';
 export const PrivateHallsTab: React.FC = () => {
   const { privateHalls, loading, updatePrivateHall, deletePrivateHall } = usePrivateHalls();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedHall, setSelectedHall] = useState<PrivateHall | null>(null);
 
   const getStatusColor = (status: string) => {
@@ -157,7 +159,10 @@ export const PrivateHallsTab: React.FC = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setSelectedHall(hall)}
+                      onClick={() => {
+                        setSelectedHall(hall);
+                        setShowDetailModal(true);
+                      }}
                       className="flex-1"
                     >
                       <Eye className="h-3 w-3 mr-1" />
@@ -192,7 +197,14 @@ export const PrivateHallsTab: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
       />
 
-      {/* TODO: Add Private Hall Detail Modal for viewing/editing */}
+      <PrivateHallDetailModal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedHall(null);
+        }}
+        privateHall={selectedHall}
+      />
     </div>
   );
 };
