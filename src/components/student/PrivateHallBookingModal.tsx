@@ -247,18 +247,50 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       console.log('Creating booking with data:', bookingData);
 
-      const { data: booking, error } = await supabase
+      // Try multiple times with different approaches
+      let booking;
+      let error;
+      
+      // Approach 1: Direct insert with current client
+      const insertResult = await supabase
         .from('cabin_bookings')
         .insert([bookingData])
         .select()
         .single();
+      
+      booking = insertResult.data;
+      error = insertResult.error;
+      
+      // Approach 2: If first approach fails, try with refreshed session
+      if (error) {
+        console.log('First attempt failed, refreshing session and retrying...');
+        await supabase.auth.refreshSession();
+        
+        const retryResult = await supabase
+          .from('cabin_bookings')
+          .insert([bookingData])
+          .select()
+          .single();
+          
+        booking = retryResult.data;
+        error = retryResult.error;
+      }
 
       if (error) {
         console.error('Error creating booking:', error);
-        // Provide more specific error details
+        console.error('Error details:', { code: error.code, message: error.message, details: error.details, hint: error.hint });
+        
+        // Handle specific database errors
         if (error.code === '42501') {
           throw new CabinBookingError('Authentication failed. Please log out and log back in.', 'AUTH_FAILED', true);
         }
+        if (error.code === '42P01') {
+          throw new CabinBookingError('Database table not found. Please refresh the page and try again.', 'TABLE_NOT_FOUND', true);
+        }
+        if (error.message?.includes('cabin_bookings')) {
+          throw new CabinBookingError('Cabin booking service is temporarily unavailable. Please try again in a moment.', 'SERVICE_UNAVAILABLE', true);
+        }
+        
         throw new CabinBookingError(`Failed to create booking: ${error.message}`, 'BOOKING_CREATION_FAILED', true);
       }
 
