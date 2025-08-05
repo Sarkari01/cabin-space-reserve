@@ -1,260 +1,287 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 interface CreatePaymentRequest {
-  action: 'create_order';
-  booking_id: string;
+  action: 'create';
+  bookingId: string;
   amount: number;
 }
 
 interface VerifyPaymentRequest {
-  action: 'verify_payment';
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-  booking_id: string;
+  action: 'verify';
+  bookingId: string;
+  paymentResponse: any;
 }
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Health check endpoint
-  if (req.url.endsWith('/health')) {
-    return new Response(JSON.stringify({ status: 'healthy' }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+  // Health check
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ status: 'ok' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
   try {
     const { action, ...requestData } = await req.json();
 
-    // Validate Razorpay credentials
-    const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
-    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
-
-    if (!razorpayKeyId || !razorpayKeySecret) {
-      throw new Error('Razorpay credentials not configured');
-    }
-
-    if (action === 'create_order') {
-      return await createCabinBookingOrder(requestData as CreatePaymentRequest);
-    } else if (action === 'verify_payment') {
-      return await verifyCabinBookingPayment(requestData as VerifyPaymentRequest);
+    if (action === 'create') {
+      return await createCabinBookingOrder(requestData as Omit<CreatePaymentRequest, 'action'>);
+    } else if (action === 'verify') {
+      return await verifyCabinBookingPayment(requestData as Omit<VerifyPaymentRequest, 'action'>);
     } else {
-      throw new Error(`Invalid action: ${action}`);
+      return new Response(
+        JSON.stringify({ error: 'Invalid action' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
   } catch (error) {
-    console.error('Function error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error('Error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
-});
+})
 
-async function createCabinBookingOrder(data: CreatePaymentRequest) {
+async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'action'>) {
   try {
-    // Create Supabase client
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch booking details
+    // Get booking details
     const { data: booking, error: bookingError } = await supabase
       .from('cabin_bookings')
       .select(`
         *,
-        cabins (*, private_halls (*))
+        private_halls!inner(name, merchant_id),
+        cabins!inner(cabin_name)
       `)
-      .eq('id', data.booking_id)
+      .eq('id', request.bookingId)
       .single();
 
     if (bookingError || !booking) {
-      console.error('Booking fetch error:', bookingError);
-      throw new Error('Booking not found');
+      console.error('Booking not found:', bookingError);
+      return new Response(
+        JSON.stringify({ error: 'Booking not found' }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    // Generate receipt
-    const receipt = `cabin_booking_${booking.booking_number || booking.id.slice(-8)}`;
-
     // Create Razorpay order
+    const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
+    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+
+    if (!razorpayKeyId || !razorpayKeySecret) {
+      return new Response(
+        JSON.stringify({ error: 'Payment gateway not configured' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const orderData = {
-      amount: Math.round(data.amount * 100), // Convert to paise
+      amount: Math.round(request.amount * 100), // Convert to paise
       currency: 'INR',
-      receipt,
+      receipt: `cabin_booking_${request.bookingId}`,
       notes: {
-        booking_id: data.booking_id,
-        cabin_id: booking.cabin_id,
-        private_hall_id: booking.private_hall_id,
-        months_booked: booking.months_booked.toString(),
+        booking_id: request.bookingId,
+        cabin_name: booking.cabins.cabin_name,
+        hall_name: booking.private_halls.name,
+        type: 'cabin_booking'
       }
     };
 
-    console.log('Creating Razorpay order:', orderData);
-
-    const response = await fetch('https://api.razorpay.com/v1/orders', {
+    const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
+    
+    const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${btoa(`${Deno.env.get('RAZORPAY_KEY_ID')}:${Deno.env.get('RAZORPAY_KEY_SECRET')}`)}`,
+        'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(orderData),
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Razorpay API error:', errorData);
-      throw new Error(`Razorpay API error: ${response.status} - ${errorData}`);
+    if (!razorpayResponse.ok) {
+      const errorText = await razorpayResponse.text();
+      console.error('Razorpay API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'Failed to create payment order' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    const order = await response.json();
-    console.log('Razorpay order created:', order);
+    const razorpayOrder = await razorpayResponse.json();
 
-    // Update booking with payment details
-    await supabase
+    // Update booking with Razorpay order ID
+    const { error: updateError } = await supabase
       .from('cabin_bookings')
-      .update({
-        razorpay_order_id: order.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', data.booking_id);
+      .update({ razorpay_order_id: razorpayOrder.id })
+      .eq('id', request.bookingId);
 
-    return new Response(JSON.stringify({
-      order_id: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      key_id: Deno.env.get('RAZORPAY_KEY_ID'),
-      booking_details: {
-        cabin_name: booking.cabins?.cabin_name,
-        hall_name: booking.cabins?.private_halls?.name,
-        months: booking.months_booked,
+    if (updateError) {
+      console.error('Error updating booking with order ID:', updateError);
+    }
+
+    return new Response(
+      JSON.stringify({
+        orderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        keyId: razorpayKeyId,
+        bookingDetails: {
+          id: booking.id,
+          cabin_name: booking.cabins.cabin_name,
+          hall_name: booking.private_halls.name,
+          start_date: booking.start_date,
+          end_date: booking.end_date,
+          total_amount: booking.total_amount
+        }
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    );
 
   } catch (error) {
-    console.error('Error creating cabin booking order:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      details: 'Failed to create Razorpay order for cabin booking'
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error('Error creating payment order:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to create payment order' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
 
-async function verifyCabinBookingPayment(data: VerifyPaymentRequest) {
+async function verifyCabinBookingPayment(request: Omit<VerifyPaymentRequest, 'action'>) {
   try {
-    const keySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
-    
-    if (!keySecret) {
-      throw new Error('Razorpay key secret not configured');
-    }
-
-    // Verify signature
-    const body = data.razorpay_order_id + "|" + data.razorpay_payment_id;
-    const expectedSignature = await crypto.subtle
-      .importKey(
-        "raw",
-        new TextEncoder().encode(keySecret),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      )
-      .then(key =>
-        crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body))
-      )
-      .then(signature => {
-        const signatureArray = new Uint8Array(signature);
-        return Array.from(signatureArray)
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
-      });
-
-    console.log('Signature verification:', {
-      expected: expectedSignature,
-      received: data.razorpay_signature,
-      match: expectedSignature === data.razorpay_signature
-    });
-
-    if (expectedSignature !== data.razorpay_signature) {
-      throw new Error('Invalid payment signature');
-    }
-
-    // Create Supabase client
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Update cabin booking
-    const { data: booking, error: updateError } = await supabase
+    const { paymentResponse } = request;
+    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+
+    if (!razorpayKeySecret) {
+      return new Response(
+        JSON.stringify({ error: 'Payment verification not configured' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Verify payment signature
+    const crypto = await import('node:crypto');
+    const expectedSignature = crypto
+      .createHmac('sha256', razorpayKeySecret)
+      .update(`${paymentResponse.razorpay_order_id}|${paymentResponse.razorpay_payment_id}`)
+      .digest('hex');
+
+    if (expectedSignature !== paymentResponse.razorpay_signature) {
+      console.error('Payment signature verification failed');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Payment verification failed' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Update booking status to paid and active
+    const { data: updatedBooking, error: updateError } = await supabase
       .from('cabin_bookings')
       .update({
         payment_status: 'paid',
         status: 'active',
-        razorpay_payment_id: data.razorpay_payment_id,
-        updated_at: new Date().toISOString(),
+        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+        updated_at: new Date().toISOString()
       })
-      .eq('id', data.booking_id)
-      .select('*, cabins(*)')
+      .eq('id', request.bookingId)
+      .select('*, cabins!inner(id)')
       .single();
 
     if (updateError) {
-      console.error('Booking update error:', updateError);
-      throw new Error(`Failed to update booking: ${updateError.message}`);
+      console.error('Error updating booking:', updateError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to update booking status' 
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
-
-    console.log('Booking updated successfully:', booking);
 
     // Update cabin status to occupied
     const { error: cabinUpdateError } = await supabase
       .from('cabins')
-      .update({ 
-        status: 'occupied',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', booking.cabin_id);
+      .update({ status: 'occupied' })
+      .eq('id', updatedBooking.cabins.id);
 
     if (cabinUpdateError) {
-      console.error('Cabin update error:', cabinUpdateError);
+      console.error('Error updating cabin status:', cabinUpdateError);
       // Don't fail the whole operation for this
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Payment verified and booking confirmed',
-      booking_id: data.booking_id,
-      payment_id: data.razorpay_payment_id,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Payment verified and booking confirmed',
+        booking: updatedBooking
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
 
   } catch (error) {
-    console.error('Error verifying cabin booking payment:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      details: 'Payment verification failed'
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error('Error verifying payment:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'Payment verification failed' 
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 }

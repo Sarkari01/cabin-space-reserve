@@ -3065,6 +3065,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_cabin_booking: {
+        Args: {
+          p_cabin_id: string
+          p_private_hall_id: string
+          p_start_date: string
+          p_end_date: string
+          p_months_booked: number
+          p_monthly_amount: number
+          p_total_amount: number
+          p_guest_name?: string
+          p_guest_phone?: string
+          p_guest_email?: string
+        }
+        Returns: Json
+      }
       create_study_hall_with_context: {
         Args: {
           p_name: string

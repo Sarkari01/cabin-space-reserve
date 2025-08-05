@@ -247,57 +247,40 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       console.log('Creating booking with data:', bookingData);
 
-      // Try multiple times with different approaches
-      let booking;
-      let error;
-      
-      // Approach 1: Direct insert with current client
-      const insertResult = await supabase
-        .from('cabin_bookings')
-        .insert([bookingData])
-        .select()
-        .single();
-      
-      booking = insertResult.data;
-      error = insertResult.error;
-      
-      // Approach 2: If first approach fails, try with refreshed session
-      if (error) {
-        console.log('First attempt failed, refreshing session and retrying...');
-        await supabase.auth.refreshSession();
+      // Use the secure database function to create booking
+      const { data: result, error } = await supabase.rpc('create_cabin_booking', {
+        p_cabin_id: selectedCabin.id,
+        p_private_hall_id: privateHall.id,
+        p_start_date: startDate?.toISOString().split('T')[0],
+        p_end_date: endDate?.toISOString().split('T')[0],
+        p_months_booked: bookingData.months_booked,
+        p_monthly_amount: bookingData.monthly_amount,
+        p_total_amount: bookingData.total_amount,
+        p_guest_name: null,
+        p_guest_phone: null,
+        p_guest_email: null
+      });
+
+      if (error || !(result as any)?.success) {
+        console.error('Error creating booking:', error || (result as any)?.error);
+        const errorMessage = (result as any)?.error || error?.message || 'Unknown error occurred';
         
-        const retryResult = await supabase
-          .from('cabin_bookings')
-          .insert([bookingData])
-          .select()
-          .single();
-          
-        booking = retryResult.data;
-        error = retryResult.error;
+        if (errorMessage.includes('Authentication required')) {
+          throw new CabinBookingError('Please log in to make a booking.', 'AUTH_REQUIRED', true);
+        }
+        if (errorMessage.includes('not available')) {
+          throw new CabinBookingError('This cabin is no longer available for the selected dates.', 'CABIN_UNAVAILABLE', true);
+        }
+        
+        throw new CabinBookingError(`Failed to create booking: ${errorMessage}`, 'BOOKING_CREATION_FAILED', true);
       }
 
-      if (error) {
-        console.error('Error creating booking:', error);
-        console.error('Error details:', { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        
-        // Handle specific database errors
-        if (error.code === '42501') {
-          throw new CabinBookingError('Authentication failed. Please log out and log back in.', 'AUTH_FAILED', true);
-        }
-        if (error.code === '42P01') {
-          throw new CabinBookingError('Database table not found. Please refresh the page and try again.', 'TABLE_NOT_FOUND', true);
-        }
-        if (error.message?.includes('cabin_bookings')) {
-          throw new CabinBookingError('Cabin booking service is temporarily unavailable. Please try again in a moment.', 'SERVICE_UNAVAILABLE', true);
-        }
-        
-        throw new CabinBookingError(`Failed to create booking: ${error.message}`, 'BOOKING_CREATION_FAILED', true);
-      }
+      const bookingId = (result as any).booking_id;
 
-      console.log('Booking created successfully:', booking);
+      console.log('Booking created successfully with ID:', bookingId);
 
       // Initiate payment process
-      await initiatePayment(booking.id, bookingDetails.totalAmount);
+      await initiatePayment(bookingId, bookingDetails.totalAmount);
 
     } catch (error) {
       handleError(error);
@@ -313,8 +296,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       // Create payment order
       const { data: orderData, error } = await supabase.functions.invoke('cabin-booking-payment', {
         body: {
-          action: 'create_order',
-          booking_id: bookingId,
+          action: 'create',
+          bookingId: bookingId,
           amount: amount,
         }
       });
@@ -324,12 +307,12 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         throw new PaymentError(`Payment initiation failed: ${error.message}`);
       }
 
-      if (!orderData?.order_id) {
+      if (!orderData?.orderId) {
         console.error('Invalid order data received:', orderData);
         throw new PaymentError('Invalid payment response from server');
       }
 
-      console.log('Payment order created:', orderData.order_id);
+      console.log('Payment order created:', orderData.orderId);
 
       // Load Razorpay script if not already loaded
       if (!window.Razorpay) {
@@ -337,12 +320,12 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       }
 
       const options = {
-        key: orderData.key_id,
+        key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
         name: privateHall?.name || 'Private Hall Booking',
-        description: `Cabin booking for ${orderData.booking_details?.months} month(s)`,
-        order_id: orderData.order_id,
+        description: `Cabin booking for ${orderData.bookingDetails?.cabin_name}`,
+        order_id: orderData.orderId,
         handler: async function (response: any) {
           await verifyPayment(response, bookingId);
         },
@@ -376,11 +359,9 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       
       const { data, error } = await supabase.functions.invoke('cabin-booking-payment', {
         body: {
-          action: 'verify_payment',
-          razorpay_payment_id: paymentResponse.razorpay_payment_id,
-          razorpay_order_id: paymentResponse.razorpay_order_id,
-          razorpay_signature: paymentResponse.razorpay_signature,
-          booking_id: bookingId,
+          action: 'verify',
+          bookingId: bookingId,
+          paymentResponse: paymentResponse,
         }
       });
 
