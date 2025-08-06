@@ -65,6 +65,16 @@ const PaymentSuccess = () => {
 
           if (!cabinBookingError && cabinBooking) {
             console.log('✅ Cabin booking found:', cabinBooking);
+            
+            // Also check for transaction status
+            const { data: transaction } = await supabase
+              .from('transactions')
+              .select('status, payment_method, payment_id')
+              .eq('cabin_booking_id', cabinBookingId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
             bookingData = {
               bookingId: cabinBooking.id,
               bookingNumber: cabinBooking.booking_number,
@@ -76,7 +86,11 @@ const PaymentSuccess = () => {
               startDate: cabinBooking.start_date,
               endDate: cabinBooking.end_date,
               monthsBooked: cabinBooking.months_booked,
-              status: cabinBooking.status
+              status: cabinBooking.status,
+              paymentStatus: cabinBooking.payment_status,
+              transactionStatus: transaction?.status,
+              transactionPaymentMethod: transaction?.payment_method,
+              transactionPaymentId: transaction?.payment_id
             };
 
             // Generate QR code preview for confirmed/active cabin bookings
@@ -438,11 +452,17 @@ const PaymentSuccess = () => {
               {bookingDetails.amount && (
                 <p><strong>Amount:</strong> ₹{bookingDetails.amount}</p>
               )}
+              {bookingDetails.paymentStatus && (
+                <p><strong>Payment Status:</strong> <span className="text-green-600">{bookingDetails.paymentStatus}</span></p>
+              )}
+              {bookingDetails.transactionStatus && (
+                <p><strong>Transaction Status:</strong> <span className="text-blue-600">{bookingDetails.transactionStatus}</span></p>
+              )}
               {bookingDetails.transactionId && !bookingDetails.bookingId && (
                 <p><strong>Transaction ID:</strong> {bookingDetails.transactionId}</p>
               )}
               {bookingDetails.status && (
-                <p className="text-blue-600"><strong>Status:</strong> {bookingDetails.status}</p>
+                <p className="text-blue-600"><strong>Booking Status:</strong> {bookingDetails.status}</p>
               )}
             </div>
           )}
