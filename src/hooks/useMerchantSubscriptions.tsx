@@ -79,7 +79,7 @@ export const useMerchantSubscriptions = () => {
         .from("subscription_plans")
         .select("*")
         .eq("id", planId)
-        .single();
+        .maybeSingle();
 
       if (planError || !plan) {
         throw new Error("Plan not found");
@@ -181,7 +181,7 @@ export const useMerchantSubscriptions = () => {
           *,
           plan:subscription_plans(*)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -215,7 +215,7 @@ export const useMerchantSubscriptions = () => {
           *,
           plan:subscription_plans(*)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

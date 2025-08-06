@@ -49,7 +49,7 @@ export const usePrivateHalls = () => {
         .from('private_halls')
         .insert([hallData])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error creating private hall:', error);
