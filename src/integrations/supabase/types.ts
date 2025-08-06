@@ -3111,6 +3111,13 @@ export type Database = {
               p_amount: number
               p_payment_method: string
               p_payment_id?: string
+              p_payment_data?: Json
+            }
+          | {
+              p_cabin_booking_id: string
+              p_amount: number
+              p_payment_method: string
+              p_payment_id?: string
               p_status?: string
             }
           | {
