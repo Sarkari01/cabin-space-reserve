@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useBookings } from '@/hooks/useBookings';
+import { useTelemarketingBookings } from '@/hooks/useTelemarketingBookings';
 import { useAdminData } from '@/hooks/useAdminData';
 import { PageHeader } from '@/components/PageHeader';
 import { ResponsiveTable } from '@/components/ResponsiveTable';
@@ -12,7 +12,7 @@ import { Calendar, User, Building, Search, Eye, CreditCard, Clock } from 'lucide
 import { BookingDetailModal } from '@/components/BookingDetailModal';
 
 export const TelemarketingBookingsTab = () => {
-  const { bookings, loading } = useBookings();
+  const { bookings, loading } = useTelemarketingBookings();
   const { users, studyHalls } = useAdminData();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -20,13 +20,13 @@ export const TelemarketingBookingsTab = () => {
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
 
   const filteredBookings = bookings.filter(booking => {
-    const user = users.find(u => u.id === booking.user_id);
-    const studyHall = studyHalls.find(h => h.id === booking.study_hall_id);
+    const user = booking.user || users.find(u => u.id === booking.user_id);
     
     const matchesSearch = 
       user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      studyHall?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.guest_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.location_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.id.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
@@ -79,18 +79,18 @@ export const TelemarketingBookingsTab = () => {
           <div className="font-medium">#{booking?.booking_number || booking?.id?.slice(0, 8)}</div>
           <div className="text-sm text-muted-foreground flex items-center">
             <User className="h-3 w-3 mr-1" />
-            {getUserName(booking?.user_id)}
+            {booking?.user?.full_name || booking?.guest_name || 'Unknown User'}
           </div>
         </div>
       )
     },
     {
-      title: 'Study Hall',
-      key: 'study_hall',
+      title: 'Location',
+      key: 'location',
       render: (_: any, booking: any) => (
         <div className="flex items-center text-sm">
           <Building className="h-3 w-3 mr-1" />
-          {getStudyHallName(booking?.study_hall_id)}
+          {booking?.location_name || 'Unknown Location'}
         </div>
       )
     },

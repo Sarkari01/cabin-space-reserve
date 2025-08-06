@@ -7,7 +7,7 @@ import { Users, Building, DollarSign, TrendingUp, Search, Plus, Eye, Edit, Ban, 
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminData } from "@/hooks/useAdminData";
-import { useBookings } from "@/hooks/useBookings";
+import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { supabase } from "@/integrations/supabase/client";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { UserModal } from "@/components/admin/UserModal";
@@ -81,7 +81,7 @@ const AdminDashboard = () => {
     deleteUser, 
     updateStudyHallStatus 
   } = useAdminData();
-  const { bookings, loading: bookingsLoading, fetchBookings } = useBookings();
+  const { bookings, loading: bookingsLoading, fetchAdminBookings } = useAdminBookings();
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   const { operationalUsers, loading: operationalLoading } = useOperationalUsers();
   const { callLogs: allCallLogs } = useCallLogs();
@@ -132,19 +132,17 @@ const AdminDashboard = () => {
     const searchLower = bookingSearchTerm.toLowerCase();
     const studentName = booking.user?.full_name?.toLowerCase() || '';
     const studentEmail = booking.user?.email?.toLowerCase() || '';
-    const studentPhone = booking.user?.phone?.toLowerCase() || '';
-    const studyHallName = booking.study_hall?.name?.toLowerCase() || '';
-    const studyHallLocation = booking.study_hall?.location?.toLowerCase() || '';
+    const guestPhone = booking.guest_phone?.toLowerCase() || '';
+    const locationName = booking.location_name?.toLowerCase() || '';
     const bookingNumber = booking.booking_number?.toString() || '';
-    const seatId = booking.seat?.seat_id?.toLowerCase() || '';
+    const unitName = booking.unit_name?.toLowerCase() || '';
     
     return studentName.includes(searchLower) ||
            studentEmail.includes(searchLower) ||
-           studentPhone.includes(searchLower) ||
-           studyHallName.includes(searchLower) ||
-           studyHallLocation.includes(searchLower) ||
+           guestPhone.includes(searchLower) ||
+           locationName.includes(searchLower) ||
            bookingNumber.includes(searchLower) ||
-           seatId.includes(searchLower);
+           unitName.includes(searchLower);
   });
 
   const handleCreateUser = async (userData: any) => {
@@ -470,7 +468,7 @@ const AdminDashboard = () => {
       });
 
       // Refresh bookings to show the updated information
-      fetchBookings();
+      fetchAdminBookings();
       setActionLoading(false);
       return true;
     } catch (error) {
@@ -588,8 +586,8 @@ const AdminDashboard = () => {
     <>
       {/* Real-time Manager */}
       <RealTimeManager
-        onBookingChange={fetchBookings}
-        onSeatChange={fetchBookings}
+        onBookingChange={fetchAdminBookings}
+        onSeatChange={fetchAdminBookings}
         onTransactionChange={refreshAnalytics}
         onStudyHallChange={refreshAnalytics}
       />
@@ -906,7 +904,7 @@ const AdminDashboard = () => {
                         <div className="flex items-start justify-between">
                           <div className="space-y-2">
                             <div className="flex items-center space-x-2">
-                              <h4 className="text-lg font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
+                              <h4 className="text-lg font-semibold">{booking.location_name || 'Location'}</h4>
                               <Badge variant={getStatusColor(booking.status)}>
                                 {booking.status.toUpperCase()}
                               </Badge>
@@ -914,28 +912,28 @@ const AdminDashboard = () => {
                             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                               <span className="flex items-center space-x-1">
                                 <Users className="h-4 w-4" />
-                                <span>{booking.user?.full_name || booking.user?.email}</span>
+                                <span>{booking.user?.full_name || booking.guest_name || booking.user?.email || booking.guest_email}</span>
                               </span>
-                              {booking.user?.phone && (
+                              {(booking.guest_phone || booking.user?.email) && (
                                 <span className="flex items-center space-x-1">
                                   <Phone className="h-4 w-4" />
-                                  <span>{booking.user.phone}</span>
+                                  <span>{booking.guest_phone || booking.user?.email}</span>
                                 </span>
                               )}
                               <span className="flex items-center space-x-1">
                                 <Building className="h-4 w-4" />
-                                <span>{booking.study_hall?.location}</span>
+                                <span>{booking.location_name}</span>
                               </span>
                               <span className="flex items-center space-x-1">
                                 <Calendar className="h-4 w-4" />
-                                <span>Seat {booking.seat?.seat_id} ({booking.seat?.row_name}{booking.seat?.seat_number})</span>
+                                <span>{booking.booking_type === 'study_hall' ? 'Seat' : 'Cabin'} {booking.unit_name}</span>
                               </span>
                             </div>
                             <div className="text-sm text-muted-foreground">
                               <div>Booking #{booking.booking_number ? `B${booking.booking_number}` : 'Pending'}</div>
                               <div>
                                 <span>Period: {formatDate(booking.start_date)} - {formatDate(booking.end_date)}</span> • 
-                                <span className="ml-2">Duration: {booking.booking_period}</span>
+                                <span className="ml-2">Type: {booking.booking_type}</span>
                               </div>
                               <div>Created: {formatDate(booking.created_at)}</div>
                             </div>
@@ -1171,7 +1169,7 @@ const AdminDashboard = () => {
                       {merchants.slice(0, 5).map((merchant, index) => {
                         const merchantHalls = studyHalls.filter(sh => sh.merchant_id === merchant.id);
                         const merchantBookings = bookings.filter(b => 
-                          merchantHalls.some(sh => sh.id === b.study_hall_id)
+                          b.merchant_id === merchant.id
                         );
                         const merchantRevenue = merchantBookings.reduce((sum, b) => sum + Number(b.total_amount), 0);
                         
