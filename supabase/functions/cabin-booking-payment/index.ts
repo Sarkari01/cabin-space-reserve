@@ -190,7 +190,7 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
     const orderData = {
       amount: Math.round(request.amount * 100), // Convert to paise
       currency: 'INR',
-      receipt: `cabin_booking_${request.bookingId}`,
+      receipt: `cb_${request.bookingId.slice(-28)}`, // Max 40 chars: "cb_" (3) + 28 chars from UUID = 31 chars
         notes: {
           booking_id: request.bookingId,
           cabin_id: booking.cabin_id,
