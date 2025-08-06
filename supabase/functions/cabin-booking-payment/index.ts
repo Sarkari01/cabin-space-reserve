@@ -348,6 +348,25 @@ async function verifyCabinBookingPayment(request: Omit<VerifyPaymentRequest, 'ac
 
     console.log('Booking payment verified and status updated to paid/active:', updatedBooking.id);
 
+    // Update the associated transaction record with correct payment method
+    const { data: transactionData, error: transactionUpdateError } = await supabase
+      .from('transactions')
+      .update({
+        payment_method: 'razorpay',
+        status: 'completed',
+        payment_id: paymentResponse.razorpay_payment_id,
+        payment_data: paymentResponse
+      })
+      .eq('cabin_booking_id', request.bookingId)
+      .select('*');
+
+    if (transactionUpdateError) {
+      console.error('Error updating transaction payment method:', transactionUpdateError);
+      // Don't fail the whole operation for this, but log it
+    } else {
+      console.log('Transaction payment method updated successfully:', transactionData);
+    }
+
     // Update cabin status to occupied using cabin_id from the booking
     const { error: cabinUpdateError } = await supabase
       .from('cabins')
