@@ -282,6 +282,12 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       const bookingId = await bookingHook.createBooking(bookingData);
 
       console.log('Booking created successfully with ID:', bookingId);
+      
+      // Show success message
+      toast({
+        title: "Booking Created!",
+        description: "Your cabin booking has been created. Please complete the payment.",
+      });
 
       // Initiate payment process
       await initiatePayment(bookingId, bookingDetails.totalAmount);

@@ -74,18 +74,48 @@ export const useCabinBooking = () => {
         if (error) {
           console.error('RPC Error:', error);
           
-          // Check for authentication-related errors
-          if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+          // Parse specific error messages from the database function
+          const errorMessage = error.message || '';
+          
+          // Handle cabin-specific errors
+          if (errorMessage.includes('Cabin is not available for booking')) {
+            throw new Error('Selected cabin is no longer available. Please choose another cabin.');
+          }
+          
+          if (errorMessage.includes('Cabin is not available for the selected dates')) {
+            throw new Error('Cabin is not available for the selected dates. Please choose different dates.');
+          }
+          
+          if (errorMessage.includes('Failed to generate booking number')) {
+            throw new Error('System error occurred. Please try again in a few moments.');
+          }
+          
+          if (errorMessage.includes('Cabin validation failed')) {
+            throw new Error('Invalid cabin selection. Please refresh and try again.');
+          }
+          
+          if (errorMessage.includes('Date availability check failed')) {
+            throw new Error('Unable to verify date availability. Please try again.');
+          }
+          
+          // Handle database connection errors (legacy)
+          if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
             if (retryAttemptRef.current < maxRetries) {
               retryAttemptRef.current++;
-              console.log('Retrying booking creation due to relation error...');
+              console.log('Retrying booking creation due to database error...');
               await new Promise(resolve => setTimeout(resolve, 1000 * retryAttemptRef.current));
               return attemptBooking();
             }
             throw new Error('Database connection error. Please try again later.');
           }
           
-          throw new Error(error.message || 'Failed to create booking');
+          // Authentication errors
+          if (errorMessage.includes('User authentication') || errorMessage.includes('auth')) {
+            throw new Error('Authentication error. Please log out and log back in.');
+          }
+          
+          // Default error
+          throw new Error(errorMessage || 'Failed to create booking');
         }
 
         // The function now returns the booking ID directly
