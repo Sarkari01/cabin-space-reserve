@@ -72,7 +72,22 @@ export const useCombinedTransactions = () => {
 
       // Process each transaction to determine its type and enrich with booking data
       for (const transaction of allTransactions || []) {
-        const bookingType = (transaction.payment_data as any)?.booking_type || 'study_hall';
+        // Determine booking type with better fallback logic
+        let bookingType = (transaction.payment_data as any)?.booking_type;
+        
+        if (!bookingType && transaction.booking_id) {
+          // If no explicit booking_type, try to determine from booking context
+          const { data: cabinBooking } = await supabase
+            .from("cabin_bookings")
+            .select("id")
+            .eq("id", transaction.booking_id)
+            .single();
+          
+          bookingType = cabinBooking ? 'cabin' : 'study_hall';
+        } else if (!bookingType) {
+          // Default fallback
+          bookingType = 'study_hall';
+        }
         
         let bookingData = null;
         
