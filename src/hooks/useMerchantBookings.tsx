@@ -83,7 +83,7 @@ export const useMerchantBookings = () => {
         console.error("Error fetching study hall bookings:", studyHallError);
       }
 
-      // Fetch cabin bookings
+      // Fetch cabin bookings with correct foreign key references
       const { data: cabinBookings, error: cabinError } = await supabase
         .from("cabin_bookings")
         .select(`
@@ -110,6 +110,8 @@ export const useMerchantBookings = () => {
         `)
         .eq('private_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
+
+      console.log('Cabin bookings query result:', { cabinBookings, cabinError, merchantId: user.id });
 
       if (cabinError) {
         console.error("Error fetching cabin bookings:", cabinError);
