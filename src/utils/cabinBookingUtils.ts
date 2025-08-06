@@ -64,6 +64,10 @@ export const validateBookingDates = (startDate: Date, endDate: Date): string | n
   return null;
 };
 
+export const calculateAutoEndDate = (startDate: Date): Date => {
+  return addMonths(startDate, 1);
+};
+
 export const getMinEndDate = (startDate: Date): Date => {
   return addMonths(startDate, 1);
 };

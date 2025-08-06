@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { CalendarIcon, MapPin, Users, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, addMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +42,6 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
   const [selectedCabinFromLayout, setSelectedCabinFromLayout] = useState<string>('');
   const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const { user, session } = useAuth();
@@ -193,27 +192,28 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       setSelectedCabin(null);
       setSelectedCabinFromLayout('');
       setStartDate(undefined);
-      setEndDate(undefined);
       clearError();
       fetchCabins();
     }
   }, [isOpen, privateHall]);
 
   const calculateBookingDetails = () => {
-    if (!startDate || !endDate || !selectedCabin) return null;
+    if (!startDate || !selectedCabin) return null;
 
+    const endDate = addMonths(startDate, 1);
     const days = differenceInDays(endDate, startDate) + 1;
-    const months = Math.ceil(days / 30);
+    const months = 1; // Always 1 month
     const monthlyPrice = selectedCabin.monthly_price || privateHall?.monthly_price || 0;
-    const totalAmount = months * monthlyPrice;
+    const totalAmount = monthlyPrice; // 1 month * monthly price
 
-    return { days, months, monthlyPrice, totalAmount };
+    return { days, months, monthlyPrice, totalAmount, endDate };
   };
 
-  const checkCabinAvailability = async (cabinId: string, start: Date, end: Date): Promise<boolean> => {
+  const checkCabinAvailability = async (cabinId: string, start: Date): Promise<boolean> => {
     try {
       setAvailabilityLoading(true);
       
+      const end = addMonths(start, 1);
       // Use the new database function for availability checking
       const { data, error } = await supabase.rpc('check_cabin_availability_for_dates', {
         p_cabin_id: cabinId,
@@ -236,7 +236,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   };
 
   const handleBooking = async () => {
-    if (!user || !selectedCabin || !startDate || !endDate || !privateHall) {
+    if (!user || !selectedCabin || !startDate || !privateHall) {
       handleError(new ValidationError('all required fields'));
       return;
     }
@@ -260,8 +260,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       console.log('User authenticated, session valid:', session.user.id);
 
-      // Check cabin availability
-      const isAvailable = await checkCabinAvailability(selectedCabin.id, startDate, endDate);
+      // Check cabin availability (endDate auto-calculated inside function)
+      const isAvailable = await checkCabinAvailability(selectedCabin.id, startDate);
       if (!isAvailable) {
         throw new CabinUnavailableError(selectedCabin.cabin_name);
       }
@@ -271,7 +271,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         cabin_id: selectedCabin.id,
         private_hall_id: privateHall.id,
         start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: format(endDate, 'yyyy-MM-dd'),
+        end_date: format(bookingDetails.endDate, 'yyyy-MM-dd'),
         months_booked: bookingDetails.months,
         monthly_amount: bookingDetails.monthlyPrice,
         total_amount: bookingDetails.totalAmount,
@@ -479,15 +479,13 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                 onCabinSelect={handleCabinSelectFromLayout}
                 selectedCabinId={selectedCabinFromLayout || undefined}
                 startDate={startDate}
-                endDate={endDate}
                 onStartDateChange={setStartDate}
-                onEndDateChange={setEndDate}
                 onClose={onClose}
                 onBookNow={() => {
-                  if (selectedCabinFromLayout && startDate && endDate) {
+                  if (selectedCabinFromLayout && startDate) {
                     handleBooking();
                   } else {
-                    handleError(new ValidationError('cabin and dates'));
+                    handleError(new ValidationError('cabin and start date'));
                   }
                 }}
               />
@@ -532,61 +530,46 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
               </>
             )}
 
-            {/* Date Selection */}
+            {/* Date Selection - Start Date Only */}
             {selectedCabin && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <Label>Start Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !startDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, 'PPP') : 'Pick start date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div>
-                  <Label>End Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !endDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, 'PPP') : 'Pick end date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        disabled={(date) => date < (startDate || new Date())}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Label className="text-base font-semibold mb-3 block">Select Booking Start Date</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Booking duration is automatically set to 1 month from your start date
+                  </p>
+                  <div className="max-w-sm">
+                    <Label>Start Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !startDate && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(startDate, 'PPP') : 'Pick start date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={startDate}
+                          onSelect={setStartDate}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {startDate && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        End date: {format(addMonths(startDate, 1), 'PPP')} (1 month later)
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -600,7 +583,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                 </Button>
                 <Button 
                   onClick={handleBooking} 
-                  disabled={!selectedCabin || !startDate || !endDate || loading || availabilityLoading}
+                  disabled={!selectedCabin || !startDate || loading || availabilityLoading}
                 >
                   {loading ? 'Creating Booking...' : availabilityLoading ? 'Checking Availability...' : 'Book Now'}
                 </Button>

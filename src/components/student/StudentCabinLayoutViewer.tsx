@@ -7,7 +7,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Heart, MapPin, CalendarIcon, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, addMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import type { CabinLayoutData } from '@/types/PrivateHall';
 
@@ -27,9 +27,7 @@ interface StudentCabinLayoutViewerProps {
   onClose?: () => void;
   onBookNow?: () => void;
   startDate?: Date;
-  endDate?: Date;
   onStartDateChange?: (date: Date | undefined) => void;
-  onEndDateChange?: (date: Date | undefined) => void;
 }
 
 export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> = ({
@@ -41,9 +39,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
   onClose,
   onBookNow,
   startDate,
-  endDate,
-  onStartDateChange,
-  onEndDateChange
+  onStartDateChange
 }) => {
   const [availability, setAvailability] = useState<CabinAvailability>({});
   const [loading, setLoading] = useState(false);
@@ -205,24 +201,26 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
   const occupiedCabins = Object.values(availability).filter(a => a.status === 'occupied').length;
   const availableCabins = totalCabins - occupiedCabins;
 
-  // Calculate booking details
+  // Calculate booking details with auto end date (1 month from start)
   const calculateBookingDetails = () => {
-    if (!startDate || !endDate || !selectedCabinId) return null;
+    if (!startDate || !selectedCabinId) return null;
 
     const selectedCabin = layout.cabins.find(c => c.id === selectedCabinId);
     if (!selectedCabin) return null;
 
+    const endDate = addMonths(startDate, 1);
     const days = differenceInDays(endDate, startDate) + 1;
-    const months = Math.ceil(days / 30);
+    const months = 1; // Always 1 month
     const monthlyPrice = selectedCabin.monthly_price || 0;
-    const totalAmount = months * monthlyPrice;
+    const totalAmount = monthlyPrice; // 1 month * monthly price
 
     return { 
       days, 
       months, 
       monthlyPrice, 
       totalAmount, 
-      cabinName: selectedCabin.name 
+      cabinName: selectedCabin.name,
+      endDate
     };
   };
 
@@ -319,63 +317,43 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
         </div>
       </Card>
 
-      {/* Date Selection */}
+      {/* Date Selection - Start Date Only */}
       <Card className="p-4">
-        <Label className="text-base font-semibold mb-3 block">Select Booking Dates</Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Start Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !startDate && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, 'PPP') : 'Pick start date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={onStartDateChange}
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div>
-            <Label>End Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !endDate && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, 'PPP') : 'Pick end date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={onEndDateChange}
-                  disabled={(date) => date < (startDate || new Date())}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+        <Label className="text-base font-semibold mb-3 block">Select Booking Start Date</Label>
+        <p className="text-sm text-muted-foreground mb-4">
+          Booking duration is automatically set to 1 month from your start date
+        </p>
+        <div className="max-w-sm">
+          <Label>Start Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-full justify-start text-left font-normal',
+                  !startDate && 'text-muted-foreground'
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {startDate ? format(startDate, 'PPP') : 'Pick start date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={onStartDateChange}
+                disabled={(date) => date < new Date()}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          {startDate && (
+            <p className="text-sm text-muted-foreground mt-2">
+              End date: {format(addMonths(startDate, 1), 'PPP')} (1 month later)
+            </p>
+          )}
         </div>
       </Card>
 
@@ -393,7 +371,11 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Duration:</span>
-              <span className="font-medium">{bookingDetails.days} days ({bookingDetails.months} month(s))</span>
+              <span className="font-medium">1 Month</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Period:</span>
+              <span className="font-medium">{format(startDate!, 'MMM dd')} - {format(bookingDetails.endDate, 'MMM dd, yyyy')}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Monthly Rate:</span>
@@ -427,7 +409,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
           </Button>
           <Button 
             onClick={onBookNow}
-            disabled={!selectedCabinId || !startDate || !endDate}
+            disabled={!selectedCabinId || !startDate}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             Book Now
