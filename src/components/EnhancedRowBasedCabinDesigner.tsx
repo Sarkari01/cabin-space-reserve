@@ -52,27 +52,43 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
     try {
       setLoading(true);
 
-      // Fetch cabins with their current bookings
-      const {
-        data: cabins,
-        error
-      } = await supabase.from('cabins').select(`
-          *,
-          cabin_bookings!inner(
-            id,
-            status,
-            start_date,
-            end_date,
-            payment_status
-          )
-        `).eq('private_hall_id', privateHallId);
-      if (error) {
-        console.error('Error fetching availability:', error);
+      // Fetch cabins first
+      const { data: cabins, error: cabinsError } = await supabase
+        .from('cabins')
+        .select('*')
+        .eq('private_hall_id', privateHallId);
+
+      if (cabinsError) {
+        console.error('Error fetching cabins:', cabinsError);
         return;
+      }
+
+      // Then fetch bookings separately to avoid JOIN issues
+      const cabinIds = cabins?.map(cabin => cabin.id) || [];
+      let bookings: any[] = [];
+      
+      if (cabinIds.length > 0) {
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from('cabin_bookings')
+          .select('*')
+          .in('cabin_id', cabinIds)
+          .in('status', ['active', 'pending'])
+          .eq('payment_status', 'paid');
+
+        if (bookingsError) {
+          console.error('Error fetching bookings:', bookingsError);
+        } else {
+          bookings = bookingsData || [];
+        }
       }
       const availabilityMap: CabinAvailability = {};
       cabins?.forEach(cabin => {
-        const activeBookings = cabin.cabin_bookings?.filter(booking => booking.status === 'active' && booking.payment_status === 'paid') || [];
+        const activeBookings = bookings.filter(booking => 
+          booking.cabin_id === cabin.id && 
+          booking.status === 'active' && 
+          booking.payment_status === 'paid'
+        );
+        
         availabilityMap[cabin.id] = {
           status: activeBookings.length > 0 ? 'occupied' : 'available',
           bookings: activeBookings.length

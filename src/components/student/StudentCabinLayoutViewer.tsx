@@ -79,33 +79,45 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
       // Create cabin ID mapping first
       await createCabinIdMapping();
 
-      // Fetch cabins with their current bookings using database IDs
-      const { data: cabins, error } = await supabase
+      // Fetch cabins and bookings separately to avoid JOIN issues
+      const { data: cabins, error: cabinsError } = await supabase
         .from('cabins')
-        .select(`
-          *,
-          cabin_bookings(
-            id,
-            status,
-            start_date,
-            end_date,
-            payment_status
-          )
-        `)
+        .select('*')
         .eq('private_hall_id', privateHallId);
 
-      if (error) {
-        console.error('Error fetching availability:', error);
+      if (cabinsError) {
+        console.error('Error fetching cabins:', cabinsError);
         return;
+      }
+
+      // Fetch bookings separately
+      const cabinIds = cabins?.map(cabin => cabin.id) || [];
+      let bookings: any[] = [];
+      
+      if (cabinIds.length > 0) {
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from('cabin_bookings')
+          .select('*')
+          .in('cabin_id', cabinIds)
+          .in('status', ['active', 'pending'])
+          .eq('payment_status', 'paid');
+
+        if (bookingsError) {
+          console.error('Error fetching bookings:', bookingsError);
+        } else {
+          bookings = bookingsData || [];
+        }
       }
 
       const availabilityMap: CabinAvailability = {};
       
       // Map database cabin availability back to layout cabin IDs
       cabins?.forEach(dbCabin => {
-        const activeBookings = dbCabin.cabin_bookings?.filter(
-          (booking: any) => booking.status === 'active' && booking.payment_status === 'paid'
-        ) || [];
+        const activeBookings = bookings.filter(booking => 
+          booking.cabin_id === dbCabin.id && 
+          booking.status === 'active' && 
+          booking.payment_status === 'paid'
+        );
         
         // Find the layout cabin ID that corresponds to this database cabin
         const layoutCabinId = Object.keys(cabinIdMapping).find(
