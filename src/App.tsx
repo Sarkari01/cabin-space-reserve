@@ -10,6 +10,7 @@ import { DashboardRedirect } from "@/components/DashboardRedirect";
 import Landing from "./pages/Landing";
 import Login from "./pages/Auth/Login";
 import { Register } from "./pages/Auth/Register";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/Admin/Dashboard";
 import MerchantDashboard from "./pages/Merchant/Dashboard";
@@ -37,6 +38,16 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              
+              {/* Payment Success Route - Accessible to authenticated users */}
+              <Route 
+                path="/payment-success" 
+                element={
+                  <ProtectedRoute>
+                    <PaymentSuccess />
+                  </ProtectedRoute>
+                } 
+              />
               
               {/* Generic dashboard route that redirects based on role */}
               <Route 
