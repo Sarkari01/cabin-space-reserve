@@ -64,7 +64,9 @@ export const MerchantTransactionsTab = () => {
     const matchesSearch = searchTerm === "" || 
       transaction.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.booking?.study_hall?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      transaction.booking?.study_hall?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.private_hall?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.cabin?.cabin_name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -89,7 +91,7 @@ export const MerchantTransactionsTab = () => {
       <div>
         <h3 className="text-lg font-medium">Payment Transactions</h3>
         <p className="text-sm text-muted-foreground">
-          Track payments for your study hall bookings
+          Track payments for your study hall and private hall bookings
         </p>
       </div>
 
@@ -128,7 +130,7 @@ export const MerchantTransactionsTab = () => {
       <div className="flex gap-4 flex-wrap">
         <div className="flex-1 min-w-[200px]">
           <Input
-            placeholder="Search by user, email, or study hall..."
+            placeholder="Search by user, email, study hall, or private hall..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -177,7 +179,14 @@ export const MerchantTransactionsTab = () => {
                       {" • "}
                       <span>{safeFormatDistanceToNow(transaction.created_at)} ago</span>
                     </div>
-                    {transaction.booking?.study_hall?.name && (
+                    {/* Show booking details based on type */}
+                    {transaction.booking_type === 'cabin' && transaction.private_hall?.name && (
+                      <div className="text-sm text-muted-foreground">
+                        Private Hall: {transaction.private_hall.name}
+                        {transaction.cabin?.cabin_name && ` • Cabin: ${transaction.cabin.cabin_name}`}
+                      </div>
+                    )}
+                    {transaction.booking_type === 'study_hall' && transaction.booking?.study_hall?.name && (
                       <div className="text-sm text-muted-foreground">
                         Study Hall: {transaction.booking.study_hall.name}
                         {transaction.booking.seat?.seat_id && ` • Seat: ${transaction.booking.seat.seat_id}`}

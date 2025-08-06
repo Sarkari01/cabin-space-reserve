@@ -51,7 +51,7 @@ export const useCombinedTransactions = () => {
         return;
       }
 
-      // Fetch all transactions for the user
+      // Fetch all transactions for the user (both booking_id and cabin_booking_id)
       const { data: allTransactions, error } = await supabase
         .from("transactions")
         .select("*")
@@ -72,26 +72,28 @@ export const useCombinedTransactions = () => {
 
       // Process each transaction to determine its type and enrich with booking data
       for (const transaction of allTransactions || []) {
-        // Determine booking type with better fallback logic
-        let bookingType = (transaction.payment_data as any)?.booking_type;
+        // Determine booking type based on which booking ID is present
+        let bookingType: 'study_hall' | 'cabin' = 'study_hall';
+        let bookingId = null;
         
-        if (!bookingType && transaction.booking_id) {
-          // If no explicit booking_type, try to determine from booking context
-          const { data: cabinBooking } = await supabase
-            .from("cabin_bookings")
-            .select("id")
-            .eq("id", transaction.booking_id)
-            .single();
-          
-          bookingType = cabinBooking ? 'cabin' : 'study_hall';
-        } else if (!bookingType) {
-          // Default fallback
+        if (transaction.cabin_booking_id) {
+          bookingType = 'cabin';
+          bookingId = transaction.cabin_booking_id;
+        } else if (transaction.booking_id) {
           bookingType = 'study_hall';
+          bookingId = transaction.booking_id;
+        } else {
+          // Check payment_data for legacy transactions
+          const paymentBookingType = (transaction.payment_data as any)?.booking_type;
+          if (paymentBookingType === 'cabin') {
+            bookingType = 'cabin';
+            bookingId = transaction.booking_id; // For legacy cabin transactions
+          }
         }
         
         let bookingData = null;
         
-        if (transaction.booking_id) {
+        if (bookingId) {
           if (bookingType === 'cabin') {
             // Fetch cabin booking data
             const { data: cabinBooking } = await supabase
@@ -103,8 +105,8 @@ export const useCombinedTransactions = () => {
                 private_hall:private_halls!cabin_bookings_private_hall_id_fkey(name),
                 cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name)
               `)
-              .eq("id", transaction.booking_id)
-              .single();
+              .eq("id", bookingId)
+              .maybeSingle();
 
             if (cabinBooking) {
               bookingData = {
@@ -126,8 +128,8 @@ export const useCombinedTransactions = () => {
                 study_hall:study_halls(name),
                 seat:seats(seat_id)
               `)
-              .eq("id", transaction.booking_id)
-              .single();
+              .eq("id", bookingId)
+              .maybeSingle();
 
             if (studyHallBooking) {
               bookingData = {
@@ -144,7 +146,7 @@ export const useCombinedTransactions = () => {
         enrichedTransactions.push({
           id: transaction.id,
           transaction_number: transaction.transaction_number,
-          booking_id: transaction.booking_id,
+          booking_id: bookingId, // Use the actual booking ID (could be from booking_id or cabin_booking_id)
           user_id: transaction.user_id,
           amount: transaction.amount,
           payment_method: transaction.payment_method,

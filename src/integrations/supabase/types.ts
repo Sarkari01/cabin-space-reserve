@@ -2770,6 +2770,7 @@ export type Database = {
         Row: {
           amount: number
           booking_id: string | null
+          cabin_booking_id: string | null
           created_at: string
           id: string
           payment_data: Json | null
@@ -2784,6 +2785,7 @@ export type Database = {
         Insert: {
           amount: number
           booking_id?: string | null
+          cabin_booking_id?: string | null
           created_at?: string
           id?: string
           payment_data?: Json | null
@@ -2798,6 +2800,7 @@ export type Database = {
         Update: {
           amount?: number
           booking_id?: string | null
+          cabin_booking_id?: string | null
           created_at?: string
           id?: string
           payment_data?: Json | null
@@ -2815,6 +2818,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_cabin_booking_id_fkey"
+            columns: ["cabin_booking_id"]
+            isOneToOne: false
+            referencedRelation: "cabin_bookings"
             referencedColumns: ["id"]
           },
           {
@@ -3091,6 +3101,17 @@ export type Database = {
           p_guest_name?: string
           p_guest_phone?: string
           p_guest_email?: string
+        }
+        Returns: string
+      }
+      create_cabin_booking_transaction: {
+        Args: {
+          p_cabin_booking_id: string
+          p_user_id: string
+          p_amount: number
+          p_payment_method: string
+          p_payment_id?: string
+          p_payment_data?: Json
         }
         Returns: string
       }

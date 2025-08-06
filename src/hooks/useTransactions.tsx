@@ -6,7 +6,8 @@ import { useToast } from "./use-toast";
 export interface Transaction {
   id: string;
   transaction_number?: number;
-  booking_id: string;
+  booking_id: string | null;
+  cabin_booking_id?: string | null;
   user_id: string;
   amount: number;
   payment_method: "ekqr" | "offline" | "razorpay";
@@ -16,6 +17,7 @@ export interface Transaction {
   payment_data: any;
   created_at: string;
   updated_at: string;
+  booking_type?: 'study_hall' | 'cabin';
   booking?: {
     id: string;
     booking_number?: number;
@@ -26,6 +28,12 @@ export interface Transaction {
     seat?: {
       seat_id: string;
     };
+  };
+  private_hall?: {
+    name: string;
+  };
+  cabin?: {
+    cabin_name: string;
   };
   user?: {
     full_name: string;
@@ -72,16 +80,22 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
       if (effectiveRole === "student") {
         query = query.eq("user_id", user.id);
       } else if (effectiveRole === "merchant") {
-        // Get transactions for bookings in merchant's study halls
-        const { data: merchantStudyHalls, error: studyHallError } = await supabase
-          .from("study_halls")
-          .select("id")
-          .eq("merchant_id", user.id);
+        // Get transactions for both study hall and cabin bookings in merchant's properties
+        const [studyHallRes, privateHallRes] = await Promise.all([
+          supabase.from("study_halls").select("id").eq("merchant_id", user.id),
+          supabase.from("private_halls").select("id").eq("merchant_id", user.id)
+        ]);
         
-        if (studyHallError) throw studyHallError;
+        if (studyHallRes.error) throw studyHallRes.error;
+        if (privateHallRes.error) throw privateHallRes.error;
         
-        const studyHallIds = merchantStudyHalls?.map(sh => sh.id) || [];
+        const studyHallIds = studyHallRes.data?.map(sh => sh.id) || [];
+        const privateHallIds = privateHallRes.data?.map(ph => ph.id) || [];
         
+        let bookingIdsArray: string[] = [];
+        let cabinBookingIdsArray: string[] = [];
+        
+        // Get regular study hall booking IDs
         if (studyHallIds.length > 0) {
           const { data: bookingIds, error: bookingError } = await supabase
             .from("bookings")
@@ -89,16 +103,31 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
             .in("study_hall_id", studyHallIds);
           
           if (bookingError) throw bookingError;
+          bookingIdsArray = bookingIds?.map(b => b.id) || [];
+        }
+        
+        // Get cabin booking IDs
+        if (privateHallIds.length > 0) {
+          const { data: cabinBookingIds, error: cabinBookingError } = await supabase
+            .from("cabin_bookings")
+            .select("id")
+            .in("private_hall_id", privateHallIds);
           
-          const bookingIdsArray = bookingIds?.map(b => b.id) || [];
-          
+          if (cabinBookingError) throw cabinBookingError;
+          cabinBookingIdsArray = cabinBookingIds?.map(cb => cb.id) || [];
+        }
+        
+        // Filter transactions by booking IDs or cabin booking IDs
+        if (bookingIdsArray.length > 0 || cabinBookingIdsArray.length > 0) {
+          const orConditions = [];
           if (bookingIdsArray.length > 0) {
-            query = query.in("booking_id", bookingIdsArray);
-          } else {
-            setTransactions([]);
-            setLoading(false);
-            return;
+            orConditions.push(`booking_id.in.(${bookingIdsArray.join(',')})`);
           }
+          if (cabinBookingIdsArray.length > 0) {
+            orConditions.push(`cabin_booking_id.in.(${cabinBookingIdsArray.join(',')})`);
+          }
+          
+          query = query.or(orConditions.join(','));
         } else {
           setTransactions([]);
           setLoading(false);
@@ -110,7 +139,41 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
       const { data, error } = await query.order("created_at", { ascending: false });
       
       if (error) throw error;
-      setTransactions((data || []) as Transaction[]);
+      
+      // Enrich transactions with booking type and related data
+      const enrichedTransactions: Transaction[] = [];
+      
+      for (const transaction of data || []) {
+        let private_hall = null;
+        let cabin = null;
+        
+        // If this is a cabin booking transaction, fetch the related data
+        if (transaction.cabin_booking_id) {
+          const { data: cabinBookingData } = await supabase
+            .from("cabin_bookings")
+            .select(`
+              private_hall:private_halls!cabin_bookings_private_hall_id_fkey(name),
+              cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name)
+            `)
+            .eq("id", transaction.cabin_booking_id)
+            .maybeSingle();
+          
+          if (cabinBookingData) {
+            private_hall = cabinBookingData.private_hall;
+            cabin = cabinBookingData.cabin;
+          }
+        }
+        
+        enrichedTransactions.push({
+          ...transaction,
+          payment_method: transaction.payment_method as "ekqr" | "offline" | "razorpay",
+          booking_type: transaction.cabin_booking_id ? 'cabin' : 'study_hall',
+          private_hall,
+          cabin
+        } as Transaction);
+      }
+      
+      setTransactions(enrichedTransactions);
     } catch (error) {
       console.error("Error fetching transactions:", error);
       toast({

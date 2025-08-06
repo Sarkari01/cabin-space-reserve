@@ -318,7 +318,7 @@ async function verifyCabinBookingPayment(request: Omit<VerifyPaymentRequest, 'ac
       );
     }
 
-    // Update booking status to paid and active
+    // Update booking status to paid and active (this will trigger the transaction creation via trigger)
     const { data: updatedBooking, error: updateError } = await supabase
       .from('cabin_bookings')
       .update({
@@ -336,7 +336,8 @@ async function verifyCabinBookingPayment(request: Omit<VerifyPaymentRequest, 'ac
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Failed to update booking status' 
+          error: 'Failed to update booking status',
+          details: updateError.message
         }),
         { 
           status: 500,
@@ -344,6 +345,8 @@ async function verifyCabinBookingPayment(request: Omit<VerifyPaymentRequest, 'ac
         }
       );
     }
+
+    console.log('Booking payment verified and status updated to paid/active:', updatedBooking.id);
 
     // Update cabin status to occupied using cabin_id from the booking
     const { error: cabinUpdateError } = await supabase
