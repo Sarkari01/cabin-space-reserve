@@ -166,6 +166,45 @@ export const useCombinedBookings = () => {
 
   useEffect(() => {
     fetchCombinedBookings();
+    
+    // Set up real-time subscription for cabin bookings updates
+    const cabinBookingsChannel = supabase
+      .channel('cabin-bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'cabin_bookings'
+        },
+        (payload) => {
+          console.log('Cabin booking changed:', payload);
+          fetchCombinedBookings();
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for study hall bookings updates  
+    const studyHallBookingsChannel = supabase
+      .channel('study-hall-bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings'
+        },
+        (payload) => {
+          console.log('Study hall booking changed:', payload);
+          fetchCombinedBookings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(cabinBookingsChannel);
+      supabase.removeChannel(studyHallBookingsChannel);
+    };
   }, [fetchCombinedBookings]);
 
   const getUpcomingBookings = () => {
