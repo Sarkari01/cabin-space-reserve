@@ -24,6 +24,8 @@ import {
   ValidationError
 } from '@/components/CabinBookingErrorHandler';
 import { useCabinBooking } from '@/hooks/useCabinBooking';
+import { CouponInput } from '@/components/CouponInput';
+import { RewardsInput } from '@/components/RewardsInput';
 
 interface PrivateHallBookingModalProps {
   isOpen: boolean;
@@ -44,6 +46,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const [startDate, setStartDate] = useState<Date>();
   const [loading, setLoading] = useState(false);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [appliedRewards, setAppliedRewards] = useState<{ pointsUsed: number; discount: number } | null>(null);
   const { user, session } = useAuth();
   const { error, handleError, clearError, retry } = useCabinBookingErrorHandler();
   const { toast } = useToast();
@@ -192,6 +196,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       setSelectedCabin(null);
       setSelectedCabinFromLayout('');
       setStartDate(undefined);
+      setAppliedCoupon(null);
+      setAppliedRewards(null);
       clearError();
       fetchCabins();
     }
@@ -204,9 +210,15 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
     const days = differenceInDays(endDate, startDate) + 1;
     const months = 1; // Always 1 month
     const monthlyPrice = selectedCabin.monthly_price || privateHall?.monthly_price || 0;
-    const totalAmount = monthlyPrice; // 1 month * monthly price
+    const baseAmount = monthlyPrice; // 1 month * monthly price
 
-    return { days, months, monthlyPrice, totalAmount, endDate };
+    // Calculate discounts
+    const couponDiscount = appliedCoupon?.discount || 0;
+    const rewardsDiscount = appliedRewards?.discount || 0;
+    const totalDiscount = couponDiscount + rewardsDiscount;
+    const finalAmount = Math.max(0, baseAmount - totalDiscount);
+
+    return { days, months, monthlyPrice, baseAmount, couponDiscount, rewardsDiscount, totalDiscount, finalAmount, endDate };
   };
 
   const checkCabinAvailability = async (cabinId: string, start: Date): Promise<boolean> => {
@@ -274,7 +286,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         end_date: format(bookingDetails.endDate, 'yyyy-MM-dd'),
         months_booked: bookingDetails.months,
         monthly_amount: bookingDetails.monthlyPrice,
-        total_amount: bookingDetails.totalAmount,
+        total_amount: bookingDetails.finalAmount,
       };
 
       console.log('Creating booking with data:', bookingData);
@@ -290,7 +302,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       });
 
       // Initiate payment process
-      await initiatePayment(bookingId, bookingDetails.totalAmount);
+      await initiatePayment(bookingId, bookingDetails.finalAmount);
 
     } catch (error) {
       handleError(error);
@@ -483,6 +495,12 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                 selectedCabinId={selectedCabinFromLayout || undefined}
                 startDate={startDate}
                 onStartDateChange={setStartDate}
+                appliedCoupon={appliedCoupon}
+                appliedRewards={appliedRewards}
+                onCouponApplied={(discount, code) => setAppliedCoupon({ discount, code })}
+                onCouponRemoved={() => setAppliedCoupon(null)}
+                onRewardsApplied={(discount, pointsUsed) => setAppliedRewards({ discount, pointsUsed })}
+                onRewardsRemoved={() => setAppliedRewards(null)}
                 onClose={onClose}
                 onBookNow={() => {
                   if (selectedCabinFromLayout && startDate) {
@@ -571,11 +589,75 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                           </p>
                         )}
                       </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+                     </div>
+
+                     {/* Coupon and Rewards for Fallback UI */}
+                     {bookingDetails && (
+                       <div className="space-y-4">
+                         <CouponInput
+                           bookingAmount={bookingDetails.baseAmount}
+                           studyHallId={privateHall.id}
+                           onCouponApplied={(discount, code) => setAppliedCoupon({ discount, code })}
+                           onCouponRemoved={() => setAppliedCoupon(null)}
+                           appliedCoupon={appliedCoupon}
+                         />
+                         
+                         <RewardsInput
+                           bookingAmount={bookingDetails.baseAmount}
+                           onRewardsApplied={(discount, pointsUsed) => setAppliedRewards({ discount, pointsUsed })}
+                           onRewardsRemoved={() => setAppliedRewards(null)}
+                           appliedRewards={appliedRewards}
+                         />
+                       </div>
+                     )}
+
+                     {/* Booking Summary for Fallback UI */}
+                     {bookingDetails && (
+                       <Card className="p-4 bg-blue-50 border-blue-200">
+                         <div className="flex items-center gap-2 mb-3">
+                           <DollarSign className="h-5 w-5 text-blue-600" />
+                           <Label className="text-base font-semibold text-blue-800">Booking Summary</Label>
+                         </div>
+                         <div className="space-y-2 text-sm">
+                           <div className="flex justify-between">
+                             <span className="text-muted-foreground">Cabin:</span>
+                             <span className="font-medium">{selectedCabin.cabin_name}</span>
+                           </div>
+                           <div className="flex justify-between">
+                             <span className="text-muted-foreground">Duration:</span>
+                             <span className="font-medium">1 Month</span>
+                           </div>
+                           <div className="flex justify-between">
+                             <span className="text-muted-foreground">Period:</span>
+                             <span className="font-medium">{format(startDate, 'MMM dd')} - {format(bookingDetails.endDate, 'MMM dd, yyyy')}</span>
+                           </div>
+                           <div className="flex justify-between">
+                             <span className="text-muted-foreground">Base Amount:</span>
+                             <span className="font-medium">₹{bookingDetails.baseAmount.toLocaleString()}</span>
+                           </div>
+                           {bookingDetails.couponDiscount > 0 && (
+                             <div className="flex justify-between text-green-600">
+                               <span>Coupon Discount:</span>
+                               <span>-₹{bookingDetails.couponDiscount.toLocaleString()}</span>
+                             </div>
+                           )}
+                           {bookingDetails.rewardsDiscount > 0 && (
+                             <div className="flex justify-between text-green-600">
+                               <span>Rewards Discount:</span>
+                               <span>-₹{bookingDetails.rewardsDiscount.toLocaleString()}</span>
+                             </div>
+                           )}
+                           <div className="flex justify-between font-semibold text-base border-t border-blue-200 pt-2 text-blue-800">
+                             <span>Final Amount:</span>
+                             <span>₹{bookingDetails.finalAmount.toLocaleString()}</span>
+                           </div>
+                         </div>
+                       </Card>
+                     )}
+                   </div>
+                 )}
+               </>
+             )}
 
 
             {/* Actions - Only show if layout is not available */}

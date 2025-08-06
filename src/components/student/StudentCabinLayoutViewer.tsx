@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { format, differenceInDays, addMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import type { CabinLayoutData } from '@/types/PrivateHall';
+import { CouponInput } from '@/components/CouponInput';
+import { RewardsInput } from '@/components/RewardsInput';
 
 interface CabinAvailability {
   [cabinId: string]: {
@@ -28,6 +30,12 @@ interface StudentCabinLayoutViewerProps {
   onBookNow?: () => void;
   startDate?: Date;
   onStartDateChange?: (date: Date | undefined) => void;
+  appliedCoupon?: { code: string; discount: number } | null;
+  appliedRewards?: { pointsUsed: number; discount: number } | null;
+  onCouponApplied?: (discount: number, code: string) => void;
+  onCouponRemoved?: () => void;
+  onRewardsApplied?: (discount: number, pointsUsed: number) => void;
+  onRewardsRemoved?: () => void;
 }
 
 export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> = ({
@@ -39,7 +47,13 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
   onClose,
   onBookNow,
   startDate,
-  onStartDateChange
+  onStartDateChange,
+  appliedCoupon,
+  appliedRewards,
+  onCouponApplied,
+  onCouponRemoved,
+  onRewardsApplied,
+  onRewardsRemoved
 }) => {
   const [availability, setAvailability] = useState<CabinAvailability>({});
   const [loading, setLoading] = useState(false);
@@ -237,13 +251,23 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
     const days = differenceInDays(endDate, startDate) + 1;
     const months = 1; // Always 1 month
     const monthlyPrice = selectedCabin.monthly_price || 0;
-    const totalAmount = monthlyPrice; // 1 month * monthly price
+    const baseAmount = monthlyPrice; // 1 month * monthly price
+
+    // Calculate discounts
+    const couponDiscount = appliedCoupon?.discount || 0;
+    const rewardsDiscount = appliedRewards?.discount || 0;
+    const totalDiscount = couponDiscount + rewardsDiscount;
+    const finalAmount = Math.max(0, baseAmount - totalDiscount);
 
     return { 
       days, 
       months, 
       monthlyPrice, 
-      totalAmount, 
+      baseAmount,
+      couponDiscount,
+      rewardsDiscount,
+      totalDiscount,
+      finalAmount, 
       cabinName: selectedCabin.name,
       endDate
     };
@@ -382,6 +406,30 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
         </div>
       </Card>
 
+      {/* Coupon and Rewards Section */}
+      {bookingDetails && (
+        <div className="space-y-4">
+          {onCouponApplied && onCouponRemoved && (
+            <CouponInput
+              bookingAmount={bookingDetails.baseAmount}
+              studyHallId={privateHallId}
+              onCouponApplied={onCouponApplied}
+              onCouponRemoved={onCouponRemoved}
+              appliedCoupon={appliedCoupon}
+            />
+          )}
+          
+          {onRewardsApplied && onRewardsRemoved && (
+            <RewardsInput
+              bookingAmount={bookingDetails.baseAmount}
+              onRewardsApplied={onRewardsApplied}
+              onRewardsRemoved={onRewardsRemoved}
+              appliedRewards={appliedRewards}
+            />
+          )}
+        </div>
+      )}
+
       {/* Booking Summary */}
       {bookingDetails && (
         <Card className="p-4 bg-blue-50 border-blue-200">
@@ -403,12 +451,24 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
               <span className="font-medium">{format(startDate!, 'MMM dd')} - {format(bookingDetails.endDate, 'MMM dd, yyyy')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Monthly Rate:</span>
-              <span className="font-medium">₹{bookingDetails.monthlyPrice.toLocaleString()}</span>
+              <span className="text-muted-foreground">Base Amount:</span>
+              <span className="font-medium">₹{bookingDetails.baseAmount.toLocaleString()}</span>
             </div>
+            {bookingDetails.couponDiscount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Coupon Discount:</span>
+                <span>-₹{bookingDetails.couponDiscount.toLocaleString()}</span>
+              </div>
+            )}
+            {bookingDetails.rewardsDiscount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Rewards Discount:</span>
+                <span>-₹{bookingDetails.rewardsDiscount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between font-semibold text-base border-t border-blue-200 pt-2 text-blue-800">
-              <span>Total Amount:</span>
-              <span>₹{bookingDetails.totalAmount.toLocaleString()}</span>
+              <span>Final Amount:</span>
+              <span>₹{bookingDetails.finalAmount.toLocaleString()}</span>
             </div>
           </div>
         </Card>
