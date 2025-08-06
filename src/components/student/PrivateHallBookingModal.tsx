@@ -314,12 +314,27 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       if (error) {
         console.error('Error creating payment order:', error);
-        throw new PaymentError(`Payment initiation failed: ${error.message}`);
+        // Provide more specific error messages based on the error
+        let errorMessage = 'Payment initiation failed';
+        if (error.message?.includes('Payment gateway not configured')) {
+          errorMessage = 'Payment system is currently unavailable. Please try again later.';
+        } else if (error.message?.includes('Booking not found')) {
+          errorMessage = 'Booking not found. Please try creating a new booking.';
+        } else if (error.message?.includes('Database error')) {
+          errorMessage = 'Database connectivity issue. Please try again.';
+        } else if (error.message?.includes('Razorpay')) {
+          errorMessage = 'Payment gateway error. Please try again.';
+        } else if (error.message) {
+          errorMessage = `Payment setup failed: ${error.message}`;
+        }
+        throw new PaymentError(errorMessage);
       }
 
       if (!orderData?.orderId) {
         console.error('Invalid order data received:', orderData);
-        throw new PaymentError('Invalid payment response from server');
+        // Check if there's an error message in the response
+        const errorMsg = orderData?.error || 'Invalid payment response from server';
+        throw new PaymentError(`Payment setup failed: ${errorMsg}`);
       }
 
       console.log('Payment order created:', orderData.orderId);
@@ -377,12 +392,21 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       if (error) {
         console.error('Payment verification failed:', error);
-        throw new PaymentError(`Payment verification failed: ${error.message}`);
+        let errorMessage = 'Payment verification failed';
+        if (error.message?.includes('verification not configured')) {
+          errorMessage = 'Payment verification is temporarily unavailable. Please contact support.';
+        } else if (error.message?.includes('signature verification failed')) {
+          errorMessage = 'Payment verification failed. This might be a security issue. Please contact support.';
+        } else if (error.message) {
+          errorMessage = `Payment verification error: ${error.message}`;
+        }
+        throw new PaymentError(errorMessage);
       }
 
       if (!data?.success) {
         console.error('Payment verification unsuccessful:', data);
-        throw new PaymentError('Payment verification was unsuccessful');
+        const errorMsg = data?.error || 'Payment verification was unsuccessful';
+        throw new PaymentError(`Payment verification failed: ${errorMsg}`);
       }
 
       console.log('Payment verified successfully:', data);
