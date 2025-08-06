@@ -213,17 +213,16 @@ export const useCabinBooking = () => {
         description: "Your cabin booking has been confirmed.",
       });
 
-      // Return enhanced result with routing information for PaymentSuccess page
-      return {
-        ...data,
-        routingData: {
-          cabin_booking_id: data.cabin_booking_id || data.booking_id,
-          booking_type: 'cabin',
-          booking_id: data.booking_id,
-          amount: data.booking?.total_amount,
-          status: data.booking?.status
-        }
-      };
+      // Navigate directly to success page with proper parameters
+      const cabinBookingId = data.cabin_booking_id || data.booking_id;
+      const paymentId = paymentResponse.razorpay_payment_id;
+      
+      // Use window.location.href for immediate navigation
+      setTimeout(() => {
+        window.location.href = `/payment-success?cabin_booking_id=${cabinBookingId}&booking_type=cabin&payment_id=${paymentId}`;
+      }, 500);
+
+      return data;
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Payment verification failed';
