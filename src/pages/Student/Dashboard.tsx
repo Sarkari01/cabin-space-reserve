@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { MapPin, Calendar, Users, Search, Heart, Clock, DollarSign, Eye, BookOpen, Star, Filter, TrendingUp } from "lucide-react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { useStudyHalls, useSeats } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
 import { useCombinedBookings } from "@/hooks/useCombinedBookings";
@@ -30,13 +31,21 @@ import UserProfileSettings from "@/components/UserProfileSettings";
 import { SeatSynchronizer } from "@/components/SeatSynchronizer";
 import { StudyHallSearchMap } from "@/components/maps/StudyHallSearchMap";
 import { StudentReportsTab } from "@/components/reports/StudentReportsTab";
+import { useLocation, useNavigate } from "react-router-dom";
+import { LoadingSpinner } from "@/components/ui/loading";
+
 const StudentDashboard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [refreshingBookings, setRefreshingBookings] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   const { studyHalls, loading: studyHallsLoading, fetchStudyHalls } = useStudyHalls();
   const { bookings, loading: bookingsLoading, cancelBooking } = useBookings();
   const { 
     bookings: combinedBookings, 
     loading: combinedBookingsLoading, 
+    fetchCombinedBookings,
     getUpcomingBookings, 
     getCompletedBookings, 
     getTotalSpent: getCombinedTotalSpent 
@@ -52,6 +61,29 @@ const StudentDashboard = () => {
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const { seats, fetchSeats } = useSeats();
+
+  // Handle payment success refresh
+  useEffect(() => {
+    if (location.state?.refreshBookings) {
+      setRefreshingBookings(true);
+      toast({
+        title: "Payment Successful!",
+        description: "Refreshing your bookings...",
+      });
+      
+      // Clear the state to prevent repeated refreshes
+      navigate(location.pathname, { replace: true, state: {} });
+      
+      // Manual refresh of bookings
+      fetchCombinedBookings().finally(() => {
+        setRefreshingBookings(false);
+        toast({
+          title: "Bookings Updated",
+          description: "Your latest booking status is now displayed.",
+        });
+      });
+    }
+  }, [location.state, navigate, fetchCombinedBookings, toast]);
 
   // Listen for navigation to reviews tab
   useEffect(() => {
@@ -235,13 +267,20 @@ const StudentDashboard = () => {
                   <CardDescription>Your scheduled study hall visits</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {combinedBookingsLoading ? (
+                  {(combinedBookingsLoading || refreshingBookings) ? (
                     <div className="space-y-4">
-                      {[1, 2].map((i) => (
-                        <div key={i} className="animate-pulse">
-                          <div className="h-16 bg-muted rounded-lg"></div>
+                      {refreshingBookings ? (
+                        <div className="flex items-center justify-center py-8">
+                          <LoadingSpinner className="mr-2" />
+                          <span className="text-muted-foreground">Refreshing bookings...</span>
                         </div>
-                      ))}
+                      ) : (
+                        [1, 2].map((i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="h-16 bg-muted rounded-lg"></div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   ) : upcomingBookings.length > 0 ? (
                     <div className="space-y-4">
