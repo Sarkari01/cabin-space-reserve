@@ -60,25 +60,41 @@ serve(async (req) => {
 })
 
 async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'action'>) {
+  console.log('Creating payment order for booking:', request.bookingId);
+  
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get booking details
+    // Enhanced booking validation with more detailed error handling
     const { data: booking, error: bookingError } = await supabase
       .from('cabin_bookings')
       .select(`
         *,
-        private_halls!inner(name, merchant_id),
-        cabins!inner(cabin_name)
+        private_halls!inner(name, merchant_id, status),
+        cabins!inner(cabin_name, status)
       `)
       .eq('id', request.bookingId)
       .single();
 
-    if (bookingError || !booking) {
-      console.error('Booking not found:', bookingError);
+    if (bookingError) {
+      console.error('Database error fetching booking:', bookingError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Database error fetching booking',
+          details: bookingError.message 
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (!booking) {
+      console.error('Booking not found for ID:', request.bookingId);
       return new Response(
         JSON.stringify({ error: 'Booking not found' }),
         { 
@@ -88,11 +104,40 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
       );
     }
 
-    // Create Razorpay order
+    // Validate booking status
+    if (booking.status !== 'pending') {
+      console.error('Invalid booking status:', booking.status);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Booking is not in pending status',
+          current_status: booking.status
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (booking.payment_status === 'paid') {
+      console.error('Booking already paid');
+      return new Response(
+        JSON.stringify({ error: 'Booking is already paid' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('Found valid booking:', booking.id);
+
+    // Get Razorpay credentials
     const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
     const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
 
     if (!razorpayKeyId || !razorpayKeySecret) {
+      console.error('Razorpay credentials missing');
       return new Response(
         JSON.stringify({ error: 'Payment gateway not configured' }),
         { 
@@ -102,17 +147,24 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
       );
     }
 
+    // Create enhanced Razorpay order
     const orderData = {
       amount: Math.round(request.amount * 100), // Convert to paise
       currency: 'INR',
       receipt: `cabin_booking_${request.bookingId}`,
       notes: {
         booking_id: request.bookingId,
+        cabin_id: booking.cabin_id,
+        private_hall_id: booking.private_hall_id,
         cabin_name: booking.cabins.cabin_name,
         hall_name: booking.private_halls.name,
+        months_booked: booking.months_booked.toString(),
+        monthly_amount: booking.monthly_amount.toString(),
         type: 'cabin_booking'
       }
     };
+
+    console.log('Creating Razorpay order with data:', orderData);
 
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
     
@@ -127,9 +179,13 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
 
     if (!razorpayResponse.ok) {
       const errorText = await razorpayResponse.text();
-      console.error('Razorpay API error:', errorText);
+      console.error('Razorpay API error:', razorpayResponse.status, errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to create payment order' }),
+        JSON.stringify({ 
+          error: 'Payment gateway error',
+          status: razorpayResponse.status,
+          details: errorText
+        }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -138,6 +194,7 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
     }
 
     const razorpayOrder = await razorpayResponse.json();
+    console.log('Razorpay order created successfully:', razorpayOrder.id);
 
     // Update booking with Razorpay order ID
     const { error: updateError } = await supabase

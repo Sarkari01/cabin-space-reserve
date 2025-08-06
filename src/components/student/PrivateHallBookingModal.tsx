@@ -23,6 +23,7 @@ import {
   PaymentError,
   ValidationError
 } from '@/components/CabinBookingErrorHandler';
+import { useCabinBooking } from '@/hooks/useCabinBooking';
 
 interface PrivateHallBookingModalProps {
   isOpen: boolean;
@@ -47,6 +48,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const { user, session } = useAuth();
   const { error, handleError, clearError, retry } = useCabinBookingErrorHandler();
   const { toast } = useToast();
+  // Import from hook to avoid conflicts with existing function
+  const bookingHook = useCabinBooking();
 
   const handleCabinSelectFromLayout = async (cabinId: string) => {
     setSelectedCabinFromLayout(cabinId);
@@ -263,8 +266,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         throw new CabinUnavailableError(selectedCabin.cabin_name);
       }
 
+      // Use the enhanced booking hook
       const bookingData = {
-        user_id: session.user.id, // Use session.user.id instead of user.id
         cabin_id: selectedCabin.id,
         private_hall_id: privateHall.id,
         start_date: format(startDate, 'yyyy-MM-dd'),
@@ -272,41 +275,11 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         months_booked: bookingDetails.months,
         monthly_amount: bookingDetails.monthlyPrice,
         total_amount: bookingDetails.totalAmount,
-        payment_status: 'unpaid' as const,
-        status: 'pending' as const,
       };
 
       console.log('Creating booking with data:', bookingData);
 
-      // Use the secure database function to create booking
-      const { data: result, error } = await supabase.rpc('create_cabin_booking', {
-        p_cabin_id: selectedCabin.id,
-        p_private_hall_id: privateHall.id,
-        p_start_date: startDate?.toISOString().split('T')[0],
-        p_end_date: endDate?.toISOString().split('T')[0],
-        p_months_booked: bookingData.months_booked,
-        p_monthly_amount: bookingData.monthly_amount,
-        p_total_amount: bookingData.total_amount,
-        p_guest_name: null,
-        p_guest_phone: null,
-        p_guest_email: null
-      });
-
-      if (error || !(result as any)?.success) {
-        console.error('Error creating booking:', error || (result as any)?.error);
-        const errorMessage = (result as any)?.error || error?.message || 'Unknown error occurred';
-        
-        if (errorMessage.includes('Authentication required')) {
-          throw new CabinBookingError('Please log in to make a booking.', 'AUTH_REQUIRED', true);
-        }
-        if (errorMessage.includes('not available')) {
-          throw new CabinBookingError('This cabin is no longer available for the selected dates.', 'CABIN_UNAVAILABLE', true);
-        }
-        
-        throw new CabinBookingError(`Failed to create booking: ${errorMessage}`, 'BOOKING_CREATION_FAILED', true);
-      }
-
-      const bookingId = (result as any).booking_id;
+      const bookingId = await bookingHook.createBooking(bookingData);
 
       console.log('Booking created successfully with ID:', bookingId);
 
