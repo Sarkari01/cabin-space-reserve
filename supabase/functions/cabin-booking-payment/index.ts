@@ -363,6 +363,9 @@ async function verifyCabinBookingPayment(request: Omit<VerifyPaymentRequest, 'ac
       JSON.stringify({ 
         success: true, 
         message: 'Payment verified and booking confirmed',
+        booking_id: updatedBooking.id,
+        cabin_booking_id: updatedBooking.id,
+        booking_type: 'cabin',
         booking: updatedBooking
       }),
       {

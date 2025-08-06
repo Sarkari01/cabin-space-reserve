@@ -213,7 +213,17 @@ export const useCabinBooking = () => {
         description: "Your cabin booking has been confirmed.",
       });
 
-      return data;
+      // Return enhanced result with routing information for PaymentSuccess page
+      return {
+        ...data,
+        routingData: {
+          cabin_booking_id: data.cabin_booking_id || data.booking_id,
+          booking_type: 'cabin',
+          booking_id: data.booking_id,
+          amount: data.booking?.total_amount,
+          status: data.booking?.status
+        }
+      };
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Payment verification failed';

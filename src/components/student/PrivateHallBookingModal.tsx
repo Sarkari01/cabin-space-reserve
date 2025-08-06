@@ -411,13 +411,17 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       console.log('Payment verified successfully:', data);
       
-      toast({
-        title: "Payment Successful!",
-        description: "Your cabin has been booked successfully.",
+      // Navigate to payment success page with cabin booking parameters
+      const successParams = new URLSearchParams({
+        cabin_booking_id: bookingId,
+        booking_type: 'cabin',
+        amount: data.booking?.total_amount?.toString() || '0',
+        status: 'success'
       });
       
-      onSuccess?.();
+      // Close modal and navigate
       onClose();
+      window.location.href = `/payment-success?${successParams.toString()}`;
       
     } catch (error) {
       console.error('Error verifying payment:', error);

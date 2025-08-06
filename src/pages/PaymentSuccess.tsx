@@ -43,9 +43,74 @@ const PaymentSuccess = () => {
       
       let bookingData = null;
       
-      // Try to fetch booking by ID first (highest priority)
-      if (bookingId && bookingId !== 'undefined' && bookingId !== 'null' && bookingId !== 'Pending') {
-        console.log('🔍 Fetching booking by ID:', bookingId);
+      // Check for cabin booking ID first
+      const cabinBookingId = searchParams.get('cabin_booking_id');
+      const bookingType = searchParams.get('booking_type') || 'study_hall';
+      
+      console.log('PaymentSuccess: Booking type:', bookingType, 'IDs:', { bookingId, cabinBookingId });
+      
+      // Try to fetch cabin booking if type is cabin
+      if (bookingType === 'cabin' && cabinBookingId && cabinBookingId !== 'undefined' && cabinBookingId !== 'null') {
+        console.log('🔍 Fetching cabin booking by ID:', cabinBookingId);
+        try {
+          const { data: cabinBooking, error: cabinBookingError } = await supabase
+            .from('cabin_bookings')
+            .select(`
+              *,
+              cabin:cabins!cabin_id(cabin_name, amenities),
+              private_hall:private_halls!private_hall_id(name, location)
+            `)
+            .eq('id', cabinBookingId)
+            .single();
+
+          if (!cabinBookingError && cabinBooking) {
+            console.log('✅ Cabin booking found:', cabinBooking);
+            bookingData = {
+              bookingId: cabinBooking.id,
+              bookingNumber: cabinBooking.booking_number,
+              bookingType: 'cabin',
+              hallName: cabinBooking.private_hall?.name,
+              location: cabinBooking.private_hall?.location,
+              cabinName: cabinBooking.cabin?.cabin_name,
+              amount: cabinBooking.total_amount,
+              startDate: cabinBooking.start_date,
+              endDate: cabinBooking.end_date,
+              monthsBooked: cabinBooking.months_booked,
+              status: cabinBooking.status
+            };
+
+            // Generate QR code preview for confirmed/active cabin bookings
+            if (cabinBooking.status === 'active' || cabinBooking.status === 'completed') {
+              try {
+                const qrData = {
+                  type: "cabin_booking",
+                  booking_id: cabinBooking.id,
+                  booking_number: cabinBooking.booking_number,
+                  private_hall: cabinBooking.private_hall?.name,
+                  cabin: cabinBooking.cabin?.cabin_name,
+                  months: cabinBooking.months_booked,
+                  amount: cabinBooking.total_amount
+                };
+                const qrCodeUrl = await QRCodeLib.toDataURL(JSON.stringify(qrData), {
+                  width: 128,
+                  margin: 1,
+                  color: { dark: '#000000', light: '#FFFFFF' }
+                });
+                setQrCodePreview(qrCodeUrl);
+              } catch (error) {
+                console.error('Error generating cabin QR preview:', error);
+              }
+            }
+          } else {
+            console.error('❌ Error fetching cabin booking:', cabinBookingError);
+          }
+        } catch (error) {
+          console.error('❌ Exception fetching cabin booking details:', error);
+        }
+      }
+      // Try to fetch study hall booking by ID if no cabin booking found
+      else if (bookingId && bookingId !== 'undefined' && bookingId !== 'null' && bookingId !== 'Pending') {
+        console.log('🔍 Fetching study hall booking by ID:', bookingId);
         try {
           const { data: booking, error: bookingError } = await supabase
             .from('bookings')
@@ -59,11 +124,13 @@ const PaymentSuccess = () => {
             .single();
 
           if (!bookingError && booking) {
-            console.log('✅ Booking found:', booking);
+            console.log('✅ Study hall booking found:', booking);
             bookingData = {
               bookingId: booking.id,
               bookingNumber: booking.booking_number,
+              bookingType: 'study_hall',
               studyHallName: booking.study_hall?.name,
+              location: booking.study_hall?.location,
               seatInfo: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
               amount: booking.total_amount,
               startDate: booking.start_date,
@@ -114,6 +181,11 @@ const PaymentSuccess = () => {
                 study_hall:study_halls(name, location),
                 seat:seats(seat_id, row_name, seat_number),
                 booking_number
+              ),
+              cabin_booking:cabin_bookings!cabin_booking_id(
+                *,
+                cabin:cabins!cabin_id(cabin_name, amenities),
+                private_hall:private_halls!private_hall_id(name, location)
               )
             `)
             .eq('id', transactionId)
@@ -122,12 +194,29 @@ const PaymentSuccess = () => {
           if (!txnError && transaction) {
             console.log('✅ Transaction found:', transaction);
             
-            if (transaction.booking) {
-              console.log('✅ Booking found via transaction:', transaction.booking);
+            if (transaction.cabin_booking) {
+              console.log('✅ Cabin booking found via transaction:', transaction.cabin_booking);
+              bookingData = {
+                bookingId: transaction.cabin_booking.id,
+                bookingNumber: transaction.cabin_booking.booking_number,
+                bookingType: 'cabin',
+                hallName: transaction.cabin_booking.private_hall?.name,
+                location: transaction.cabin_booking.private_hall?.location,
+                cabinName: transaction.cabin_booking.cabin?.cabin_name,
+                amount: transaction.cabin_booking.total_amount,
+                startDate: transaction.cabin_booking.start_date,
+                endDate: transaction.cabin_booking.end_date,
+                monthsBooked: transaction.cabin_booking.months_booked,
+                status: transaction.cabin_booking.status
+              };
+            } else if (transaction.booking) {
+              console.log('✅ Study hall booking found via transaction:', transaction.booking);
               bookingData = {
                 bookingId: transaction.booking.id,
                 bookingNumber: transaction.booking.booking_number,
+                bookingType: 'study_hall',
                 studyHallName: transaction.booking.study_hall?.name,
+                location: transaction.booking.study_hall?.location,
                 seatInfo: `${transaction.booking.seat?.row_name}${transaction.booking.seat?.seat_number}`,
                 amount: transaction.booking.total_amount,
                 startDate: transaction.booking.start_date,
@@ -310,16 +399,41 @@ const PaymentSuccess = () => {
           {bookingDetails && (
             <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
               {(bookingDetails.bookingNumber || bookingDetails.bookingId) && (
-                <p><strong>Booking ID:</strong> #{bookingDetails.bookingNumber ? `B${bookingDetails.bookingNumber}` : 'Processing...'}</p>
+                <p><strong>Booking ID:</strong> #{bookingDetails.bookingNumber ? `${bookingDetails.bookingType === 'cabin' ? 'CB' : 'B'}${bookingDetails.bookingNumber}` : 'Processing...'}</p>
               )}
-              {bookingDetails.studyHallName && (
-                <p><strong>Study Hall:</strong> {bookingDetails.studyHallName}</p>
+              
+              {/* Study Hall Booking Details */}
+              {bookingDetails.bookingType === 'study_hall' && (
+                <>
+                  {bookingDetails.studyHallName && (
+                    <p><strong>Study Hall:</strong> {bookingDetails.studyHallName}</p>
+                  )}
+                  {bookingDetails.seatInfo && (
+                    <p><strong>Seat:</strong> {bookingDetails.seatInfo}</p>
+                  )}
+                  {bookingDetails.period && (
+                    <p><strong>Period:</strong> {bookingDetails.period}</p>
+                  )}
+                </>
               )}
-              {bookingDetails.seatInfo && (
-                <p><strong>Seat:</strong> {bookingDetails.seatInfo}</p>
+              
+              {/* Cabin Booking Details */}
+              {bookingDetails.bookingType === 'cabin' && (
+                <>
+                  {bookingDetails.hallName && (
+                    <p><strong>Private Hall:</strong> {bookingDetails.hallName}</p>
+                  )}
+                  {bookingDetails.cabinName && (
+                    <p><strong>Cabin:</strong> {bookingDetails.cabinName}</p>
+                  )}
+                  {bookingDetails.monthsBooked && (
+                    <p><strong>Period:</strong> {bookingDetails.monthsBooked} month{bookingDetails.monthsBooked > 1 ? 's' : ''}</p>
+                  )}
+                </>
               )}
-              {bookingDetails.period && (
-                <p><strong>Period:</strong> {bookingDetails.period}</p>
+              
+              {bookingDetails.location && (
+                <p><strong>Location:</strong> {bookingDetails.location}</p>
               )}
               {bookingDetails.amount && (
                 <p><strong>Amount:</strong> ₹{bookingDetails.amount}</p>
