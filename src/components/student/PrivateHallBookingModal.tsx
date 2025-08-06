@@ -419,8 +419,11 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         status: 'success'
       });
       
-      // Close modal and navigate
+      // Close modal, trigger success callback, and navigate
       onClose();
+      if (onSuccess) {
+        onSuccess();
+      }
       window.location.href = `/payment-success?${successParams.toString()}`;
       
     } catch (error) {

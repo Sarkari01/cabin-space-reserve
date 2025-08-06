@@ -62,18 +62,23 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
       }
       
       setCabinIdMapping(mapping);
+      return mapping; // Return the mapping directly
     } catch (error) {
       console.error('Error creating cabin ID mapping:', error);
+      return {};
     }
   };
 
   // Fetch real-time availability data using database cabin IDs
-  const fetchAvailability = async () => {
+  const fetchAvailability = async (forceRefresh = false) => {
     try {
       setLoading(true);
 
-      // Create cabin ID mapping first
-      await createCabinIdMapping();
+      // Create cabin ID mapping first and use the returned mapping directly
+      const currentMapping = forceRefresh ? await createCabinIdMapping() : cabinIdMapping;
+      
+      // If no mapping exists yet, create it
+      const mappingToUse = Object.keys(currentMapping).length > 0 ? currentMapping : await createCabinIdMapping();
 
       // Fetch cabins and bookings separately to avoid JOIN issues
       const { data: cabins, error: cabinsError } = await supabase
@@ -86,7 +91,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
         return;
       }
 
-      // Fetch bookings separately
+      // Fetch bookings separately - include more statuses that indicate occupation
       const cabinIds = cabins?.map(cabin => cabin.id) || [];
       let bookings: any[] = [];
       
@@ -96,7 +101,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
           .select('*')
           .in('cabin_id', cabinIds)
           .in('status', ['active', 'pending'])
-          .eq('payment_status', 'paid');
+          .neq('payment_status', 'failed');
 
         if (bookingsError) {
           console.error('Error fetching bookings:', bookingsError);
@@ -109,15 +114,23 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
       
       // Map database cabin availability back to layout cabin IDs
       cabins?.forEach(dbCabin => {
-        const activeBookings = bookings.filter(booking => 
-          booking.cabin_id === dbCabin.id && 
-          booking.status === 'active' && 
-          booking.payment_status === 'paid'
-        );
+        // Check for any bookings that would make the cabin occupied
+        const activeBookings = bookings.filter(booking => {
+          const isForThisCabin = booking.cabin_id === dbCabin.id;
+          const isOccupying = ['active', 'pending'].includes(booking.status);
+          const isPaid = booking.payment_status === 'paid' || booking.status === 'pending';
+          
+          // Include current date bookings
+          const today = new Date().toISOString().split('T')[0];
+          const isCurrentOrFuture = booking.start_date >= today || 
+            (booking.end_date >= today && booking.start_date <= today);
+          
+          return isForThisCabin && isOccupying && isPaid && isCurrentOrFuture;
+        });
         
         // Find the layout cabin ID that corresponds to this database cabin
-        const layoutCabinId = Object.keys(cabinIdMapping).find(
-          layoutId => cabinIdMapping[layoutId] === dbCabin.id
+        const layoutCabinId = Object.keys(mappingToUse).find(
+          layoutId => mappingToUse[layoutId] === dbCabin.id
         );
         
         if (layoutCabinId) {
@@ -125,37 +138,49 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
             status: activeBookings.length > 0 ? 'occupied' : 'available',
             bookings: activeBookings.length
           };
+        } else {
+          console.warn(`No layout cabin found for database cabin ${dbCabin.id}`);
         }
       });
 
+      console.log('Availability update:', { mappingToUse, availabilityMap, bookings });
       setAvailability(availabilityMap);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching availability:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAvailability();
+    fetchAvailability(true); // Force refresh on mount
 
-    // Set up real-time subscription
+    // Set up real-time subscription with retry logic
     const channel = supabase
-      .channel('cabin-bookings-changes')
+      .channel(`cabin-bookings-${privateHallId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'cabin_bookings',
         filter: `private_hall_id=eq.${privateHallId}`
-      }, () => {
-        fetchAvailability();
+      }, (payload) => {
+        console.log('Real-time booking change:', payload);
+        // Add small delay to ensure transaction is committed
+        setTimeout(() => fetchAvailability(true), 500);
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, [privateHallId]);
+
+  // Add refresh method to be called from parent component
+  const refreshAvailability = () => {
+    fetchAvailability(true);
+  };
 
   const getCabinStatusInfo = (cabin: any) => {
     const cabinAvailability = availability[cabin.id];
@@ -395,6 +420,9 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
           <Button variant="ghost" size="sm">
             <Heart className="h-4 w-4 mr-2" />
             Add to Favorites
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => fetchAvailability(true)} disabled={loading}>
+            {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
           {selectedCabinId && (
             <Badge variant="default" className="bg-blue-100 text-blue-800">
