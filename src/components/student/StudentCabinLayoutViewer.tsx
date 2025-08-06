@@ -62,21 +62,71 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
   // Create a mapping between layout cabin IDs and database cabin UUIDs
   const createCabinIdMapping = async () => {
     try {
+      console.log('Creating cabin ID mapping for private hall:', privateHallId);
+      console.log('Layout cabins:', layout.cabins.map(c => ({ id: c.id, name: c.name })));
+      
+      // Fetch all cabins for this private hall first
+      const { data: allCabins, error: cabinsError } = await supabase
+        .from('cabins')
+        .select('id, cabin_name, cabin_number')
+        .eq('private_hall_id', privateHallId)
+        .order('cabin_number');
+
+      if (cabinsError) {
+        console.error('Error fetching cabins for mapping:', cabinsError);
+        return {};
+      }
+
+      console.log('Database cabins:', allCabins);
+
       const mapping: {[layoutId: string]: string} = {};
       
+      // Create mapping using multiple strategies
       for (const layoutCabin of layout.cabins) {
-        const { data: dbCabinId, error } = await supabase.rpc('get_cabin_id_mapping', {
-          p_private_hall_id: privateHallId,
-          p_layout_cabin_id: layoutCabin.id
-        });
+        let dbCabinId: string | null = null;
         
-        if (!error && dbCabinId) {
+        // Strategy 1: Direct name match (cabin name = layout cabin name)
+        let matchedCabin = allCabins?.find(dbCabin => dbCabin.cabin_name === layoutCabin.name);
+        if (matchedCabin) {
+          dbCabinId = matchedCabin.id;
+          console.log(`✅ Direct name match: ${layoutCabin.id} (${layoutCabin.name}) -> ${dbCabinId}`);
+        }
+        
+        // Strategy 2: Use RPC function for complex matching
+        if (!dbCabinId) {
+          const { data: rpcResult, error } = await supabase.rpc('get_cabin_id_mapping', {
+            p_private_hall_id: privateHallId,
+            p_layout_cabin_id: layoutCabin.id
+          });
+          
+          if (!error && rpcResult) {
+            dbCabinId = rpcResult;
+            console.log(`✅ RPC mapping: ${layoutCabin.id} -> ${dbCabinId}`);
+          }
+        }
+        
+        // Strategy 3: Extract number from layout cabin ID and match by position
+        if (!dbCabinId) {
+          const cabinMatch = layoutCabin.id.match(/cabin-(\d+)$/);
+          if (cabinMatch) {
+            const cabinPosition = parseInt(cabinMatch[1]);
+            if (allCabins && cabinPosition <= allCabins.length) {
+              dbCabinId = allCabins[cabinPosition - 1]?.id;
+              console.log(`✅ Position match: ${layoutCabin.id} (position ${cabinPosition}) -> ${dbCabinId}`);
+            }
+          }
+        }
+        
+        if (dbCabinId) {
           mapping[layoutCabin.id] = dbCabinId;
+        } else {
+          console.warn(`❌ No mapping found for layout cabin: ${layoutCabin.id} (${layoutCabin.name})`);
         }
       }
       
+      console.log('Final cabin mapping:', mapping);
       setCabinIdMapping(mapping);
-      return mapping; // Return the mapping directly
+      return mapping;
     } catch (error) {
       console.error('Error creating cabin ID mapping:', error);
       return {};
@@ -134,7 +184,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
           const isOccupying = ['active', 'pending'].includes(booking.status);
           const isPaid = booking.payment_status === 'paid' || booking.status === 'pending';
           
-          // Include current date bookings
+          // Include current date bookings and future bookings
           const today = new Date().toISOString().split('T')[0];
           const isCurrentOrFuture = booking.start_date >= today || 
             (booking.end_date >= today && booking.start_date <= today);
@@ -148,12 +198,17 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
         );
         
         if (layoutCabinId) {
+          const status = dbCabin.status === 'maintenance' ? 'maintenance' : 
+                        (activeBookings.length > 0 ? 'occupied' : 'available');
+          
           availabilityMap[layoutCabinId] = {
-            status: activeBookings.length > 0 ? 'occupied' : 'available',
+            status,
             bookings: activeBookings.length
           };
+          
+          console.log(`📊 Cabin ${layoutCabinId} (${dbCabin.cabin_name}): ${status} (${activeBookings.length} bookings)`);
         } else {
-          console.warn(`No layout cabin found for database cabin ${dbCabin.id}`);
+          console.warn(`❌ No layout cabin found for database cabin ${dbCabin.id} (${dbCabin.cabin_name})`);
         }
       });
 
