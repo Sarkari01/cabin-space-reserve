@@ -9,12 +9,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useStudyHalls, useSeats } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
-import { useCombinedBookings } from "@/hooks/useCombinedBookings";
+import { useCombinedBookings, CombinedBooking } from "@/hooks/useCombinedBookings";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
 import { BannerCarousel } from "@/components/BannerCarousel";
-import { BookingDetailModal } from "@/components/BookingDetailModal";
+import { UnifiedBookingDetailModal } from "@/components/UnifiedBookingDetailModal";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
 import { ChatTab } from "@/components/ChatTab";
@@ -57,7 +57,7 @@ const StudentDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudyHall, setSelectedStudyHall] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [selectedBooking, setSelectedBooking] = useState<CombinedBooking | null>(null);
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const { seats, fetchSeats } = useSeats();
@@ -640,7 +640,7 @@ const StudentDashboard = () => {
         userRole="student"
       />
 
-      <BookingDetailModal
+      <UnifiedBookingDetailModal
         open={bookingDetailOpen}
         onOpenChange={setBookingDetailOpen}
         booking={selectedBooking}
