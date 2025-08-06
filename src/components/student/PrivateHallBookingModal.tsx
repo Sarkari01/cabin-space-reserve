@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import type { PrivateHall, Cabin } from '@/types/PrivateHall';
 import { StudentCabinLayoutViewer } from './StudentCabinLayoutViewer';
 import { 
@@ -28,12 +28,14 @@ interface PrivateHallBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   privateHall: PrivateHall | null;
+  onSuccess?: () => void;
 }
 
 export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = ({
   isOpen,
   onClose,
   privateHall,
+  onSuccess,
 }) => {
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
@@ -44,6 +46,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const { user, session } = useAuth();
   const { error, handleError, clearError, retry } = useCabinBookingErrorHandler();
+  const { toast } = useToast();
 
   const handleCabinSelectFromLayout = async (cabinId: string) => {
     setSelectedCabinFromLayout(cabinId);
@@ -59,7 +62,11 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       if (error) {
         console.error('Error getting cabin ID mapping:', error);
-        toast.error('Failed to select cabin. Please try again.');
+        toast({
+          title: "Error",
+          description: "Failed to select cabin. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -76,7 +83,11 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
           
           if (syncError) {
             console.error('Error syncing cabins:', syncError);
-            toast.error('Failed to sync cabin data. Please contact support.');
+            toast({
+              title: "Error",
+              description: "Failed to sync cabin data. Please contact support.",
+              variant: "destructive",
+            });
             return;
           }
           
@@ -88,14 +99,22 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
           
           if (retryError || !retryDbCabinId) {
             console.error('Failed to find cabin after sync:', retryError);
-            toast.error('Cabin not available. Please try a different cabin.');
+            toast({
+              title: "Error",
+              description: "Cabin not available. Please try a different cabin.",
+              variant: "destructive",
+            });
             return;
           }
           
           // Use the cabin ID from retry
           await selectCabinById(retryDbCabinId, cabinId);
         } else {
-          toast.error('Cabin not available. Please try a different cabin.');
+          toast({
+            title: "Error",
+            description: "Cabin not available. Please try a different cabin.",
+            variant: "destructive",
+          });
         }
         return;
       }
@@ -105,7 +124,11 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       
     } catch (error) {
       console.error('Error in handleCabinSelectFromLayout:', error);
-      toast.error('Failed to select cabin. Please try again.');
+      toast({
+        title: "Error",
+        description: "Failed to select cabin. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -119,14 +142,22 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
 
       if (error) {
         console.error('Error fetching cabin:', error);
-        toast.error('Failed to load cabin details.');
+        toast({
+          title: "Error",
+          description: "Failed to load cabin details.",
+          variant: "destructive",
+        });
         return;
       }
 
       setSelectedCabin(cabin);
     } catch (error) {
       console.error('Error in selectCabinById:', error);
-      toast.error('Failed to load cabin details.');
+      toast({
+        title: "Error",
+        description: "Failed to load cabin details.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -376,11 +407,14 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       }
 
       console.log('Payment verified successfully:', data);
-      toast.success('Payment successful! Your cabin has been booked.');
-      onClose();
       
-      // Refresh the page to show updated booking status
-      window.location.reload();
+      toast({
+        title: "Payment Successful!",
+        description: "Your cabin has been booked successfully.",
+      });
+      
+      onSuccess?.();
+      onClose();
       
     } catch (error) {
       console.error('Error verifying payment:', error);
