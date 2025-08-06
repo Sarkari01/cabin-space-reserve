@@ -3105,14 +3105,22 @@ export type Database = {
         Returns: string
       }
       create_cabin_booking_transaction: {
-        Args: {
-          p_cabin_booking_id: string
-          p_user_id: string
-          p_amount: number
-          p_payment_method: string
-          p_payment_id?: string
-          p_payment_data?: Json
-        }
+        Args:
+          | {
+              p_cabin_booking_id: string
+              p_amount: number
+              p_payment_method: string
+              p_payment_id?: string
+              p_status?: string
+            }
+          | {
+              p_cabin_booking_id: string
+              p_user_id: string
+              p_amount: number
+              p_payment_method: string
+              p_payment_id?: string
+              p_payment_data?: Json
+            }
         Returns: string
       }
       create_study_hall_with_context: {
