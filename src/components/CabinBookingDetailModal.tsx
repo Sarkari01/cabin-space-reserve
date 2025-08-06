@@ -161,7 +161,7 @@ export function CabinBookingDetailModal({
                           {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {booking.months_booked} month{booking.months_booked > 1 ? 's' : ''}
+                          1 Month Duration
                         </p>
                       </div>
                     </div>

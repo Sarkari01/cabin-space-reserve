@@ -427,7 +427,7 @@ const PaymentSuccess = () => {
                     <p><strong>Cabin:</strong> {bookingDetails.cabinName}</p>
                   )}
                   {bookingDetails.monthsBooked && (
-                    <p><strong>Period:</strong> {bookingDetails.monthsBooked} month{bookingDetails.monthsBooked > 1 ? 's' : ''}</p>
+                    <p><strong>Duration:</strong> 1 Month</p>
                   )}
                 </>
               )}

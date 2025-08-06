@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { addMonths, format } from 'date-fns';
 
 export interface CabinBookingRequest {
   cabin_id: string;
@@ -234,12 +235,16 @@ export const useCabinBooking = () => {
     }
   }, [toast]);
 
-  const checkAvailability = useCallback(async (cabinId: string, startDate: string, endDate: string) => {
+  const checkAvailability = useCallback(async (cabinId: string, startDate: string) => {
     try {
+      // Auto-calculate end date as 1 month from start date
+      const endDate = addMonths(new Date(startDate), 1);
+      const endDateString = format(endDate, 'yyyy-MM-dd');
+      
       const { data, error } = await supabase.rpc('check_cabin_availability_for_dates', {
         p_cabin_id: cabinId,
         p_start_date: startDate,
-        p_end_date: endDate
+        p_end_date: endDateString
       });
 
       if (error) {

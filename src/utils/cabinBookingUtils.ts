@@ -68,6 +68,42 @@ export const calculateAutoEndDate = (startDate: Date): Date => {
   return addMonths(startDate, 1);
 };
 
+export const validateCabinBookingStartDate = (startDate: Date): string | null => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (startDate < today) {
+    return 'Start date cannot be in the past';
+  }
+
+  // For cabin bookings, we automatically set end date to 1 month later
+  // so no need to validate end date separately
+  return null;
+};
+
+export const calculateSimpleCabinBooking = (
+  startDate: Date,
+  cabinMonthlyPrice: number,
+  hallMonthlyPrice: number
+): BookingCalculation => {
+  const endDate = addMonths(startDate, 1);
+  const days = differenceInDays(endDate, startDate) + 1; // Include both start and end dates
+  const months = 1; // Always 1 month for simplified bookings
+  
+  // Use cabin price if available, otherwise fall back to hall price
+  const monthlyAmount = cabinMonthlyPrice || hallMonthlyPrice;
+  const totalAmount = monthlyAmount; // 1 month * monthly price
+
+  return {
+    days,
+    months,
+    totalAmount,
+    monthlyAmount,
+    startDate,
+    endDate
+  };
+};
+
 export const getMinEndDate = (startDate: Date): Date => {
   return addMonths(startDate, 1);
 };
