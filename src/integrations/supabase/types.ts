@@ -3111,13 +3111,6 @@ export type Database = {
               p_amount: number
               p_payment_method: string
               p_payment_id?: string
-              p_payment_data?: Json
-            }
-          | {
-              p_cabin_booking_id: string
-              p_amount: number
-              p_payment_method: string
-              p_payment_id?: string
               p_status?: string
             }
           | {
@@ -3336,6 +3329,16 @@ export type Database = {
       log_security_event: {
         Args: { p_event_type: string; p_user_id: string; p_details?: Json }
         Returns: undefined
+      }
+      process_cabin_payment: {
+        Args: {
+          p_cabin_booking_id: string
+          p_amount: number
+          p_payment_method: string
+          p_payment_id?: string
+          p_payment_data?: Json
+        }
+        Returns: string
       }
       progress_booking_statuses: {
         Args: Record<PropertyKey, never>
