@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useCombinedTransactions } from "@/hooks/useCombinedTransactions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, Clock, DollarSign, Download } from "lucide-react";

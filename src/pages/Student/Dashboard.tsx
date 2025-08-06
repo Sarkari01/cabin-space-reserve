@@ -8,6 +8,7 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudyHalls, useSeats } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
+import { useCombinedBookings } from "@/hooks/useCombinedBookings";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
@@ -33,6 +34,13 @@ const StudentDashboard = () => {
   const { user } = useAuth();
   const { studyHalls, loading: studyHallsLoading, fetchStudyHalls } = useStudyHalls();
   const { bookings, loading: bookingsLoading, cancelBooking } = useBookings();
+  const { 
+    bookings: combinedBookings, 
+    loading: combinedBookingsLoading, 
+    getUpcomingBookings, 
+    getCompletedBookings, 
+    getTotalSpent: getCombinedTotalSpent 
+  } = useCombinedBookings();
   const { favorites, addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   
@@ -64,21 +72,16 @@ const StudentDashboard = () => {
     hall.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Get upcoming bookings (confirmed and pending)
-  const upcomingBookings = bookings.filter(booking => 
+  // Get upcoming bookings (confirmed and pending) - use combined bookings
+  const upcomingBookings = getUpcomingBookings();
+  const completedBookings = getCompletedBookings();
+  const totalSpent = getCombinedTotalSpent();
+
+  // Keep legacy booking data for study hall specific features
+  const legacyUpcomingBookings = bookings.filter(booking => 
     ['confirmed', 'pending'].includes(booking.status) &&
     new Date(booking.start_date) >= new Date()
   );
-
-  // Get completed bookings
-  const completedBookings = bookings.filter(booking => 
-    booking.status === 'completed'
-  );
-
-  // Calculate total spent
-  const totalSpent = bookings
-    .filter(booking => booking.status === 'completed')
-    .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
 
   const handleViewStudyHall = useCallback((studyHall) => {
     // Use the current data from studyHalls state which already has incharges
@@ -184,7 +187,7 @@ const StudentDashboard = () => {
                   title="Active Bookings"
                   value={analytics.studentStats?.upcomingBookings || upcomingBookings.length}
                   icon={Calendar}
-                  loading={analyticsLoading}
+                  loading={analyticsLoading || combinedBookingsLoading}
                 />
                 <StatCard
                   title="Favorite Halls"
@@ -197,14 +200,14 @@ const StudentDashboard = () => {
                   value={analytics.studentStats?.completedBookings || completedBookings.length}
                   icon={Users}
                   trend={{ value: 15, label: "this month" }}
-                  loading={analyticsLoading}
+                  loading={analyticsLoading || combinedBookingsLoading}
                 />
                 <StatCard
                   title="Total Spent"
                   value={`₹${(analytics.studentStats?.totalSpent || totalSpent).toLocaleString()}`}
                   icon={DollarSign}
                   trend={{ value: analytics.revenueGrowth || 8, label: "from last month" }}
-                  loading={analyticsLoading}
+                  loading={analyticsLoading || combinedBookingsLoading}
                 />
               </div>
 
@@ -232,7 +235,7 @@ const StudentDashboard = () => {
                   <CardDescription>Your scheduled study hall visits</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {bookingsLoading ? (
+                  {combinedBookingsLoading ? (
                     <div className="space-y-4">
                       {[1, 2].map((i) => (
                         <div key={i} className="animate-pulse">
@@ -245,11 +248,18 @@ const StudentDashboard = () => {
                       {upcomingBookings.slice(0, 3).map((booking) => (
                         <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="space-y-1">
-                            <h4 className="font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
+                            <h4 className="font-semibold">
+                              {booking.location?.name || (booking.type === 'cabin' ? 'Private Hall' : 'Study Hall')}
+                            </h4>
                             <p className="text-sm text-muted-foreground">
-                              {formatDate(booking.start_date)} • Seat {booking.seat?.seat_id}
+                              {formatDate(booking.start_date)} • {booking.unit?.name || booking.unit?.identifier}
                             </p>
-                            <p className="text-sm text-muted-foreground">{booking.study_hall?.location}</p>
+                            <p className="text-sm text-muted-foreground">{booking.location?.location}</p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {booking.type === 'cabin' ? 'Private Cabin' : 'Study Hall'}
+                              </Badge>
+                            </div>
                           </div>
                           <div className="text-right">
                             <Badge variant={getStatusColor(booking.status)}>
@@ -386,7 +396,7 @@ const StudentDashboard = () => {
             <div className="space-y-6">
               <h3 className="text-2xl font-semibold">My Bookings</h3>
               
-              {bookingsLoading ? (
+              {combinedBookingsLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="animate-pulse">
@@ -394,40 +404,45 @@ const StudentDashboard = () => {
                     </div>
                   ))}
                 </div>
-              ) : bookings.length > 0 ? (
+              ) : combinedBookings.length > 0 ? (
                 <div className="space-y-4">
-                  {bookings.map((booking, index) => (
+                  {combinedBookings.map((booking, index) => (
                     <Card key={booking.id} className="animate-fade-in hover:shadow-lg transition-all duration-300" style={{ animationDelay: `${index * 100}ms` }}>
                       <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <h4 className="text-lg font-semibold">{booking.study_hall?.name || 'Study Hall'}</h4>
-                              <Badge variant={getStatusColor(booking.status)}>
-                                {booking.status.toUpperCase()}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <span className="flex items-center space-x-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>{formatDate(booking.start_date)} - {formatDate(booking.end_date)}</span>
-                              </span>
-                              <span className="flex items-center space-x-1">
-                                <MapPin className="h-4 w-4" />
-                                <span>{booking.study_hall?.location}</span>
-                              </span>
-                              <span className="flex items-center space-x-1">
-                                <Users className="h-4 w-4" />
-                                <span>Seat {booking.seat?.seat_id} ({booking.seat?.row_name}{booking.seat?.seat_number})</span>
-                              </span>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              <div>Booking #{booking.booking_number ? `B${booking.booking_number}` : 'Pending'}</div>
-                              <div>
-                                Period: {booking.booking_period} • Created: {formatDate(booking.created_at)}
-                              </div>
-                            </div>
-                          </div>
+                         <div className="flex items-start justify-between">
+                           <div className="space-y-2">
+                             <div className="flex items-center space-x-2">
+                               <h4 className="text-lg font-semibold">
+                                 {booking.location?.name || (booking.type === 'cabin' ? 'Private Hall' : 'Study Hall')}
+                               </h4>
+                               <Badge variant={getStatusColor(booking.status)}>
+                                 {booking.status.toUpperCase()}
+                               </Badge>
+                               <Badge variant="outline" className="text-xs">
+                                 {booking.type === 'cabin' ? 'Private Cabin' : 'Study Hall'}
+                               </Badge>
+                             </div>
+                             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                               <span className="flex items-center space-x-1">
+                                 <Calendar className="h-4 w-4" />
+                                 <span>{formatDate(booking.start_date)} - {formatDate(booking.end_date)}</span>
+                               </span>
+                               <span className="flex items-center space-x-1">
+                                 <MapPin className="h-4 w-4" />
+                                 <span>{booking.location?.location}</span>
+                               </span>
+                               <span className="flex items-center space-x-1">
+                                 <Users className="h-4 w-4" />
+                                 <span>{booking.unit?.name || booking.unit?.identifier}</span>
+                               </span>
+                             </div>
+                             <div className="text-sm text-muted-foreground">
+                               <div>Booking #{booking.booking_number ? `B${booking.booking_number}` : 'Pending'}</div>
+                               <div>
+                                 Created: {formatDate(booking.created_at)}
+                               </div>
+                             </div>
+                           </div>
                           <div className="text-right">
                             <p className="text-lg font-semibold mb-2">₹{Number(booking.total_amount).toLocaleString()}</p>
                             <div className="flex space-x-2">

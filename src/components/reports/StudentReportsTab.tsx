@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useReports, ReportFilter } from '@/hooks/useReports';
+import { useCombinedBookings } from '@/hooks/useCombinedBookings';
+import { useCombinedTransactions } from '@/hooks/useCombinedTransactions';
 import { ReportCard } from './ReportCard';
 import { ReportFilters } from './ReportFilters';
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/exportUtils';
@@ -14,6 +16,9 @@ export const StudentReportsTab: React.FC = () => {
     fetchTransactionsReport,
     fetchRewardsReport
   } = useReports();
+  
+  const { bookings: combinedBookings, loading: bookingsLoading } = useCombinedBookings();
+  const { transactions: combinedTransactions, loading: transactionsLoading } = useCombinedTransactions();
 
   const [activeReport, setActiveReport] = useState('bookings');
   const [filters, setFilters] = useState<ReportFilter>({});
@@ -22,21 +27,20 @@ export const StudentReportsTab: React.FC = () => {
   const loadReportData = async () => {
     switch (activeReport) {
       case 'bookings':
-        const bookings = await fetchBookingsReport(filters);
-        setReportData(bookings);
+        // Use combined bookings for comprehensive data
+        setReportData(combinedBookings);
         break;
       case 'payments':
-        const transactions = await fetchTransactionsReport(filters);
-        setReportData(transactions);
+        // Use combined transactions for comprehensive data
+        setReportData(combinedTransactions);
         break;
       case 'rewards':
         const rewards = await fetchRewardsReport(filters);
         setReportData(rewards);
         break;
       case 'status':
-        const statusBookings = await fetchBookingsReport(filters);
-        // Group by status for status report
-        const groupedData = statusBookings.reduce((acc, booking) => {
+        // Group combined bookings by status for status report
+        const groupedData = combinedBookings.reduce((acc: any, booking: any) => {
           const status = booking.status;
           if (!acc[status]) {
             acc[status] = [];
@@ -59,19 +63,19 @@ export const StudentReportsTab: React.FC = () => {
 
   useEffect(() => {
     loadReportData();
-  }, [activeReport, filters]);
+  }, [activeReport, filters, combinedBookings, combinedTransactions]);
 
   const getColumns = () => {
     switch (activeReport) {
       case 'bookings':
         return [
           { key: 'booking_number', title: 'Booking ID', format: (value: any) => value ? `B${value}` : 'Pending' },
-          { key: 'study_hall.name', title: 'Study Hall' },
-          { key: 'study_hall.location', title: 'Location' },
-          { key: 'seat.seat_id', title: 'Seat' },
+          { key: 'location.name', title: 'Location Name' },
+          { key: 'location.location', title: 'Address' },
+          { key: 'unit.name', title: 'Unit' },
+          { key: 'type', title: 'Type', format: (value: string) => value === 'cabin' ? 'Private Cabin' : 'Study Hall' },
           { key: 'start_date', title: 'Start Date', format: formatDate },
           { key: 'end_date', title: 'End Date', format: formatDate },
-          { key: 'booking_period', title: 'Period' },
           { key: 'total_amount', title: 'Amount', format: formatCurrency },
           { key: 'status', title: 'Status' },
           { key: 'payment_status', title: 'Payment' },
