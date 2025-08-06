@@ -478,6 +478,20 @@ export type Database = {
             referencedRelation: "private_halls"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_cabin_bookings_cabin_id"
+            columns: ["cabin_id"]
+            isOneToOne: false
+            referencedRelation: "cabins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_cabin_bookings_private_hall_id"
+            columns: ["private_hall_id"]
+            isOneToOne: false
+            referencedRelation: "private_halls"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cabins: {
