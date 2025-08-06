@@ -170,6 +170,7 @@ export const useCombinedTransactions = () => {
         description: "Failed to fetch transaction history",
         variant: "destructive",
       });
+      setTransactions([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

@@ -159,6 +159,7 @@ export const useCombinedBookings = () => {
         description: "Failed to fetch your bookings",
         variant: "destructive",
       });
+      setBookings([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -201,25 +202,11 @@ export const useCombinedBookings = () => {
       )
       .subscribe();
 
-    // Fallback refresh mechanism for active bookings
-    const refreshInterval = setInterval(() => {
-      const hasActiveBookings = bookings.some(booking => 
-        ['pending', 'active'].includes(booking.status) && 
-        booking.payment_status === 'unpaid'
-      );
-      
-      if (hasActiveBookings) {
-        console.log('Fallback refresh for active bookings');
-        fetchCombinedBookings();
-      }
-    }, 30000); // Check every 30 seconds
-
     return () => {
       supabase.removeChannel(cabinBookingsChannel);
       supabase.removeChannel(studyHallBookingsChannel);
-      clearInterval(refreshInterval);
     };
-  }, [fetchCombinedBookings, bookings]);
+  }, [fetchCombinedBookings]);
 
   const getUpcomingBookings = () => {
     return bookings.filter(booking => 
