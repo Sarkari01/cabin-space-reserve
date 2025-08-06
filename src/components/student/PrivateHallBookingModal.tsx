@@ -527,51 +527,51 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                     </p>
                   )}
                 </div>
-              </>
-            )}
 
-            {/* Date Selection - Start Date Only */}
-            {selectedCabin && (
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-base font-semibold mb-3 block">Select Booking Start Date</Label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Booking duration is automatically set to 1 month from your start date
-                  </p>
-                  <div className="max-w-sm">
-                    <Label>Start Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            'w-full justify-start text-left font-normal',
-                            !startDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {startDate ? format(startDate, 'PPP') : 'Pick start date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={startDate}
-                          onSelect={setStartDate}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {startDate && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        End date: {format(addMonths(startDate, 1), 'PPP')} (1 month later)
+                {/* Date Selection - Only for fallback UI */}
+                {selectedCabin && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-base font-semibold mb-3 block">Select Booking Start Date</Label>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Booking duration is automatically set to 1 month from your start date
                       </p>
-                    )}
+                      <div className="max-w-sm">
+                        <Label>Start Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !startDate && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {startDate ? format(startDate, 'PPP') : 'Pick start date'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={startDate}
+                              onSelect={setStartDate}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        {startDate && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                            End date: {format(addMonths(startDate, 1), 'PPP')} (1 month later)
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
 
 
