@@ -3092,7 +3092,7 @@ export type Database = {
           p_guest_phone?: string
           p_guest_email?: string
         }
-        Returns: Json
+        Returns: string
       }
       create_study_hall_with_context: {
         Args: {

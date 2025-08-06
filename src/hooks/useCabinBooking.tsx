@@ -88,26 +88,12 @@ export const useCabinBooking = () => {
           throw new Error(error.message || 'Failed to create booking');
         }
 
-        if (!(result as any)?.success) {
-          const errorMessage = (result as any)?.error || 'Failed to create booking';
-          const errorCode = (result as any)?.code;
-          
-          // Handle specific error codes
-          switch (errorCode) {
-            case 'AUTH_REQUIRED':
-              throw new Error('Please log in again to continue');
-            case 'CABIN_UNAVAILABLE':
-              throw new Error('This cabin is no longer available');
-            case 'HALL_UNAVAILABLE':
-              throw new Error('This private hall is currently unavailable');
-            case 'DATE_CONFLICT':
-              throw new Error('Cabin is not available for the selected dates');
-            default:
-              throw new Error(errorMessage);
-          }
+        // The function now returns the booking ID directly
+        if (!result) {
+          throw new Error('Booking creation failed - no response from server');
         }
 
-        const bookingId = (result as any).booking_id;
+        const bookingId = result;
         if (!bookingId) {
           throw new Error('Booking created but no ID returned');
         }
