@@ -68,14 +68,10 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Enhanced booking validation with more detailed error handling
+    // Enhanced booking validation with simplified queries to avoid relationship ambiguity
     const { data: booking, error: bookingError } = await supabase
       .from('cabin_bookings')
-      .select(`
-        *,
-        private_halls!inner(name, merchant_id, status),
-        cabins!inner(cabin_name, status)
-      `)
+      .select('*')
       .eq('id', request.bookingId)
       .single();
 
@@ -103,6 +99,49 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
         }
       );
     }
+
+    // Fetch private hall details separately
+    const { data: privateHall, error: hallError } = await supabase
+      .from('private_halls')
+      .select('name, merchant_id, status')
+      .eq('id', booking.private_hall_id)
+      .single();
+
+    if (hallError || !privateHall) {
+      console.error('Error fetching private hall:', hallError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Private hall not found',
+          details: hallError?.message 
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Fetch cabin details separately
+    const { data: cabin, error: cabinError } = await supabase
+      .from('cabins')
+      .select('cabin_name, status')
+      .eq('id', booking.cabin_id)
+      .single();
+
+    if (cabinError || !cabin) {
+      console.error('Error fetching cabin:', cabinError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Cabin not found',
+          details: cabinError?.message 
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
 
     // Validate booking status
     if (booking.status !== 'pending') {
@@ -152,16 +191,16 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
       amount: Math.round(request.amount * 100), // Convert to paise
       currency: 'INR',
       receipt: `cabin_booking_${request.bookingId}`,
-      notes: {
-        booking_id: request.bookingId,
-        cabin_id: booking.cabin_id,
-        private_hall_id: booking.private_hall_id,
-        cabin_name: booking.cabins.cabin_name,
-        hall_name: booking.private_halls.name,
-        months_booked: booking.months_booked.toString(),
-        monthly_amount: booking.monthly_amount.toString(),
-        type: 'cabin_booking'
-      }
+        notes: {
+          booking_id: request.bookingId,
+          cabin_id: booking.cabin_id,
+          private_hall_id: booking.private_hall_id,
+          cabin_name: cabin.cabin_name,
+          hall_name: privateHall.name,
+          months_booked: booking.months_booked.toString(),
+          monthly_amount: booking.monthly_amount.toString(),
+          type: 'cabin_booking'
+        }
     };
 
     console.log('Creating Razorpay order with data:', orderData);
@@ -214,8 +253,8 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
         keyId: razorpayKeyId,
         bookingDetails: {
           id: booking.id,
-          cabin_name: booking.cabins.cabin_name,
-          hall_name: booking.private_halls.name,
+          cabin_name: cabin.cabin_name,
+          hall_name: privateHall.name,
           start_date: booking.start_date,
           end_date: booking.end_date,
           total_amount: booking.total_amount
@@ -289,7 +328,7 @@ async function verifyCabinBookingPayment(request: Omit<VerifyPaymentRequest, 'ac
         updated_at: new Date().toISOString()
       })
       .eq('id', request.bookingId)
-      .select('*, cabins!inner(id)')
+      .select('*')
       .single();
 
     if (updateError) {
@@ -306,11 +345,11 @@ async function verifyCabinBookingPayment(request: Omit<VerifyPaymentRequest, 'ac
       );
     }
 
-    // Update cabin status to occupied
+    // Update cabin status to occupied using cabin_id from the booking
     const { error: cabinUpdateError } = await supabase
       .from('cabins')
       .update({ status: 'occupied' })
-      .eq('id', updatedBooking.cabins.id);
+      .eq('id', updatedBooking.cabin_id);
 
     if (cabinUpdateError) {
       console.error('Error updating cabin status:', cabinUpdateError);
