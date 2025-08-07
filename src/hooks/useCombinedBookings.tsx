@@ -20,6 +20,9 @@ export interface CombinedBooking {
   guest_name?: string | null;
   guest_email?: string | null;
   guest_phone?: string | null;
+  is_vacated?: boolean;
+  vacated_at?: string | null;
+  vacated_by?: string | null;
   // Related data
   location?: {
     name: string;
@@ -134,6 +137,9 @@ export const useCombinedBookings = () => {
             guest_name: booking.guest_name,
             guest_email: booking.guest_email,
             guest_phone: booking.guest_phone,
+            is_vacated: booking.is_vacated,
+            vacated_at: booking.vacated_at,
+            vacated_by: booking.vacated_by,
             location: booking.private_hall ? {
               name: booking.private_hall.name,
               location: booking.private_hall.location

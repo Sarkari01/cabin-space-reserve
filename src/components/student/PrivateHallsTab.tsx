@@ -15,6 +15,11 @@ interface PrivateHallCardProps {
   hall: PrivateHall;
   onView: (hall: PrivateHall) => void;
   onBook: (hall: PrivateHall) => void;
+  availabilityInfo?: {
+    available_cabins: number;
+    total_cabins: number;
+    next_available_date?: string;
+  };
 }
 
 const PrivateHallCard: React.FC<PrivateHallCardProps> = ({ hall, onView, onBook }) => {

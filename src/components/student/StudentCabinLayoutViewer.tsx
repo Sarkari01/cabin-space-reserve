@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CabinAvailabilityBadge } from '@/components/CabinAvailabilityBadge';
 import { Heart, MapPin, CalendarIcon, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays, addMonths } from 'date-fns';
@@ -173,7 +174,8 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
           .select('*')
           .in('cabin_id', cabinIds)
           .in('status', ['active', 'pending'])
-          .neq('payment_status', 'failed');
+          .neq('payment_status', 'failed')
+          .eq('is_vacated', false);
 
         if (bookingsError) {
           console.error('Error fetching bookings:', bookingsError);
@@ -196,8 +198,9 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
           const today = new Date().toISOString().split('T')[0];
           const isCurrentOrFuture = booking.start_date >= today || 
             (booking.end_date >= today && booking.start_date <= today);
+          const isNotVacated = !booking.is_vacated;
           
-          return isForThisCabin && isOccupying && isPaid && isCurrentOrFuture;
+          return isForThisCabin && isOccupying && isPaid && isCurrentOrFuture && isNotVacated;
         });
         
         // Find the layout cabin ID that corresponds to this database cabin

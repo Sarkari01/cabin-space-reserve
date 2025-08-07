@@ -412,6 +412,7 @@ export type Database = {
           guest_name: string | null
           guest_phone: string | null
           id: string
+          is_vacated: boolean | null
           monthly_amount: number
           months_booked: number
           payment_status: string | null
@@ -423,6 +424,8 @@ export type Database = {
           total_amount: number
           updated_at: string
           user_id: string | null
+          vacated_at: string | null
+          vacated_by: string | null
         }
         Insert: {
           booking_amount?: number | null
@@ -436,6 +439,7 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          is_vacated?: boolean | null
           monthly_amount: number
           months_booked: number
           payment_status?: string | null
@@ -447,6 +451,8 @@ export type Database = {
           total_amount: number
           updated_at?: string
           user_id?: string | null
+          vacated_at?: string | null
+          vacated_by?: string | null
         }
         Update: {
           booking_amount?: number | null
@@ -460,6 +466,7 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          is_vacated?: boolean | null
           monthly_amount?: number
           months_booked?: number
           payment_status?: string | null
@@ -471,6 +478,8 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string | null
+          vacated_at?: string | null
+          vacated_by?: string | null
         }
         Relationships: [
           {
@@ -3026,6 +3035,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      auto_expire_cabin_bookings: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       auto_publish_scheduled_news: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -3234,6 +3247,16 @@ export type Database = {
           completed_today: number
         }[]
       }
+      get_cabin_availability_status: {
+        Args: { p_cabin_id: string }
+        Returns: {
+          is_available: boolean
+          status_reason: string
+          booked_until: string
+          booking_id: string
+          days_remaining: number
+        }[]
+      }
       get_cabin_id_mapping: {
         Args: { p_private_hall_id: string; p_layout_cabin_id: string }
         Returns: string
@@ -3401,6 +3424,14 @@ export type Database = {
           p_referral_id?: string
         }
         Returns: undefined
+      }
+      vacate_cabin_booking: {
+        Args: {
+          p_booking_id: string
+          p_vacated_by_user_id: string
+          p_reason?: string
+        }
+        Returns: Json
       }
       validate_date_string: {
         Args: { date_string: string }

@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { CabinVacateButton } from "@/components/CabinVacateButton";
 import { Calendar, MapPin, DollarSign, User, Home, Clock, Building, Edit } from "lucide-react";
 import { CabinBookingQRCode } from "./CabinBookingQRCode";
 import { safeFormatDate } from "@/lib/dateUtils";
@@ -25,6 +26,9 @@ interface CabinBooking {
   guest_name?: string;
   guest_phone?: string;
   guest_email?: string;
+  is_vacated?: boolean;
+  vacated_at?: string;
+  vacated_by?: string;
   cabin?: {
     cabin_name: string;
     amenities?: string[];
@@ -298,8 +302,47 @@ export function CabinBookingDetailModal({
               </CardContent>
             </Card>
 
+            {/* Vacation Status */}
+            {booking.is_vacated && (
+              <Card>
+                <CardContent className="p-4">
+                  <h4 className="font-medium mb-3 flex items-center text-orange-600">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Vacation Information
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Vacated On</p>
+                      <p>{booking.vacated_at ? new Date(booking.vacated_at).toLocaleDateString() : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Status</p>
+                      <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
+                        Vacated Early
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2 pt-4 border-t">
+              {/* Vacate Button for Active/Pending Bookings */}
+              {(booking.status === 'active' || booking.status === 'pending') && 
+               booking.payment_status === 'paid' && 
+               !booking.is_vacated && (
+                <CabinVacateButton 
+                  bookingId={booking.id}
+                  onVacated={() => {
+                    // Refresh or close modal
+                    onOpenChange(false);
+                  }}
+                  variant="destructive"
+                  size="sm"
+                />
+              )}
+              
               {booking.status === 'pending' && userRole === 'merchant' && onConfirm && (
                 <Button onClick={() => onConfirm(booking.id)} size="sm">
                   Confirm Booking
