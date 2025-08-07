@@ -34,6 +34,7 @@ export const useMerchantBookings = () => {
 
   const fetchMerchantBookings = useCallback(async () => {
     if (!user) {
+      console.log('🔍 MerchantBookings: No user found, clearing bookings');
       setBookings([]);
       setLoading(false);
       return;
@@ -41,17 +42,19 @@ export const useMerchantBookings = () => {
 
     try {
       setLoading(true);
+      console.log('🔍 MerchantBookings: Starting fetch for merchant', user.id);
       
       // Ensure session is valid
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No active session for booking fetch');
+        console.error('🔍 MerchantBookings: No active session for booking fetch');
         setBookings([]);
         setLoading(false);
         return;
       }
 
       // Fetch study hall bookings
+      console.log('🔍 MerchantBookings: Fetching study hall bookings...');
       const { data: studyHallBookings, error: studyHallError } = await supabase
         .from("bookings")
         .select(`
@@ -80,10 +83,13 @@ export const useMerchantBookings = () => {
         .order("created_at", { ascending: false });
 
       if (studyHallError) {
-        console.error("Error fetching study hall bookings:", studyHallError);
+        console.error("🔍 MerchantBookings: Error fetching study hall bookings:", studyHallError);
+      } else {
+        console.log('✅ MerchantBookings: Study hall bookings fetched:', studyHallBookings?.length || 0);
       }
 
       // Fetch cabin bookings with correct relationship syntax
+      console.log('🔍 MerchantBookings: Fetching cabin bookings...');
       const { data: cabinBookings, error: cabinError } = await supabase
         .from("cabin_bookings")
         .select(`
@@ -111,15 +117,8 @@ export const useMerchantBookings = () => {
         .eq('private_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
 
-      console.log('Cabin bookings query result:', { 
-        cabinBookings, 
-        cabinError, 
-        merchantId: user.id,
-        cabinBookingsCount: cabinBookings?.length || 0 
-      });
-
       if (cabinError) {
-        console.error("Error fetching cabin bookings:", {
+        console.error("🔍 MerchantBookings: Error fetching cabin bookings:", {
           error: cabinError,
           code: cabinError.code,
           message: cabinError.message,
@@ -136,6 +135,8 @@ export const useMerchantBookings = () => {
             variant: "destructive",
           });
         }
+      } else {
+        console.log('✅ MerchantBookings: Cabin bookings fetched:', cabinBookings?.length || 0);
       }
 
       const enrichedBookings: MerchantBooking[] = [];
@@ -193,7 +194,12 @@ export const useMerchantBookings = () => {
       // Sort by creation date (newest first)
       enrichedBookings.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      console.log(`Fetched ${enrichedBookings.length} combined bookings for merchant ${user.id}`);
+      console.log(`✅ MerchantBookings: Successfully fetched ${enrichedBookings.length} combined bookings for merchant ${user.id}`);
+      console.log('🔍 MerchantBookings: Booking breakdown:', {
+        studyHallBookings: studyHallBookings?.length || 0,
+        cabinBookings: cabinBookings?.length || 0,
+        totalCombined: enrichedBookings.length
+      });
       setBookings(enrichedBookings);
 
     } catch (error) {
