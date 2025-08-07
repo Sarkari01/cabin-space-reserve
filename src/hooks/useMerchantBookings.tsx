@@ -93,7 +93,7 @@ export const useMerchantBookings = () => {
             image_url
           ),
           seat:seats(seat_id, row_name, seat_number),
-          user:profiles(full_name, email)
+          user:profiles(full_name, email, phone)
         `)
         .eq('study_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
@@ -131,7 +131,7 @@ export const useMerchantBookings = () => {
             location
           ),
           cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name, amenities),
-          user:profiles!cabin_bookings_user_id_fkey(full_name, email),
+          user:profiles!cabin_bookings_user_id_fkey(full_name, email, phone),
           booking_amount,
           deposit_amount,
           deposit_refunded,

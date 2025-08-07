@@ -1621,7 +1621,7 @@ const MerchantDashboard = () => {
                   payment_status: selectedBooking.payment_status,
                   created_at: selectedBooking.created_at,
                   updated_at: selectedBooking.updated_at,
-                  user: selectedBooking.user ? { full_name: selectedBooking.user.full_name, email: selectedBooking.user.email } : undefined,
+                  user: selectedBooking.user ? { full_name: selectedBooking.user.full_name, email: selectedBooking.user.email, phone: selectedBooking.user.phone } : undefined,
                   guest_name: selectedBooking.guest_name,
                   guest_email: selectedBooking.guest_email,
                   guest_phone: selectedBooking.guest_phone,
@@ -1658,7 +1658,7 @@ const MerchantDashboard = () => {
                   guest_name: selectedBooking.guest_name,
                   guest_email: selectedBooking.guest_email,
                   guest_phone: selectedBooking.guest_phone,
-                  user: selectedBooking.user ? { full_name: selectedBooking.user.full_name, email: selectedBooking.user.email } : undefined,
+                  user: selectedBooking.user ? { full_name: selectedBooking.user.full_name, email: selectedBooking.user.email, phone: selectedBooking.user.phone } : undefined,
                   study_hall: {
                     name: selectedBooking.location_name,
                     location: selectedBooking.location_address || '',

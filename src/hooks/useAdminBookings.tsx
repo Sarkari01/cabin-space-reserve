@@ -17,10 +17,19 @@ export interface AdminBooking {
   updated_at: string;
   booking_type: 'study_hall' | 'cabin';
   location_name: string;
+  location_address?: string;
   unit_name: string;
+  // Cabin-specific breakdown
+  booking_amount?: number;
+  deposit_amount?: number;
+  deposit_refunded?: boolean;
+  is_vacated?: boolean;
+  months_booked?: number;
+  monthly_amount?: number;
   user?: {
     full_name: string;
     email: string;
+    phone?: string;
   };
   guest_name?: string;
   guest_phone?: string;
@@ -75,10 +84,11 @@ export const useAdminBookings = () => {
             id,
             name,
             merchant_id,
+            location,
             merchant:profiles!merchant_id(full_name)
           ),
           seat:seats(seat_id),
-          user:profiles(full_name, email)
+          user:profiles(full_name, email, phone)
         `)
         .order("created_at", { ascending: false });
 
@@ -95,6 +105,8 @@ export const useAdminBookings = () => {
           user_id,
           start_date,
           end_date,
+          months_booked,
+          monthly_amount,
           total_amount,
           status,
           payment_status,
@@ -106,10 +118,15 @@ export const useAdminBookings = () => {
           private_hall:private_halls!cabin_bookings_private_hall_id_fkey!inner(
             id,
             name,
-            merchant_id
+            merchant_id,
+            location
           ),
-          cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
-          user:profiles!cabin_bookings_user_id_fkey(full_name, email)
+          cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name, amenities),
+          user:profiles!cabin_bookings_user_id_fkey(full_name, email, phone),
+          booking_amount,
+          deposit_amount,
+          deposit_refunded,
+          is_vacated
         `)
         .order("created_at", { ascending: false });
 
@@ -168,7 +185,14 @@ export const useAdminBookings = () => {
             guest_phone: booking.guest_phone,
             guest_email: booking.guest_email,
             merchant_id: booking.private_hall?.merchant_id,
-            merchant_name: "Merchant" // Will be fetched separately if needed
+            merchant_name: "Merchant", // Optionally enrich later
+            location_address: booking.private_hall?.location,
+            booking_amount: booking.booking_amount,
+            deposit_amount: booking.deposit_amount,
+            deposit_refunded: booking.deposit_refunded,
+            is_vacated: booking.is_vacated,
+            months_booked: booking.months_booked,
+            monthly_amount: booking.monthly_amount
           });
         }
       }
