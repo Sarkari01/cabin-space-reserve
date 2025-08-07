@@ -69,12 +69,14 @@ export const AdminReportsTab: React.FC = () => {
       case 'transactions':
         return [
           { key: 'transaction_number', title: 'Transaction ID', format: (value: any) => value ? `T${value}` : 'Pending' },
-          { key: 'booking.booking_number', title: 'Booking ID', format: (value: any) => value ? `B${value}` : 'N/A' },
-          { key: 'booking.user.full_name', title: 'Customer' },
-          { key: 'amount', title: 'Amount', format: formatCurrency },
-          { key: 'payment_method', title: 'Payment Method' },
-          { key: 'status', title: 'Status' },
-          { key: 'created_at', title: 'Date', format: formatDateTime }
+           { key: 'booking.booking_number', title: 'Booking ID', format: (value: any) => value ? `B${value}` : 'N/A' },
+           { key: 'booking.user.full_name', title: 'Customer' },
+           { key: 'amount', title: 'Total Amount', format: formatCurrency },
+           { key: 'booking_amount', title: 'Booking Amount', format: (value: any) => formatCurrency(value || 0) },
+           { key: 'deposit_amount', title: 'Deposit Amount', format: (value: any) => formatCurrency(value || 0) },
+           { key: 'payment_method', title: 'Payment Method' },
+           { key: 'status', title: 'Status' },
+           { key: 'created_at', title: 'Date', format: formatDateTime }
         ];
       case 'settlements':
         return [
@@ -188,11 +190,20 @@ export const AdminReportsTab: React.FC = () => {
               </div>
             )
           },
-          {
-            key: 'amount',
-            title: 'Amount',
-            render: (value: number) => formatCurrency(value || 0)
-          },
+           {
+             key: 'amount',
+             title: 'Total Amount',
+             render: (value: number, row: any) => (
+               <div>
+                 <div className="font-medium">{formatCurrency(value || 0)}</div>
+                 {row.booking_amount && row.deposit_amount && Number(row.deposit_amount) > 0 && (
+                   <div className="text-xs text-muted-foreground">
+                     Booking: {formatCurrency(row.booking_amount)} + Deposit: {formatCurrency(row.deposit_amount)}
+                   </div>
+                 )}
+               </div>
+             )
+           },
           {
             key: 'payment_method',
             title: 'Payment Method',
