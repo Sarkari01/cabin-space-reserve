@@ -1,10 +1,9 @@
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DollarSign, Clock, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { DollarSign, Clock, CheckCircle, AlertTriangle, Info } from "lucide-react";
 
-interface DepositSummaryProps {
+interface EnhancedDepositSummaryProps {
   bookingAmount: number;
   depositAmount: number;
   totalAmount: number;
@@ -13,9 +12,10 @@ interface DepositSummaryProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   showTooltips?: boolean;
+  showStatus?: boolean;
 }
 
-export const DepositSummaryCard: React.FC<DepositSummaryProps> = ({
+export const EnhancedDepositSummary: React.FC<EnhancedDepositSummaryProps> = ({
   bookingAmount,
   depositAmount,
   totalAmount,
@@ -23,7 +23,8 @@ export const DepositSummaryCard: React.FC<DepositSummaryProps> = ({
   showBreakdown = true,
   size = 'md',
   className = '',
-  showTooltips = true
+  showTooltips = true,
+  showStatus = true
 }) => {
   const hasDeposit = depositAmount > 0;
   
@@ -81,13 +82,13 @@ export const DepositSummaryCard: React.FC<DepositSummaryProps> = ({
   };
 
   return (
-    <Card className={className}>
+    <Card className={`${className} transition-all duration-200 hover:shadow-md`}>
       <CardContent className={getSizeClasses()}>
         <div className="space-y-3">
           {/* Total Amount */}
           <div className="flex items-center gap-2">
             <DollarSign className={`${textSizes.icon} text-primary`} />
-            <div>
+            <div className="flex-1">
               <p className="text-xs text-muted-foreground">Total Amount</p>
               <p className={`${textSizes.total} font-bold`}>
                 ₹{totalAmount.toLocaleString()}
@@ -95,9 +96,9 @@ export const DepositSummaryCard: React.FC<DepositSummaryProps> = ({
             </div>
           </div>
 
-          {/* Breakdown */}
+          {/* Enhanced Breakdown */}
           {showBreakdown && (
-            <div className="bg-muted/30 p-2 rounded space-y-2">
+            <div className="bg-muted/30 p-3 rounded-lg space-y-2">
               <div className="flex items-center justify-between">
                 <DepositTooltip content="The actual cost for using the facility or service">
                   <div className="flex items-center gap-1">
@@ -135,22 +136,27 @@ export const DepositSummaryCard: React.FC<DepositSummaryProps> = ({
             </div>
           )}
 
-          {/* Deposit Status Indicator */}
-          {hasDeposit && (
+          {/* Enhanced Deposit Status Indicator */}
+          {hasDeposit && showStatus && (
             <div className="flex items-center gap-2 pt-2 border-t">
               {depositRefunded ? (
                 <>
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="text-xs text-green-600 font-medium">
-                    Deposit Refunded
+                    Deposit Refunded ✓
                   </span>
                 </>
               ) : (
                 <>
                   <Clock className="h-4 w-4 text-blue-600" />
-                  <span className="text-xs text-blue-600 font-medium">
-                    Deposit Held
-                  </span>
+                  <div className="flex-1">
+                    <span className="text-xs text-blue-600 font-medium">
+                      Deposit Held Securely
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Will be refunded when booking ends
+                    </p>
+                  </div>
                 </>
               )}
             </div>
@@ -161,7 +167,7 @@ export const DepositSummaryCard: React.FC<DepositSummaryProps> = ({
             <div className="flex items-center gap-2 pt-2 border-t">
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">
-                No deposit required
+                No security deposit required
               </span>
             </div>
           )}

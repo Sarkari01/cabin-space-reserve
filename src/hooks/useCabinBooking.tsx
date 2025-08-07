@@ -45,6 +45,14 @@ export const useCabinBooking = () => {
       throw new Error('User must be authenticated to create booking');
     }
 
+    // Phase 3: Validate booking data consistency
+    if (bookingData.booking_amount && bookingData.deposit_amount) {
+      const totalCalculated = Number(bookingData.booking_amount) + Number(bookingData.deposit_amount);
+      if (Math.abs(Number(bookingData.total_amount) - totalCalculated) > 0.01) {
+        throw new Error('Total amount must equal booking amount plus deposit amount');
+      }
+    }
+
     setLoading(true);
     setError(null);
     retryAttemptRef.current = 0;
@@ -68,8 +76,8 @@ export const useCabinBooking = () => {
           p_months_booked: bookingData.months_booked,
           p_monthly_amount: bookingData.monthly_amount,
           p_total_amount: bookingData.total_amount,
-          p_booking_amount: bookingData.booking_amount,
-          p_deposit_amount: bookingData.deposit_amount,
+          p_booking_amount: bookingData.booking_amount || null,
+          p_deposit_amount: bookingData.deposit_amount || null,
           p_guest_name: null,
           p_guest_phone: null,
           p_guest_email: null
