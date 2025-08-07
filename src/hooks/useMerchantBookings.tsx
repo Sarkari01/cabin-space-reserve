@@ -18,6 +18,16 @@ export interface MerchantBooking {
   booking_type: 'study_hall' | 'cabin';
   location_name: string;
   unit_name: string;
+  // Additional details for richer modal display
+  seat_id?: string;
+  seat_row_name?: string;
+  seat_number?: number;
+  location_address?: string;
+  location_image_url?: string;
+  booking_amount?: number; // cabin-only
+  deposit_amount?: number; // cabin-only
+  deposit_refunded?: boolean; // cabin-only
+  is_vacated?: boolean; // cabin-only
   user?: {
     full_name: string;
     email: string;
@@ -75,9 +85,11 @@ export const useMerchantBookings = () => {
           study_hall:study_halls!inner(
             id,
             name,
-            merchant_id
+            merchant_id,
+            location,
+            image_url
           ),
-          seat:seats(seat_id),
+          seat:seats(seat_id, row_name, seat_number),
           user:profiles(full_name, email)
         `)
         .eq('study_hall.merchant_id', user.id)
@@ -110,10 +122,15 @@ export const useMerchantBookings = () => {
           private_hall:private_halls!cabin_bookings_private_hall_id_fkey(
             id,
             name,
-            merchant_id
+            merchant_id,
+            location
           ),
           cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
-          user:profiles!cabin_bookings_user_id_fkey(full_name, email)
+          user:profiles!cabin_bookings_user_id_fkey(full_name, email),
+          booking_amount,
+          deposit_amount,
+          deposit_refunded,
+          is_vacated
         `)
         .eq('private_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
@@ -159,6 +176,11 @@ export const useMerchantBookings = () => {
             booking_type: 'study_hall',
             location_name: booking.study_hall?.name || "Unknown Study Hall",
             unit_name: booking.seat?.seat_id || "Unknown Seat",
+            seat_id: booking.seat?.seat_id,
+            seat_row_name: booking.seat?.row_name,
+            seat_number: booking.seat?.seat_number,
+            location_address: booking.study_hall?.location,
+            location_image_url: booking.study_hall?.image_url,
             user: Array.isArray(booking.user) ? booking.user[0] : booking.user,
             guest_name: booking.guest_name,
             guest_phone: booking.guest_phone,
@@ -184,10 +206,15 @@ export const useMerchantBookings = () => {
             booking_type: 'cabin',
             location_name: booking.private_hall?.name || "Unknown Private Hall",
             unit_name: booking.cabin?.cabin_name || "Unknown Cabin",
+            location_address: booking.private_hall?.location,
             user: Array.isArray(booking.user) ? booking.user[0] : booking.user,
             guest_name: booking.guest_name,
             guest_phone: booking.guest_phone,
-            guest_email: booking.guest_email
+            guest_email: booking.guest_email,
+            booking_amount: booking.booking_amount,
+            deposit_amount: booking.deposit_amount,
+            deposit_refunded: booking.deposit_refunded,
+            is_vacated: booking.is_vacated
           });
         }
       }

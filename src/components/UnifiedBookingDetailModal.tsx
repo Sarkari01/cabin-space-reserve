@@ -79,11 +79,13 @@ export function UnifiedBookingDetailModal({
   // Extract data based on booking type
   const isComboBooking = isCombinedBooking(booking);
   const bookingType = isComboBooking ? booking.type : 'study_hall';
-  const locationName = isComboBooking ? booking.location?.name : booking.study_hall?.name;
-  const locationAddress = isComboBooking ? booking.location?.location : booking.study_hall?.location;
-  const locationImage = isComboBooking ? booking.location?.image_url : booking.study_hall?.image_url;
-  const unitInfo = isComboBooking ? booking.unit : booking.seat;
-  const paymentStatus = isComboBooking ? booking.payment_status : (booking.status === 'confirmed' || booking.status === 'completed' ? 'paid' : 'unpaid');
+  const locationName = isComboBooking ? booking.location?.name : (booking as any).study_hall?.name;
+  const locationAddress = isComboBooking ? booking.location?.location : (booking as any).study_hall?.location;
+  const locationImage = isComboBooking ? booking.location?.image_url : (booking as any).study_hall?.image_url;
+  const unitInfo = isComboBooking ? booking.unit : (booking as any).seat;
+  const paymentStatus = isComboBooking 
+    ? booking.payment_status 
+    : ((booking as any).payment_status ?? ((booking.status === 'confirmed' || booking.status === 'completed') ? 'paid' : 'unpaid'));
   const bookingNumber = booking.booking_number;
 
   return (

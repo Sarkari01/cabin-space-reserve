@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useStudyHalls } from "@/hooks/useStudyHalls";
 import { useMerchantBookings } from "@/hooks/useMerchantBookings";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
-import { BookingDetailModal } from "@/components/BookingDetailModal";
+import { UnifiedBookingDetailModal } from "@/components/UnifiedBookingDetailModal";
 import { BookingEditModal } from "@/components/BookingEditModal";
 import { NewsTab } from "@/components/NewsTab";
 import { CommunityTab } from "@/components/CommunityTab";
@@ -1602,10 +1602,72 @@ const MerchantDashboard = () => {
         </ErrorBoundary>
 
         {/* Booking Detail Modal */}
-        <BookingDetailModal
+        <UnifiedBookingDetailModal
           open={bookingDetailOpen}
           onOpenChange={setBookingDetailOpen}
-          booking={selectedBooking}
+          booking={selectedBooking ? (
+            selectedBooking.booking_type === 'cabin'
+              ? {
+                  id: selectedBooking.id,
+                  booking_number: selectedBooking.booking_number,
+                  type: 'cabin',
+                  user_id: selectedBooking.user_id || null,
+                  location_id: '',
+                  unit_id: '',
+                  start_date: selectedBooking.start_date,
+                  end_date: selectedBooking.end_date,
+                  total_amount: selectedBooking.total_amount,
+                  status: selectedBooking.status,
+                  payment_status: selectedBooking.payment_status,
+                  created_at: selectedBooking.created_at,
+                  updated_at: selectedBooking.updated_at,
+                  guest_name: selectedBooking.guest_name,
+                  guest_email: selectedBooking.guest_email,
+                  guest_phone: selectedBooking.guest_phone,
+                  is_vacated: selectedBooking.is_vacated,
+                  // Provide related data for display
+                  location: {
+                    name: selectedBooking.location_name,
+                    location: selectedBooking.location_address || ''
+                  },
+                  unit: {
+                    name: selectedBooking.unit_name,
+                    identifier: selectedBooking.unit_name
+                  },
+                  // Extra fields for deposit breakdown
+                  booking_amount: selectedBooking.booking_amount,
+                  deposit_amount: selectedBooking.deposit_amount,
+                  deposit_refunded: selectedBooking.deposit_refunded
+                } as any
+              : {
+                  id: selectedBooking.id,
+                  booking_number: selectedBooking.booking_number,
+                  user_id: selectedBooking.user_id || null,
+                  study_hall_id: '',
+                  seat_id: '',
+                  start_date: selectedBooking.start_date,
+                  end_date: selectedBooking.end_date,
+                  total_amount: selectedBooking.total_amount,
+                  status: selectedBooking.status,
+                  payment_status: selectedBooking.payment_status,
+                  created_at: selectedBooking.created_at,
+                  updated_at: selectedBooking.updated_at,
+                  guest_name: selectedBooking.guest_name,
+                  guest_email: selectedBooking.guest_email,
+                  guest_phone: selectedBooking.guest_phone,
+                  user: selectedBooking.user ? { full_name: selectedBooking.user.full_name, email: selectedBooking.user.email } : undefined,
+                  study_hall: {
+                    name: selectedBooking.location_name,
+                    location: selectedBooking.location_address || '',
+                    image_url: selectedBooking.location_image_url || ''
+                  },
+                  seat: {
+                    seat_id: selectedBooking.seat_id || selectedBooking.unit_name,
+                    row_name: selectedBooking.seat_row_name || '',
+                    seat_number: selectedBooking.seat_number || 0
+                  }
+                } as any
+          ) : null}
           userRole={userRole === "admin" ? "admin" : "merchant"}
           onConfirm={handleConfirmBooking}
           onEdit={handleEditBooking}
