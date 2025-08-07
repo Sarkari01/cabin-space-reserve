@@ -38,7 +38,6 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
     latitude: null as number | null,
     longitude: null as number | null,
     monthly_price: 0,
-    base_refundable_deposit: 0,
     status: 'draft' as 'active' | 'inactive' | 'draft',
     amenities: [] as string[],
   });
@@ -65,7 +64,6 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
         latitude: privateHall.latitude,
         longitude: privateHall.longitude,
         monthly_price: privateHall.monthly_price,
-        base_refundable_deposit: 0, // Default value, can be updated from cabin data
         status: privateHall.status,
         amenities: privateHall.amenities || [],
       });
@@ -115,10 +113,6 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
     }
     if (formData.monthly_price <= 0) {
       toast.error('Monthly price must be greater than 0');
-      return false;
-    }
-    if (formData.base_refundable_deposit < 0) {
-      toast.error('Deposit amount cannot be negative');
       return false;
     }
     if (cabinLayout.cabins.length === 0) {
@@ -257,7 +251,6 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
       latitude: null,
       longitude: null,
       monthly_price: 0,
-      base_refundable_deposit: 0,
       status: 'draft',
       amenities: [],
     });
@@ -294,25 +287,17 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="monthly_price">Monthly Price (₹) *</Label>
+              <Label htmlFor="monthly_price">Base Monthly Price (₹) *</Label>
               <Input
                 id="monthly_price"
                 type="number"
                 value={formData.monthly_price}
                 onChange={(e) => setFormData(prev => ({ ...prev, monthly_price: Number(e.target.value) }))}
-                placeholder="Enter monthly price"
+                placeholder="Enter base monthly price"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="base_refundable_deposit">Base Refundable Deposit (₹) *</Label>
-              <Input
-                id="base_refundable_deposit"
-                type="number"
-                value={formData.base_refundable_deposit}
-                onChange={(e) => setFormData(prev => ({ ...prev, base_refundable_deposit: Number(e.target.value) }))}
-                placeholder="Enter base deposit amount"
-              />
+              <p className="text-sm text-muted-foreground mt-1">
+                This sets the default price. You can customize individual cabin prices and deposits in the layout designer below.
+              </p>
             </div>
           </div>
 
@@ -391,6 +376,9 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
           {/* Cabin Layout Design */}
           <div>
             <Label>Cabin Layout Design</Label>
+            <p className="text-sm text-muted-foreground mb-4">
+              Design your cabin layout and set individual prices and refundable deposits for each cabin below.
+            </p>
             
             {/* Layout Type Selection */}
             <div className="flex gap-4 mb-6">
@@ -415,14 +403,12 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
                 layout={cabinLayout}
                 onChange={setCabinLayout}
                 basePrice={formData.monthly_price || 0}
-                baseDeposit={formData.base_refundable_deposit || 0}
               />
             ) : (
               <CabinLayoutDesigner
                 layout={cabinLayout}
                 onChange={setCabinLayout}
                 basePrice={formData.monthly_price || 0}
-                baseDeposit={formData.base_refundable_deposit || 0}
               />
             )}
           </div>
