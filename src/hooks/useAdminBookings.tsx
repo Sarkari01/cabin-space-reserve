@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -108,7 +109,7 @@ export const useAdminBookings = () => {
             merchant_id
           ),
           cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
-          user:profiles(full_name, email)
+          user:profiles!cabin_bookings_user_id_fkey(full_name, email)
         `)
         .order("created_at", { ascending: false });
 

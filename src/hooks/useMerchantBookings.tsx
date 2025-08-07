@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -112,7 +113,7 @@ export const useMerchantBookings = () => {
             merchant_id
           ),
           cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
-          profiles(full_name, email)
+          user:profiles!cabin_bookings_user_id_fkey(full_name, email)
         `)
         .eq('private_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
@@ -183,7 +184,7 @@ export const useMerchantBookings = () => {
             booking_type: 'cabin',
             location_name: booking.private_hall?.name || "Unknown Private Hall",
             unit_name: booking.cabin?.cabin_name || "Unknown Cabin",
-            user: Array.isArray(booking.profiles) ? booking.profiles[0] : booking.profiles,
+            user: Array.isArray(booking.user) ? booking.user[0] : booking.user,
             guest_name: booking.guest_name,
             guest_phone: booking.guest_phone,
             guest_email: booking.guest_email
