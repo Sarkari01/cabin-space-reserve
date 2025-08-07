@@ -106,13 +106,13 @@ export const useMerchantBookings = () => {
           guest_name,
           guest_phone,
           guest_email,
-          private_hall:private_halls!private_hall_id(
+          private_hall:private_halls!cabin_bookings_private_hall_id_fkey(
             id,
             name,
             merchant_id
           ),
           cabin:cabins!cabin_id(cabin_name),
-          user:profiles!user_id(full_name, email)
+          profiles(full_name, email)
         `)
         .eq('private_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
@@ -183,7 +183,7 @@ export const useMerchantBookings = () => {
             booking_type: 'cabin',
             location_name: booking.private_hall?.name || "Unknown Private Hall",
             unit_name: booking.cabin?.cabin_name || "Unknown Cabin",
-            user: Array.isArray(booking.user) ? booking.user[0] : booking.user,
+            user: Array.isArray(booking.profiles) ? booking.profiles[0] : booking.profiles,
             guest_name: booking.guest_name,
             guest_phone: booking.guest_phone,
             guest_email: booking.guest_email
