@@ -11,6 +11,8 @@ export interface CabinBookingRequest {
   end_date: string;
   months_booked: number;
   monthly_amount: number;
+  booking_amount?: number;
+  deposit_amount?: number;
   total_amount: number;
 }
 
@@ -66,6 +68,8 @@ export const useCabinBooking = () => {
           p_months_booked: bookingData.months_booked,
           p_monthly_amount: bookingData.monthly_amount,
           p_total_amount: bookingData.total_amount,
+          p_booking_amount: bookingData.booking_amount,
+          p_deposit_amount: bookingData.deposit_amount,
           p_guest_name: null,
           p_guest_phone: null,
           p_guest_email: null

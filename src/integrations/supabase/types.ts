@@ -3131,6 +3131,8 @@ export type Database = {
           p_months_booked: number
           p_monthly_amount: number
           p_total_amount: number
+          p_booking_amount?: number
+          p_deposit_amount?: number
           p_guest_name?: string
           p_guest_phone?: string
           p_guest_email?: string
