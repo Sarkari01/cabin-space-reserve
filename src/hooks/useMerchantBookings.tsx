@@ -119,12 +119,23 @@ export const useMerchantBookings = () => {
       });
 
       if (cabinError) {
-        console.error("Error fetching cabin bookings:", cabinError);
-        toast({
-          title: "Warning",
-          description: "Could not load cabin bookings. Study hall bookings are still available.",
-          variant: "destructive",
+        console.error("Error fetching cabin bookings:", {
+          error: cabinError,
+          code: cabinError.code,
+          message: cabinError.message,
+          details: cabinError.details,
+          hint: cabinError.hint,
+          merchantId: user.id
         });
+        
+        // Only show error if it's not a simple "no data" case
+        if (cabinError.code !== 'PGRST116') {
+          toast({
+            title: "Cabin Bookings Error",
+            description: `Failed to load cabin bookings: ${cabinError.message || 'Unknown error'}`,
+            variant: "destructive",
+          });
+        }
       }
 
       const enrichedBookings: MerchantBooking[] = [];
