@@ -253,6 +253,33 @@ export const useMerchantBookings = () => {
     fetchMerchantBookings();
   }, [fetchMerchantBookings]);
 
+  // Realtime updates for bookings and cabin bookings
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('merchant-bookings')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        () => {
+          fetchMerchantBookings();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cabin_bookings' },
+        () => {
+          fetchMerchantBookings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchMerchantBookings]);
+
   const getActiveBookings = () => {
     return bookings.filter(booking => 
       booking.status === 'active' && booking.payment_status === 'paid'
@@ -275,6 +302,32 @@ export const useMerchantBookings = () => {
       .reduce((sum, booking) => sum + Number(booking.total_amount), 0);
   };
 
+  const updateMerchantBookingStatus = async (bookingId: string, nextStatus: string) => {
+    try {
+      const booking = bookings.find(b => b.id === bookingId);
+      if (!booking) {
+        toast({ title: "Error", description: "Booking not found", variant: "destructive" });
+        return false;
+      }
+
+      const table = booking.booking_type === 'cabin' ? 'cabin_bookings' : 'bookings';
+      const { error } = await supabase
+        .from(table)
+        .update({ status: nextStatus, updated_at: new Date().toISOString() })
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      await fetchMerchantBookings();
+      toast({ title: "Success", description: `Booking ${nextStatus}.` });
+      return true;
+    } catch (err: any) {
+      console.error('Failed to update booking status', err);
+      toast({ title: "Error", description: err?.message || 'Failed to update booking', variant: "destructive" });
+      return false;
+    }
+  };
+
   return {
     bookings,
     loading,
@@ -282,6 +335,7 @@ export const useMerchantBookings = () => {
     getActiveBookings,
     getCompletedBookings,
     getPendingBookings,
-    getTotalRevenue
+    getTotalRevenue,
+    updateMerchantBookingStatus,
   };
 };

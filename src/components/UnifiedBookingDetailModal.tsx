@@ -197,6 +197,22 @@ export function UnifiedBookingDetailModal({
                       <span className="font-medium capitalize">{booking.booking_period}</span>
                     </div>
                   )}
+                  {bookingType === 'cabin' && (
+                    <>
+                      {(booking as any).months_booked && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Months Booked:</span>
+                          <span className="font-medium">{(booking as any).months_booked}</span>
+                        </div>
+                      )}
+                      {(booking as any).monthly_amount && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Monthly Amount:</span>
+                          <span className="font-medium">₹{Number((booking as any).monthly_amount).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Start Date:</span>
                     <span className="font-medium">{formatDate(booking.start_date)}</span>

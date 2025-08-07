@@ -46,7 +46,7 @@ const MerchantDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall, toggleStudyHallStatus, fetchStudyHalls } = useStudyHalls();
-  const { bookings, loading: bookingsLoading, fetchMerchantBookings } = useMerchantBookings();
+  const { bookings, loading: bookingsLoading, fetchMerchantBookings, updateMerchantBookingStatus } = useMerchantBookings();
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   const { limits, checkStudyHallCreationLimit } = useSubscriptionLimits();
   
@@ -191,24 +191,26 @@ const MerchantDashboard = () => {
 
   const handleConfirmBooking = async (bookingId: string) => {
     setActionLoading(true);
-    // Note: Update booking status functionality would need to be implemented in useMerchantBookings
-    toast({
-      title: "Feature Note",
-      description: "Booking status updates will be implemented in future update",
-      variant: "default",
-    });
-    setActionLoading(false);
+    try {
+      const success = await updateMerchantBookingStatus(bookingId, 'confirmed');
+      if (success) {
+        await fetchMerchantBookings();
+      }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleCancelBooking = async (bookingId: string) => {
     setActionLoading(true);
-    // Note: Update booking status functionality would need to be implemented in useMerchantBookings
-    toast({
-      title: "Feature Note", 
-      description: "Booking status updates will be implemented in future update",
-      variant: "default",
-    });
-    setActionLoading(false);
+    try {
+      const success = await updateMerchantBookingStatus(bookingId, 'cancelled');
+      if (success) {
+        await fetchMerchantBookings();
+      }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleEditBooking = (booking: any) => {
