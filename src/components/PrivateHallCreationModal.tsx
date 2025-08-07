@@ -37,6 +37,7 @@ export const PrivateHallCreationModal: React.FC<PrivateHallCreationModalProps> =
     latitude: null as number | null,
     longitude: null as number | null,
     monthly_price: 0,
+    base_refundable_deposit: 0,
     merchant_id: '',
     status: 'draft' as const,
     amenities: [] as string[],
@@ -119,6 +120,7 @@ const [images, setImages] = useState<Array<{ id: string; url: string; file: File
           cabin_number: index + 1,
           cabin_name: cabin.name,
           monthly_price: cabin.monthly_price || formData.monthly_price,
+          refundable_deposit: cabin.refundable_deposit || formData.base_refundable_deposit,
           max_occupancy: 1,
           amenities: cabin.amenities || [],
           position_x: cabin.x,
@@ -204,6 +206,7 @@ const [images, setImages] = useState<Array<{ id: string; url: string; file: File
       latitude: null,
       longitude: null,
       monthly_price: 0,
+      base_refundable_deposit: 0,
       merchant_id: '',
       status: 'draft',
       amenities: [],
@@ -251,6 +254,17 @@ const [images, setImages] = useState<Array<{ id: string; url: string; file: File
                 value={formData.monthly_price || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, monthly_price: Number(e.target.value) }))}
                 placeholder="Enter monthly price"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="base_refundable_deposit">Base Refundable Deposit per Cabin *</Label>
+              <Input
+                id="base_refundable_deposit"
+                type="number"
+                value={formData.base_refundable_deposit || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, base_refundable_deposit: Number(e.target.value) }))}
+                placeholder="Enter base deposit amount"
               />
             </div>
 
@@ -354,17 +368,19 @@ const [images, setImages] = useState<Array<{ id: string; url: string; file: File
               </div>
 
               {useRowBasedDesign ? (
-                <RowBasedCabinDesigner
-                  layout={cabinLayout}
-                  onChange={setCabinLayout}
-                  basePrice={formData.monthly_price || 0}
-                />
+              <RowBasedCabinDesigner
+                layout={cabinLayout}
+                onChange={setCabinLayout}
+                basePrice={formData.monthly_price || 0}
+                baseDeposit={formData.base_refundable_deposit || 0}
+              />
               ) : (
-                <CabinLayoutDesigner
-                  layout={cabinLayout}
-                  onChange={setCabinLayout}
-                  basePrice={formData.monthly_price || 0}
-                />
+              <CabinLayoutDesigner
+                layout={cabinLayout}
+                onChange={setCabinLayout}
+                basePrice={formData.monthly_price || 0}
+                baseDeposit={formData.base_refundable_deposit || 0}
+              />
               )}
             </div>
           </div>

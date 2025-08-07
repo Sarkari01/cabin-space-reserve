@@ -36,6 +36,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
     latitude: null as number | null,
     longitude: null as number | null,
     monthly_price: 0,
+    base_refundable_deposit: 0,
     status: 'draft' as 'active' | 'inactive' | 'draft',
     amenities: [] as string[],
   });
@@ -61,6 +62,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
         latitude: privateHall.latitude,
         longitude: privateHall.longitude,
         monthly_price: privateHall.monthly_price,
+        base_refundable_deposit: 0, // Default value, can be updated from cabin data
         status: privateHall.status,
         amenities: privateHall.amenities || [],
       });
@@ -166,6 +168,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
       latitude: null,
       longitude: null,
       monthly_price: 0,
+      base_refundable_deposit: 0,
       status: 'draft',
       amenities: [],
     });
@@ -209,6 +212,17 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
                 value={formData.monthly_price}
                 onChange={(e) => setFormData(prev => ({ ...prev, monthly_price: Number(e.target.value) }))}
                 placeholder="Enter monthly price"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="base_refundable_deposit">Base Refundable Deposit (₹) *</Label>
+              <Input
+                id="base_refundable_deposit"
+                type="number"
+                value={formData.base_refundable_deposit}
+                onChange={(e) => setFormData(prev => ({ ...prev, base_refundable_deposit: Number(e.target.value) }))}
+                placeholder="Enter base deposit amount"
               />
             </div>
           </div>
@@ -312,12 +326,14 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
                 layout={cabinLayout}
                 onChange={setCabinLayout}
                 basePrice={formData.monthly_price || 0}
+                baseDeposit={formData.base_refundable_deposit || 0}
               />
             ) : (
               <CabinLayoutDesigner
                 layout={cabinLayout}
                 onChange={setCabinLayout}
                 basePrice={formData.monthly_price || 0}
+                baseDeposit={formData.base_refundable_deposit || 0}
               />
             )}
           </div>

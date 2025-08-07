@@ -10,12 +10,14 @@ interface CabinLayoutDesignerProps {
   layout: CabinLayoutData;
   onChange: (layout: CabinLayoutData) => void;
   basePrice: number;
+  baseDeposit?: number;
 }
 
 export const CabinLayoutDesigner: React.FC<CabinLayoutDesignerProps> = ({
   layout,
   onChange,
   basePrice,
+  baseDeposit = 0,
 }) => {
   const [selectedCabin, setSelectedCabin] = useState<string | null>(null);
   const [isAddingCabin, setIsAddingCabin] = useState(false);
@@ -36,6 +38,7 @@ export const CabinLayoutDesigner: React.FC<CabinLayoutDesignerProps> = ({
       width: 80,
       height: 60,
       monthly_price: basePrice,
+      refundable_deposit: baseDeposit,
       amenities: [],
     };
 
@@ -183,6 +186,16 @@ export const CabinLayoutDesigner: React.FC<CabinLayoutDesignerProps> = ({
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="cabin-deposit">Refundable Deposit</Label>
+                  <Input
+                    id="cabin-deposit"
+                    type="number"
+                    value={selectedCabinData.refundable_deposit || baseDeposit}
+                    onChange={(e) => updateCabin(selectedCabin!, { refundable_deposit: Number(e.target.value) })}
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label htmlFor="cabin-x">X Position</Label>
@@ -250,6 +263,11 @@ export const CabinLayoutDesigner: React.FC<CabinLayoutDesignerProps> = ({
                 <div>
                   <Label>Base Price</Label>
                   <p className="text-sm text-muted-foreground">₹{basePrice}/month</p>
+                </div>
+
+                <div>
+                  <Label>Base Deposit</Label>
+                  <p className="text-sm text-muted-foreground">₹{baseDeposit}</p>
                 </div>
               </div>
             )}

@@ -11,16 +11,19 @@ interface RowConfig {
   name: string;
   cabins: number;
   priceOverride?: number;
+  depositOverride?: number;
 }
 interface RowBasedCabinDesignerProps {
   layout: CabinLayoutData;
   onChange: (layout: CabinLayoutData) => void;
   basePrice: number;
+  baseDeposit?: number;
 }
 export const RowBasedCabinDesigner: React.FC<RowBasedCabinDesignerProps> = ({
   layout,
   onChange,
-  basePrice
+  basePrice,
+  baseDeposit = 0
 }) => {
   const [rows, setRows] = useState<RowConfig[]>([{
     name: 'A',
@@ -69,6 +72,7 @@ export const RowBasedCabinDesigner: React.FC<RowBasedCabinDesignerProps> = ({
           width: cabinWidth,
           height: cabinHeight,
           monthly_price: row.priceOverride || basePrice,
+          refundable_deposit: row.depositOverride || baseDeposit,
           amenities: []
         });
         cabinId++;
@@ -107,7 +111,7 @@ export const RowBasedCabinDesigner: React.FC<RowBasedCabinDesignerProps> = ({
       <div className="space-y-4">
         <Label className="text-base font-medium">Row Configuration</Label>
         {rows.map((row, index) => <Card key={index} className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
               <div>
                 <Label htmlFor={`row-name-${index}`}>Row Name</Label>
                 <Input id={`row-name-${index}`} value={row.name} onChange={e => updateRow(index, {
@@ -129,7 +133,14 @@ export const RowBasedCabinDesigner: React.FC<RowBasedCabinDesignerProps> = ({
             })} placeholder={`Default: ₹${basePrice}`} />
               </div>
 
-              <div className="flex gap-2">
+              <div>
+                <Label htmlFor={`row-deposit-${index}`}>Deposit Override (Optional)</Label>
+                <Input id={`row-deposit-${index}`} type="number" value={row.depositOverride || ''} onChange={e => updateRow(index, {
+              depositOverride: e.target.value ? parseInt(e.target.value) : undefined
+            })} placeholder={`Default: ₹${baseDeposit}`} />
+              </div>
+
+              <div className="flex flex-col gap-2">
                 <Badge variant="outline" className="text-xs">
                   {row.cabins} cabins
                 </Badge>
