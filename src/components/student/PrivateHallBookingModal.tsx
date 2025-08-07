@@ -527,6 +527,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                     handleError(new ValidationError('cabin and start date'));
                   }
                 }}
+                cabins={cabins}
               />
             ) : (
               <>

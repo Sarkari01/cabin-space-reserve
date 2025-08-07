@@ -36,6 +36,13 @@ interface StudentCabinLayoutViewerProps {
   onCouponRemoved?: () => void;
   onRewardsApplied?: (discount: number, pointsUsed: number) => void;
   onRewardsRemoved?: () => void;
+  cabins?: Array<{
+    id: string;
+    cabin_name: string;
+    monthly_price?: number;
+    refundable_deposit?: number;
+    amenities: string[];
+  }>;
 }
 
 export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> = ({
@@ -53,7 +60,8 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
   onCouponApplied,
   onCouponRemoved,
   onRewardsApplied,
-  onRewardsRemoved
+  onRewardsRemoved,
+  cabins = []
 }) => {
   const [availability, setAvailability] = useState<CabinAvailability>({});
   const [loading, setLoading] = useState(false);
@@ -302,26 +310,36 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
     const selectedCabin = layout.cabins.find(c => c.id === selectedCabinId);
     if (!selectedCabin) return null;
 
+    // Get the actual database cabin data for deposit info
+    const dbCabinId = cabinIdMapping[selectedCabinId];
+    const dbCabin = cabins.find(c => c.id === dbCabinId);
+
     const endDate = addMonths(startDate, 1);
     const days = differenceInDays(endDate, startDate) + 1;
     const months = 1; // Always 1 month
     const monthlyPrice = selectedCabin.monthly_price || 0;
-    const baseAmount = monthlyPrice; // 1 month * monthly price
+    const depositAmount = dbCabin?.refundable_deposit || 0;
+    const bookingAmount = monthlyPrice; // 1 month * monthly price
+    const subtotal = bookingAmount + depositAmount;
 
-    // Calculate discounts
+    // Calculate discounts (apply only to booking amount, not deposit)
     const couponDiscount = appliedCoupon?.discount || 0;
     const rewardsDiscount = appliedRewards?.discount || 0;
     const totalDiscount = couponDiscount + rewardsDiscount;
-    const finalAmount = Math.max(0, baseAmount - totalDiscount);
+    const discountedBookingAmount = Math.max(0, bookingAmount - totalDiscount);
+    const finalAmount = discountedBookingAmount + depositAmount;
 
     return { 
       days, 
       months, 
-      monthlyPrice, 
-      baseAmount,
+      monthlyPrice,
+      depositAmount,
+      bookingAmount, 
+      subtotal,
       couponDiscount,
       rewardsDiscount,
       totalDiscount,
+      discountedBookingAmount,
       finalAmount, 
       cabinName: selectedCabin.name,
       endDate
@@ -466,7 +484,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
         <div className="space-y-4">
           {onCouponApplied && onCouponRemoved && (
             <CouponInput
-              bookingAmount={bookingDetails.baseAmount}
+              bookingAmount={bookingDetails.bookingAmount}
               studyHallId={privateHallId}
               onCouponApplied={onCouponApplied}
               onCouponRemoved={onCouponRemoved}
@@ -476,7 +494,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
           
           {onRewardsApplied && onRewardsRemoved && (
             <RewardsInput
-              bookingAmount={bookingDetails.baseAmount}
+              bookingAmount={bookingDetails.bookingAmount}
               onRewardsApplied={onRewardsApplied}
               onRewardsRemoved={onRewardsRemoved}
               appliedRewards={appliedRewards}
@@ -506,8 +524,18 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
               <span className="font-medium">{format(startDate!, 'MMM dd')} - {format(bookingDetails.endDate, 'MMM dd, yyyy')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Base Amount:</span>
-              <span className="font-medium">₹{bookingDetails.baseAmount.toLocaleString()}</span>
+              <span className="text-muted-foreground">Monthly Price:</span>
+              <span className="font-medium">₹{bookingDetails.monthlyPrice.toLocaleString()}</span>
+            </div>
+            {bookingDetails.depositAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Refundable Deposit:</span>
+                <span className="font-medium">₹{bookingDetails.depositAmount.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal:</span>
+              <span className="font-medium">₹{bookingDetails.subtotal.toLocaleString()}</span>
             </div>
             {bookingDetails.couponDiscount > 0 && (
               <div className="flex justify-between text-green-600">
