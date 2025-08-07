@@ -149,6 +149,7 @@ const sidebarItems = {
       { title: "Trial Activation Logs", url: "/admin/dashboard", icon: Activity, tab: "trial-logs" },
       { title: "Incharges", url: "/admin/dashboard", icon: UserPlus, tab: "incharges" },
       { title: "Settlements", url: "/admin/dashboard", icon: ArrowUpDown, tab: "settlements" },
+      { title: "Deposit Refunds", url: "/admin/dashboard", icon: Banknote, tab: "deposit-refunds" },
     ],
     financial: [
       { title: "Transactions", url: "/admin/dashboard", icon: CreditCard, tab: "transactions" },

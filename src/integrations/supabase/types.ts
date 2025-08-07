@@ -406,6 +406,7 @@ export type Database = {
           cabin_id: string
           created_at: string
           deposit_amount: number | null
+          deposit_refunded: boolean | null
           end_date: string
           guest_email: string | null
           guest_name: string | null
@@ -429,6 +430,7 @@ export type Database = {
           cabin_id: string
           created_at?: string
           deposit_amount?: number | null
+          deposit_refunded?: boolean | null
           end_date: string
           guest_email?: string | null
           guest_name?: string | null
@@ -452,6 +454,7 @@ export type Database = {
           cabin_id?: string
           created_at?: string
           deposit_amount?: number | null
+          deposit_refunded?: boolean | null
           end_date?: string
           guest_email?: string | null
           guest_name?: string | null
@@ -994,65 +997,6 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      deposit_refunds: {
-        Row: {
-          cabin_booking_id: string
-          created_at: string
-          id: string
-          merchant_id: string
-          notes: string | null
-          payment_reference: string | null
-          processed_at: string | null
-          processed_by: string | null
-          refund_amount: number
-          refund_reason: string | null
-          refund_status: string
-          requested_at: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          cabin_booking_id: string
-          created_at?: string
-          id?: string
-          merchant_id: string
-          notes?: string | null
-          payment_reference?: string | null
-          processed_at?: string | null
-          processed_by?: string | null
-          refund_amount: number
-          refund_reason?: string | null
-          refund_status?: string
-          requested_at?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          cabin_booking_id?: string
-          created_at?: string
-          id?: string
-          merchant_id?: string
-          notes?: string | null
-          payment_reference?: string | null
-          processed_at?: string | null
-          processed_by?: string | null
-          refund_amount?: number
-          refund_reason?: string | null
-          refund_status?: string
-          requested_at?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "deposit_refunds_cabin_booking_id_fkey"
-            columns: ["cabin_booking_id"]
-            isOneToOne: false
-            referencedRelation: "cabin_bookings"
             referencedColumns: ["id"]
           },
         ]

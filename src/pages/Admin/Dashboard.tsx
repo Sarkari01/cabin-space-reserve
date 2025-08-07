@@ -41,6 +41,7 @@ import { CouponsTab } from "@/components/admin/CouponsTab";
 import { MerchantVerificationTab } from "@/components/admin/MerchantVerificationTab";
 import { InchargesTab } from "@/components/admin/InchargesTab";
 import { SettlementsTab } from "@/components/admin/SettlementsTab";
+import { AdminDepositRefundsTab } from "@/components/admin/AdminDepositRefundsTab";
 import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/loading";
@@ -1041,6 +1042,9 @@ const AdminDashboard = () => {
 
           {/* Settlements Tab */}
           {activeTab === "settlements" && <SettlementsTab />}
+
+          {/* Deposit Refunds Tab */}
+          {activeTab === "deposit-refunds" && <AdminDepositRefundsTab />}
 
           {/* Merchant Verification Tab */}
           {activeTab === "merchantverification" && <MerchantVerificationTab />}

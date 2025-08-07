@@ -287,7 +287,7 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
                 </div>
 
                 <div>
-                  <Label htmlFor={`row-deposit-${index}`}>Deposit Override (Optional)</Label>
+                  <Label htmlFor={`row-deposit-${index}`}>Refundable Deposit (Optional)</Label>
                   <Input id={`row-deposit-${index}`} type="number" value={row.depositOverride ?? ''} onChange={e => updateRow(index, {
                 depositOverride: e.target.value ? parseFloat(e.target.value) : undefined
               })} placeholder={`Default: ₹${baseDeposit}`} />
