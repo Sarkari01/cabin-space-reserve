@@ -111,7 +111,7 @@ export const useMerchantBookings = () => {
             name,
             merchant_id
           ),
-          cabin:cabins!cabin_id(cabin_name),
+          cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
           profiles(full_name, email)
         `)
         .eq('private_hall.merchant_id', user.id)
