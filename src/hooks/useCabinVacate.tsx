@@ -77,11 +77,14 @@ export const useCabinVacate = () => {
       return data;
     } catch (error) {
       console.error('Error auto-expiring cabin bookings:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to auto-expire cabin bookings",
-        variant: "destructive",
-      });
+      // Only show toast for unexpected errors, not permission errors
+      if (!error.message?.includes('Only admins can trigger auto-expiration')) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to auto-expire cabin bookings",
+          variant: "destructive",
+        });
+      }
       throw error;
     } finally {
       setLoading(false);
