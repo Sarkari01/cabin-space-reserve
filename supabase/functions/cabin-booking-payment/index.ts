@@ -199,6 +199,9 @@ async function createCabinBookingOrder(request: Omit<CreatePaymentRequest, 'acti
           hall_name: privateHall.name,
           months_booked: booking.months_booked.toString(),
           monthly_amount: booking.monthly_amount.toString(),
+          booking_amount: booking.booking_amount?.toString() || booking.monthly_amount.toString(),
+          deposit_amount: booking.deposit_amount?.toString() || '0',
+          total_amount: booking.total_amount.toString(),
           type: 'cabin_booking'
         }
     };

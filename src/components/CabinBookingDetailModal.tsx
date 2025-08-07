@@ -13,7 +13,10 @@ interface CabinBooking {
   end_date: string;
   months_booked: number;
   monthly_amount: number;
+  booking_amount?: number;
+  deposit_amount?: number;
   total_amount: number;
+  deposit_refunded?: boolean;
   status: string;
   payment_status: string;
   created_at: string;
@@ -169,11 +172,21 @@ export function CabinBookingDetailModal({
                     <div className="flex items-center space-x-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Amount</p>
-                        <p className="font-medium">₹{Number(booking.total_amount).toLocaleString()}</p>
-                        <p className="text-sm text-muted-foreground">
-                          ₹{Number(booking.monthly_amount).toLocaleString()}/month
-                        </p>
+                        <p className="text-sm text-muted-foreground">Payment Breakdown</p>
+                        <div className="space-y-1">
+                          <p className="font-medium">Total: ₹{Number(booking.total_amount).toLocaleString()}</p>
+                          <div className="text-sm text-muted-foreground space-y-0.5">
+                            <p>Monthly Rate: ₹{Number(booking.monthly_amount).toLocaleString()}</p>
+                            {booking.deposit_amount && Number(booking.deposit_amount) > 0 && (
+                              <p>
+                                Refundable Deposit: ₹{Number(booking.deposit_amount).toLocaleString()}
+                                {booking.deposit_refunded && (
+                                  <Badge variant="default" className="ml-2 text-xs">Refunded</Badge>
+                                )}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
