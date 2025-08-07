@@ -83,7 +83,7 @@ export const useMerchantBookings = () => {
         console.error("Error fetching study hall bookings:", studyHallError);
       }
 
-      // Fetch cabin bookings with correct foreign key references
+      // Fetch cabin bookings with correct relationship syntax
       const { data: cabinBookings, error: cabinError } = await supabase
         .from("cabin_bookings")
         .select(`
@@ -100,21 +100,31 @@ export const useMerchantBookings = () => {
           guest_name,
           guest_phone,
           guest_email,
-          private_hall:private_halls!cabin_bookings_private_hall_id_fkey!inner(
+          private_hall:private_halls!private_hall_id!inner(
             id,
             name,
             merchant_id
           ),
-          cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
-          user:profiles(full_name, email)
+          cabin:cabins!cabin_id(cabin_name),
+          user:profiles!user_id(full_name, email)
         `)
         .eq('private_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
 
-      console.log('Cabin bookings query result:', { cabinBookings, cabinError, merchantId: user.id });
+      console.log('Cabin bookings query result:', { 
+        cabinBookings, 
+        cabinError, 
+        merchantId: user.id,
+        cabinBookingsCount: cabinBookings?.length || 0 
+      });
 
       if (cabinError) {
         console.error("Error fetching cabin bookings:", cabinError);
+        toast({
+          title: "Warning",
+          description: "Could not load cabin bookings. Study hall bookings are still available.",
+          variant: "destructive",
+        });
       }
 
       const enrichedBookings: MerchantBooking[] = [];
