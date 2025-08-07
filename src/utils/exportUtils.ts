@@ -25,14 +25,18 @@ export const formatCurrency = (value: number | string): string => {
 };
 
 // Format date values
-export const formatDate = (value: string | Date): string => {
+export const formatDate = (value: string | Date | null | undefined): string => {
+  if (!value) return 'N/A';
   const date = typeof value === 'string' ? new Date(value) : value;
+  if (isNaN(date.getTime())) return 'Invalid Date';
   return format(date, 'dd/MM/yyyy');
 };
 
 // Format datetime values
-export const formatDateTime = (value: string | Date): string => {
+export const formatDateTime = (value: string | Date | null | undefined): string => {
+  if (!value) return 'N/A';
   const date = typeof value === 'string' ? new Date(value) : value;
+  if (isNaN(date.getTime())) return 'Invalid Date';
   return format(date, 'dd/MM/yyyy HH:mm');
 };
 
