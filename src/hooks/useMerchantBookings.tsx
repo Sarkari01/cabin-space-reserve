@@ -105,8 +105,8 @@ export const useMerchantBookings = () => {
             name,
             merchant_id
           ),
-          cabin:cabins!cabin_id(cabin_name),
-          user:profiles!user_id(full_name, email)
+          cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
+          user:profiles!cabin_bookings_user_id_fkey(full_name, email)
         `)
         .eq('private_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
