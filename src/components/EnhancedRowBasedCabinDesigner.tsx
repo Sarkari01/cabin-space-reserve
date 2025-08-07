@@ -11,6 +11,7 @@ interface RowConfig {
   name: string;
   cabins: number;
   priceOverride?: number;
+  depositOverride?: number;
 }
 interface CabinAvailability {
   [cabinId: string]: {
@@ -22,6 +23,7 @@ interface EnhancedRowBasedCabinDesignerProps {
   layout: CabinLayoutData;
   onChange: (layout: CabinLayoutData) => void;
   basePrice: number;
+  baseDeposit?: number;
   privateHallId?: string;
   showAvailability?: boolean;
   readOnly?: boolean;
@@ -31,6 +33,7 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
   layout,
   onChange,
   basePrice,
+  baseDeposit = 0,
   privateHallId,
   showAvailability = false,
   readOnly = false,
@@ -153,7 +156,7 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
       for (let cabinIndex = 0; cabinIndex < row.cabins; cabinIndex++) {
         const cabinName = `${row.name}${cabinIndex + 1}`;
         const uniqueId = `cabin-${cabinId}`;
-        cabins.push({
+          cabins.push({
           id: uniqueId,
           name: cabinName,
           x: 30 + cabinIndex * (cabinWidth + cabinSpacing),
@@ -161,6 +164,7 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
           width: cabinWidth,
           height: cabinHeight,
           monthly_price: row.priceOverride || basePrice,
+          refundable_deposit: row.depositOverride ?? baseDeposit,
           amenities: [],
           status: availability[uniqueId]?.status || 'available'
         });
@@ -260,7 +264,7 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
         <div className="space-y-4">
           <Label className="text-base font-medium">Row Configuration</Label>
           {rows.map((row, index) => <Card key={index} className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                 <div>
                   <Label htmlFor={`row-name-${index}`}>Row Name</Label>
                   <Input id={`row-name-${index}`} value={row.name} onChange={e => updateRow(index, {
@@ -280,6 +284,13 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
                   <Input id={`row-price-${index}`} type="number" value={row.priceOverride || ''} onChange={e => updateRow(index, {
                 priceOverride: e.target.value ? parseInt(e.target.value) : undefined
               })} placeholder={`Default: ₹${basePrice}`} />
+                </div>
+
+                <div>
+                  <Label htmlFor={`row-deposit-${index}`}>Deposit Override (Optional)</Label>
+                  <Input id={`row-deposit-${index}`} type="number" value={row.depositOverride ?? ''} onChange={e => updateRow(index, {
+                depositOverride: e.target.value ? parseFloat(e.target.value) : undefined
+              })} placeholder={`Default: ₹${baseDeposit}`} />
                 </div>
 
                 <div className="flex gap-2">
@@ -336,6 +347,9 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
               <div className="text-[9px] text-gray-600 flex items-center">
                 <DollarSign className="h-2 w-2 mr-1" />
                 ₹{cabin.monthly_price}
+                {cabin.refundable_deposit > 0 && (
+                  <span className="text-[8px] ml-1">+₹{cabin.refundable_deposit} dep</span>
+                )}
               </div>
             </div>;
           })}

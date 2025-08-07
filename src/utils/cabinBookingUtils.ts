@@ -5,6 +5,8 @@ export interface BookingCalculation {
   months: number;
   totalAmount: number;
   monthlyAmount: number;
+  depositAmount: number;
+  bookingAmount: number;
   startDate: Date;
   endDate: Date;
 }
@@ -13,20 +15,24 @@ export const calculateCabinBooking = (
   startDate: Date,
   endDate: Date,
   cabinMonthlyPrice: number,
-  hallMonthlyPrice: number
+  hallMonthlyPrice: number,
+  depositAmount: number = 0
 ): BookingCalculation => {
   const days = differenceInDays(endDate, startDate) + 1; // Include both start and end dates
   const months = Math.ceil(days / 30); // Round up to ensure full months are charged
   
   // Use cabin price if available, otherwise fall back to hall price
   const monthlyAmount = cabinMonthlyPrice || hallMonthlyPrice;
-  const totalAmount = months * monthlyAmount;
+  const bookingAmount = months * monthlyAmount;
+  const totalAmount = bookingAmount + depositAmount;
 
   return {
     days,
     months,
     totalAmount,
     monthlyAmount,
+    depositAmount,
+    bookingAmount,
     startDate,
     endDate
   };
@@ -84,7 +90,8 @@ export const validateCabinBookingStartDate = (startDate: Date): string | null =>
 export const calculateSimpleCabinBooking = (
   startDate: Date,
   cabinMonthlyPrice: number,
-  hallMonthlyPrice: number
+  hallMonthlyPrice: number,
+  depositAmount: number = 0
 ): BookingCalculation => {
   const endDate = addMonths(startDate, 1);
   const days = differenceInDays(endDate, startDate) + 1; // Include both start and end dates
@@ -92,13 +99,16 @@ export const calculateSimpleCabinBooking = (
   
   // Use cabin price if available, otherwise fall back to hall price
   const monthlyAmount = cabinMonthlyPrice || hallMonthlyPrice;
-  const totalAmount = monthlyAmount; // 1 month * monthly price
+  const bookingAmount = monthlyAmount; // 1 month * monthly price
+  const totalAmount = bookingAmount + depositAmount;
 
   return {
     days,
     months,
     totalAmount,
     monthlyAmount,
+    depositAmount,
+    bookingAmount,
     startDate,
     endDate
   };
@@ -130,4 +140,11 @@ export const bookingStatusColors = {
   active: 'bg-green-100 text-green-800 border-green-200',
   completed: 'bg-blue-100 text-blue-800 border-blue-200',
   cancelled: 'bg-red-100 text-red-800 border-red-200'
+} as const;
+
+export const depositStatusColors = {
+  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  processing: 'bg-blue-100 text-blue-800 border-blue-200',
+  completed: 'bg-green-100 text-green-800 border-green-200',
+  rejected: 'bg-red-100 text-red-800 border-red-200'
 } as const;

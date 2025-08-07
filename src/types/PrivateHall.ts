@@ -23,6 +23,7 @@ export interface Cabin {
   cabin_number: number;
   cabin_name: string;
   monthly_price?: number;
+  refundable_deposit?: number;
   size_sqft?: number;
   max_occupancy: number;
   amenities: string[];
@@ -74,6 +75,7 @@ export interface CabinLayoutData {
     width: number;
     height: number;
     monthly_price?: number;
+    refundable_deposit?: number;
     amenities?: string[];
   }>;
   layout: {

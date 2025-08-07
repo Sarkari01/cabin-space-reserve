@@ -210,15 +210,31 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
     const days = differenceInDays(endDate, startDate) + 1;
     const months = 1; // Always 1 month
     const monthlyPrice = selectedCabin.monthly_price || privateHall?.monthly_price || 0;
-    const baseAmount = monthlyPrice; // 1 month * monthly price
+    const depositAmount = selectedCabin.refundable_deposit || 0;
+    const bookingAmount = monthlyPrice; // 1 month * monthly price
+    const subtotal = bookingAmount + depositAmount;
 
-    // Calculate discounts
+    // Calculate discounts (apply only to booking amount, not deposit)
     const couponDiscount = appliedCoupon?.discount || 0;
     const rewardsDiscount = appliedRewards?.discount || 0;
     const totalDiscount = couponDiscount + rewardsDiscount;
-    const finalAmount = Math.max(0, baseAmount - totalDiscount);
+    const discountedBookingAmount = Math.max(0, bookingAmount - totalDiscount);
+    const finalAmount = discountedBookingAmount + depositAmount;
 
-    return { days, months, monthlyPrice, baseAmount, couponDiscount, rewardsDiscount, totalDiscount, finalAmount, endDate };
+    return { 
+      days, 
+      months, 
+      monthlyPrice, 
+      depositAmount, 
+      bookingAmount, 
+      subtotal,
+      couponDiscount, 
+      rewardsDiscount, 
+      totalDiscount, 
+      discountedBookingAmount,
+      finalAmount, 
+      endDate 
+    };
   };
 
   const checkCabinAvailability = async (cabinId: string, start: Date): Promise<boolean> => {
@@ -286,6 +302,8 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
         end_date: format(bookingDetails.endDate, 'yyyy-MM-dd'),
         months_booked: bookingDetails.months,
         monthly_amount: bookingDetails.monthlyPrice,
+        booking_amount: bookingDetails.discountedBookingAmount,
+        deposit_amount: bookingDetails.depositAmount,
         total_amount: bookingDetails.finalAmount,
       };
 
@@ -594,20 +612,20 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                      {/* Coupon and Rewards for Fallback UI */}
                      {bookingDetails && (
                        <div className="space-y-4">
-                         <CouponInput
-                           bookingAmount={bookingDetails.baseAmount}
-                           studyHallId={privateHall.id}
-                           onCouponApplied={(discount, code) => setAppliedCoupon({ discount, code })}
-                           onCouponRemoved={() => setAppliedCoupon(null)}
-                           appliedCoupon={appliedCoupon}
-                         />
-                         
-                         <RewardsInput
-                           bookingAmount={bookingDetails.baseAmount}
-                           onRewardsApplied={(discount, pointsUsed) => setAppliedRewards({ discount, pointsUsed })}
-                           onRewardsRemoved={() => setAppliedRewards(null)}
-                           appliedRewards={appliedRewards}
-                         />
+                          <CouponInput
+                            bookingAmount={bookingDetails.bookingAmount}
+                            studyHallId={privateHall.id}
+                            onCouponApplied={(discount, code) => setAppliedCoupon({ discount, code })}
+                            onCouponRemoved={() => setAppliedCoupon(null)}
+                            appliedCoupon={appliedCoupon}
+                          />
+                          
+                          <RewardsInput
+                            bookingAmount={bookingDetails.bookingAmount}
+                            onRewardsApplied={(discount, pointsUsed) => setAppliedRewards({ discount, pointsUsed })}
+                            onRewardsRemoved={() => setAppliedRewards(null)}
+                            appliedRewards={appliedRewards}
+                          />
                        </div>
                      )}
 
@@ -631,10 +649,20 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                              <span className="text-muted-foreground">Period:</span>
                              <span className="font-medium">{format(startDate, 'MMM dd')} - {format(bookingDetails.endDate, 'MMM dd, yyyy')}</span>
                            </div>
-                           <div className="flex justify-between">
-                             <span className="text-muted-foreground">Base Amount:</span>
-                             <span className="font-medium">₹{bookingDetails.baseAmount.toLocaleString()}</span>
-                           </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Monthly Price:</span>
+                              <span className="font-medium">₹{bookingDetails.bookingAmount.toLocaleString()}</span>
+                            </div>
+                            {bookingDetails.depositAmount > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Refundable Deposit:</span>
+                                <span className="font-medium">₹{bookingDetails.depositAmount.toLocaleString()}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Subtotal:</span>
+                              <span className="font-medium">₹{bookingDetails.subtotal.toLocaleString()}</span>
+                            </div>
                            {bookingDetails.couponDiscount > 0 && (
                              <div className="flex justify-between text-green-600">
                                <span>Coupon Discount:</span>

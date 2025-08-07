@@ -401,9 +401,11 @@ export type Database = {
       }
       cabin_bookings: {
         Row: {
+          booking_amount: number | null
           booking_number: number | null
           cabin_id: string
           created_at: string
+          deposit_amount: number | null
           end_date: string
           guest_email: string | null
           guest_name: string | null
@@ -422,9 +424,11 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          booking_amount?: number | null
           booking_number?: number | null
           cabin_id: string
           created_at?: string
+          deposit_amount?: number | null
           end_date: string
           guest_email?: string | null
           guest_name?: string | null
@@ -443,9 +447,11 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          booking_amount?: number | null
           booking_number?: number | null
           cabin_id?: string
           created_at?: string
+          deposit_amount?: number | null
           end_date?: string
           guest_email?: string | null
           guest_name?: string | null
@@ -506,6 +512,7 @@ export type Database = {
           position_x: number | null
           position_y: number | null
           private_hall_id: string
+          refundable_deposit: number | null
           size_sqft: number | null
           status: Database["public"]["Enums"]["cabin_status"] | null
           updated_at: string
@@ -521,6 +528,7 @@ export type Database = {
           position_x?: number | null
           position_y?: number | null
           private_hall_id: string
+          refundable_deposit?: number | null
           size_sqft?: number | null
           status?: Database["public"]["Enums"]["cabin_status"] | null
           updated_at?: string
@@ -536,6 +544,7 @@ export type Database = {
           position_x?: number | null
           position_y?: number | null
           private_hall_id?: string
+          refundable_deposit?: number | null
           size_sqft?: number | null
           status?: Database["public"]["Enums"]["cabin_status"] | null
           updated_at?: string
@@ -985,6 +994,65 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deposit_refunds: {
+        Row: {
+          cabin_booking_id: string
+          created_at: string
+          id: string
+          merchant_id: string
+          notes: string | null
+          payment_reference: string | null
+          processed_at: string | null
+          processed_by: string | null
+          refund_amount: number
+          refund_reason: string | null
+          refund_status: string
+          requested_at: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          cabin_booking_id: string
+          created_at?: string
+          id?: string
+          merchant_id: string
+          notes?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          refund_amount: number
+          refund_reason?: string | null
+          refund_status?: string
+          requested_at?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          cabin_booking_id?: string
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          notes?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          refund_amount?: number
+          refund_reason?: string | null
+          refund_status?: string
+          requested_at?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_refunds_cabin_booking_id_fkey"
+            columns: ["cabin_booking_id"]
+            isOneToOne: false
+            referencedRelation: "cabin_bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -3021,6 +3089,21 @@ export type Database = {
         Returns: {
           released_count: number
           released_booking_ids: string[]
+        }[]
+      }
+      calculate_cabin_booking_with_deposit: {
+        Args: {
+          p_cabin_id: string
+          p_start_date: string
+          p_end_date: string
+          p_monthly_price: number
+        }
+        Returns: {
+          months: number
+          monthly_amount: number
+          booking_amount: number
+          deposit_amount: number
+          total_amount: number
         }[]
       }
       calculate_distance: {
