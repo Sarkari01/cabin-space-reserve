@@ -152,10 +152,18 @@ export const StudentTransactionsTab = () => {
             <Card key={transaction.id}>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-2">
+                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(transaction.status)}
-                      <span className="font-medium">₹{Number(transaction.amount).toLocaleString()}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">Total: ₹{Number(transaction.amount).toLocaleString()}</span>
+                        {transaction.booking_amount && transaction.deposit_amount && Number(transaction.deposit_amount) > 0 && (
+                          <div className="text-sm text-muted-foreground">
+                            Booking: ₹{Number(transaction.booking_amount).toLocaleString()} + 
+                            Deposit: ₹{Number(transaction.deposit_amount).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
                       <Badge variant={getStatusVariant(transaction.status)}>
                         {transaction.status}
                       </Badge>

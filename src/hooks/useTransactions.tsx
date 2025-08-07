@@ -10,6 +10,8 @@ export interface Transaction {
   cabin_booking_id?: string | null;
   user_id: string;
   amount: number;
+  deposit_amount?: number;
+  booking_amount?: number;
   payment_method: "ekqr" | "offline" | "razorpay";
   payment_id: string | null;
   qr_id: string | null;
@@ -187,8 +189,11 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
   };
 
   const createTransaction = async (transactionData: {
-    booking_id: string;
+    booking_id?: string;
+    cabin_booking_id?: string;
     amount: number;
+    deposit_amount?: number;
+    booking_amount?: number;
     payment_method: "ekqr" | "offline" | "razorpay";
     payment_id?: string;
     qr_id?: string;

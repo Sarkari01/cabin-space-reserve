@@ -7,12 +7,15 @@ import { Loader2, Eye, CheckCircle, XCircle, Clock, DollarSign } from "lucide-re
 import { safeFormatDistanceToNow } from "@/lib/dateUtils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { AdminTransactionDetailsModal } from "./AdminTransactionDetailsModal";
 
-export const MerchantTransactionsTab = () => {
-  const { transactions, loading, updateTransactionStatus } = useTransactions("merchant");
+export const AdminTransactionsTab = () => {
+  const { transactions, loading, updateTransactionStatus } = useTransactions("admin");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -59,14 +62,18 @@ export const MerchantTransactionsTab = () => {
     setUpdatingId(null);
   };
 
+  const handleViewDetails = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setDetailModalOpen(true);
+  };
+
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesStatus = statusFilter === "all" || transaction.status === statusFilter;
     const matchesSearch = searchTerm === "" || 
       transaction.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.booking?.study_hall?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.private_hall?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.cabin?.cabin_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.payment_id?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -77,6 +84,10 @@ export const MerchantTransactionsTab = () => {
   const pendingAmount = filteredTransactions
     .filter(t => t.status === "pending")
     .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const totalDeposits = filteredTransactions
+    .filter(t => t.status === "completed" && t.deposit_amount)
+    .reduce((sum, t) => sum + Number(t.deposit_amount || 0), 0);
 
   if (loading) {
     return (
@@ -89,14 +100,14 @@ export const MerchantTransactionsTab = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Payment Transactions</h3>
+        <h3 className="text-lg font-medium">All Transactions</h3>
         <p className="text-sm text-muted-foreground">
-          Track payments for your study hall and private hall bookings
+          Manage and monitor all payment transactions across the platform
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -117,6 +128,15 @@ export const MerchantTransactionsTab = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
+            <DollarSign className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">₹{totalDeposits.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -130,7 +150,7 @@ export const MerchantTransactionsTab = () => {
       <div className="flex gap-4 flex-wrap">
         <div className="flex-1 min-w-[200px]">
           <Input
-            placeholder="Search by user, email, study hall, or private hall..."
+            placeholder="Search by user, email, transaction ID, or payment ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -161,7 +181,7 @@ export const MerchantTransactionsTab = () => {
             <Card key={transaction.id}>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
-                 <div className="space-y-2">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(transaction.status)}
                       <div className="flex flex-col">
@@ -187,53 +207,62 @@ export const MerchantTransactionsTab = () => {
                       {" • "}
                       <span>{safeFormatDistanceToNow(transaction.created_at)} ago</span>
                     </div>
-                    {/* Show booking details based on type */}
-                    {transaction.booking_type === 'cabin' && transaction.private_hall?.name && (
-                      <div className="text-sm text-muted-foreground">
-                        Private Hall: {transaction.private_hall.name}
-                        {transaction.cabin?.cabin_name && ` • Cabin: ${transaction.cabin.cabin_name}`}
-                      </div>
-                    )}
-                    {transaction.booking_type === 'study_hall' && transaction.booking?.study_hall?.name && (
-                      <div className="text-sm text-muted-foreground">
-                        Study Hall: {transaction.booking.study_hall.name}
-                        {transaction.booking.seat?.seat_id && ` • Seat: ${transaction.booking.seat.seat_id}`}
+                    {transaction.payment_id && (
+                      <div className="text-xs text-muted-foreground font-mono">
+                        Payment ID: {transaction.payment_id}
                       </div>
                     )}
                   </div>
                   
-                  {transaction.status === "pending" && transaction.payment_method === "offline" && (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleStatusUpdate(transaction.id, "completed")}
-                        disabled={updatingId === transaction.id}
-                      >
-                        {updatingId === transaction.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4" />
-                        )}
-                        Mark Paid
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleStatusUpdate(transaction.id, "failed")}
-                        disabled={updatingId === transaction.id}
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Mark Failed
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleViewDetails(transaction)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Details
+                    </Button>
+                    
+                    {transaction.status === "pending" && transaction.payment_method === "offline" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleStatusUpdate(transaction.id, "completed")}
+                          disabled={updatingId === transaction.id}
+                        >
+                          {updatingId === transaction.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4" />
+                          )}
+                          Mark Paid
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleStatusUpdate(transaction.id, "failed")}
+                          disabled={updatingId === transaction.id}
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Mark Failed
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      <AdminTransactionDetailsModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 };

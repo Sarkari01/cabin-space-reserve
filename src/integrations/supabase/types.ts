@@ -2781,9 +2781,11 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          booking_amount: number | null
           booking_id: string | null
           cabin_booking_id: string | null
           created_at: string
+          deposit_amount: number | null
           id: string
           payment_data: Json | null
           payment_id: string | null
@@ -2796,9 +2798,11 @@ export type Database = {
         }
         Insert: {
           amount: number
+          booking_amount?: number | null
           booking_id?: string | null
           cabin_booking_id?: string | null
           created_at?: string
+          deposit_amount?: number | null
           id?: string
           payment_data?: Json | null
           payment_id?: string | null
@@ -2811,9 +2815,11 @@ export type Database = {
         }
         Update: {
           amount?: number
+          booking_amount?: number | null
           booking_id?: string | null
           cabin_booking_id?: string | null
           created_at?: string
+          deposit_amount?: number | null
           id?: string
           payment_data?: Json | null
           payment_id?: string | null
