@@ -100,7 +100,7 @@ export const useMerchantBookings = () => {
           guest_name,
           guest_phone,
           guest_email,
-          private_hall:private_halls!private_hall_id!inner(
+          private_hall:private_halls!cabin_bookings_private_hall_id_fkey!inner(
             id,
             name,
             merchant_id
