@@ -6,12 +6,16 @@ import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { PrivateHallCreationModal } from '@/components/PrivateHallCreationModal';
 import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
-import { Plus, MapPin, Calendar, DollarSign, Users, Eye, Edit, Trash } from 'lucide-react';
+import { Plus, MapPin, Calendar, DollarSign, Users, Eye, Edit, Trash, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
+import { CabinAvailabilityBadge } from '@/components/CabinAvailabilityBadge';
+import { AutoExpireButton } from '@/components/AutoExpireButton';
+import { useCombinedBookings } from '@/hooks/useCombinedBookings';
 
 export const PrivateHallsTab: React.FC = () => {
   const { privateHalls, loading, updatePrivateHall, deletePrivateHall } = usePrivateHalls();
+  const { bookings } = useCombinedBookings();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -39,6 +43,19 @@ export const PrivateHallsTab: React.FC = () => {
     if (window.confirm(`Are you sure you want to delete "${hall.name}"? This action cannot be undone.`)) {
       await deletePrivateHall(hall.id);
     }
+  };
+
+  const getCabinOccupancyStatus = (privateHallId: string) => {
+    const hallBookings = bookings.filter(b => 
+      b.type === 'cabin' &&
+      b.location_id === privateHallId && 
+      b.status === 'active' && 
+      b.payment_status === 'paid' &&
+      !b.is_vacated
+    );
+    
+    if (hallBookings.length === 0) return 'available';
+    return 'booked';
   };
 
   if (loading) {
@@ -77,10 +94,15 @@ export const PrivateHallsTab: React.FC = () => {
           <h2 className="text-2xl font-bold">Private Halls</h2>
           <p className="text-muted-foreground">Manage your cabin-style private halls for monthly bookings</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Private Hall
-        </Button>
+        <div className="flex gap-2">
+          <AutoExpireButton onCompleted={() => {
+            // Refresh data after auto-expire
+          }} />
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Private Hall
+          </Button>
+        </div>
       </div>
 
       {privateHalls.length === 0 ? (
@@ -127,7 +149,13 @@ export const PrivateHallsTab: React.FC = () => {
                   
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Cabins</span>
-                    <span className="font-semibold">{hall.cabin_count}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{hall.cabin_count}</span>
+                      <CabinAvailabilityBadge 
+                        status={getCabinOccupancyStatus(hall.id)}
+                        size="sm"
+                      />
+                    </div>
                   </div>
                   
                   <div className="flex justify-between items-center text-sm">

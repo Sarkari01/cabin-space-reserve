@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { useBookingAvailability } from '@/hooks/useBookingAvailability';
+import { useCabinVacate } from '@/hooks/useCabinVacate';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const BookingLifecycleManager = () => {
   const { releaseExpiredBookings } = useBookingAvailability();
+  const { autoExpireCabinBookings } = useCabinVacate();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -13,16 +15,22 @@ export const BookingLifecycleManager = () => {
       try {
         console.log('Running booking lifecycle checks...');
         
-        // Release expired bookings
+        // Release expired study hall bookings
         const { releasedCount } = await releaseExpiredBookings();
         
-        if (releasedCount > 0) {
-          console.log(`Released ${releasedCount} expired bookings`);
+        // Auto-expire cabin bookings
+        const cabinResult = await autoExpireCabinBookings();
+        const expiredCabinCount = cabinResult?.expired_count || 0;
+        
+        const totalUpdated = releasedCount + expiredCabinCount;
+        
+        if (totalUpdated > 0) {
+          console.log(`Released ${releasedCount} study hall bookings and ${expiredCabinCount} cabin bookings`);
           
           // Show toast notification
           toast({
             title: "Bookings Updated",
-            description: `${releasedCount} expired booking${releasedCount === 1 ? ' has' : 's have'} been completed automatically.`,
+            description: `${totalUpdated} expired booking${totalUpdated === 1 ? ' has' : 's have'} been completed automatically.`,
           });
         }
       } catch (error) {
@@ -37,7 +45,7 @@ export const BookingLifecycleManager = () => {
     const interval = setInterval(runLifecycleChecks, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [releaseExpiredBookings, toast]);
+  }, [releaseExpiredBookings, autoExpireCabinBookings, toast]);
 
   // Listen for real-time booking updates to trigger lifecycle checks
   useEffect(() => {
@@ -51,10 +59,25 @@ export const BookingLifecycleManager = () => {
           table: 'bookings'
         },
         (payload) => {
-          console.log('Booking change detected:', payload);
+          console.log('Study hall booking change detected:', payload);
           // Trigger lifecycle checks when bookings are updated
           setTimeout(() => {
             releaseExpiredBookings();
+          }, 1000);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'cabin_bookings'
+        },
+        (payload) => {
+          console.log('Cabin booking change detected:', payload);
+          // Trigger lifecycle checks when cabin bookings are updated
+          setTimeout(() => {
+            autoExpireCabinBookings();
           }, 1000);
         }
       )
@@ -63,7 +86,7 @@ export const BookingLifecycleManager = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [releaseExpiredBookings]);
+  }, [releaseExpiredBookings, autoExpireCabinBookings]);
 
   return null; // This is a headless component
 };
