@@ -51,6 +51,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
   const [useRowBasedDesign, setUseRowBasedDesign] = useState(true);
   const [newAmenity, setNewAmenity] = useState('');
   const [loading, setLoading] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState('');
   const imageUploadRef = useRef<{ uploadImages: () => Promise<void> }>(null);
 
   // Initialize form with private hall data
@@ -102,21 +103,49 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
     }));
   };
 
+  // Validation helper
+  const validateFormData = () => {
+    if (!formData.name.trim()) {
+      toast.error('Please enter a hall name');
+      return false;
+    }
+    if (!formData.location.trim()) {
+      toast.error('Please select a location');
+      return false;
+    }
+    if (formData.monthly_price <= 0) {
+      toast.error('Monthly price must be greater than 0');
+      return false;
+    }
+    if (formData.base_refundable_deposit < 0) {
+      toast.error('Deposit amount cannot be negative');
+      return false;
+    }
+    if (cabinLayout.cabins.length === 0) {
+      toast.error('Please design at least one cabin in the layout');
+      return false;
+    }
+    // Validate individual cabin deposits
+    for (const cabin of cabinLayout.cabins) {
+      if (cabin.refundable_deposit && cabin.refundable_deposit < 0) {
+        toast.error(`Cabin ${cabin.name} has invalid deposit amount`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = async () => {
     if (!privateHall) return;
 
-    if (!formData.name || !formData.location || formData.monthly_price <= 0) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    if (cabinLayout.cabins.length === 0) {
-      toast.error('Please design at least one cabin in the layout');
+    // Use validation helper
+    if (!validateFormData()) {
       return;
     }
 
     try {
       setLoading(true);
+      setUpdateProgress('Updating private hall...');
 
       // Step 1: Update the private hall
       const updateData = {
@@ -143,6 +172,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
       }
 
       // Step 2: Update individual cabin deposits in the database
+      setUpdateProgress('Updating cabin deposits...');
       const cabinUpdatePromises = [];
       
       // Get existing cabins from database to match with layout
@@ -195,6 +225,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
 
       // Step 3: Upload any new images
       if (images.length > 0 && imageUploadRef.current) {
+        setUpdateProgress('Uploading images...');
         try {
           await imageUploadRef.current.uploadImages();
           toast.success('Private hall, cabin deposits, and images updated successfully!');
@@ -212,6 +243,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
       toast.error('Failed to update private hall');
     } finally {
       setLoading(false);
+      setUpdateProgress('');
     }
   };
 
@@ -404,7 +436,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
               onClick={handleSubmit} 
               disabled={loading}
             >
-              {loading ? 'Updating...' : 'Update Private Hall'}
+              {loading ? updateProgress || 'Updating...' : 'Update Private Hall'}
             </Button>
           </div>
         </div>

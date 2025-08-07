@@ -135,9 +135,21 @@ export const RowBasedCabinDesigner: React.FC<RowBasedCabinDesignerProps> = ({
 
               <div>
                 <Label htmlFor={`row-deposit-${index}`}>Deposit Override (Optional)</Label>
-                <Input id={`row-deposit-${index}`} type="number" value={row.depositOverride || ''} onChange={e => updateRow(index, {
-              depositOverride: e.target.value ? parseInt(e.target.value) : undefined
-            })} placeholder={`Default: ₹${baseDeposit}`} />
+                <Input 
+                  id={`row-deposit-${index}`} 
+                  type="number" 
+                  min="0"
+                  value={row.depositOverride || ''} 
+                  onChange={e => {
+                    const value = e.target.value ? parseInt(e.target.value) : undefined;
+                    if (value === undefined || value >= 0) {
+                      updateRow(index, { depositOverride: value });
+                    } else {
+                      toast.error('Deposit amount cannot be negative');
+                    }
+                  }} 
+                  placeholder={`Default: ₹${baseDeposit}`} 
+                />
               </div>
 
               <div className="flex flex-col gap-2">
