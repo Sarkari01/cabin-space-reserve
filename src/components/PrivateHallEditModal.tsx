@@ -9,7 +9,8 @@ import { PrivateHallImageUpload } from '@/components/PrivateHallImageUpload';
 import { CabinLayoutDesigner } from '@/components/CabinLayoutDesigner';
 import { RowBasedCabinDesigner } from '@/components/RowBasedCabinDesigner';
 import { LocationPicker } from '@/components/maps/LocationPicker';
-import { usePrivateHalls } from '@/hooks/usePrivateHalls';
+import { usePrivateHalls, useCabins } from '@/hooks/usePrivateHalls';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PrivateHall, CabinLayoutData } from '@/types/PrivateHall';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
   privateHall,
 }) => {
   const { updatePrivateHall } = usePrivateHalls();
+  const { updateCabin } = useCabins(privateHall?.id);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -116,6 +118,7 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
     try {
       setLoading(true);
 
+      // Step 1: Update the private hall
       const updateData = {
         name: formData.name,
         description: formData.description,
@@ -134,19 +137,73 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
         updated_at: new Date().toISOString(),
       };
 
-      await updatePrivateHall(privateHall.id, updateData);
+      const hallUpdateSuccess = await updatePrivateHall(privateHall.id, updateData);
+      if (!hallUpdateSuccess) {
+        throw new Error('Failed to update private hall');
+      }
 
-      // Upload any new images
+      // Step 2: Update individual cabin deposits in the database
+      const cabinUpdatePromises = [];
+      
+      // Get existing cabins from database to match with layout
+      const { data: existingCabins, error: cabinsError } = await supabase
+        .from('cabins')
+        .select('*')
+        .eq('private_hall_id', privateHall.id);
+
+      if (cabinsError) {
+        console.error('Error fetching existing cabins:', cabinsError);
+        throw new Error('Failed to fetch existing cabins');
+      }
+
+      // Update each cabin with the deposit amount from the layout
+      for (const layoutCabin of cabinLayout.cabins) {
+        // Find matching cabin in database
+        const dbCabin = existingCabins?.find(cabin => 
+          cabin.cabin_name === layoutCabin.name || 
+          cabin.cabin_number === parseInt(layoutCabin.name.replace(/\D/g, '')) ||
+          cabin.id === layoutCabin.id
+        );
+
+        if (dbCabin) {
+          const cabinUpdateData = {
+            monthly_price: layoutCabin.monthly_price || formData.monthly_price,
+            refundable_deposit: layoutCabin.refundable_deposit || 0,
+            amenities: layoutCabin.amenities || [],
+            updated_at: new Date().toISOString(),
+          };
+
+          cabinUpdatePromises.push(
+            supabase
+              .from('cabins')
+              .update(cabinUpdateData)
+              .eq('id', dbCabin.id)
+          );
+        }
+      }
+
+      // Execute all cabin updates
+      if (cabinUpdatePromises.length > 0) {
+        const cabinResults = await Promise.allSettled(cabinUpdatePromises);
+        const failedUpdates = cabinResults.filter(result => result.status === 'rejected');
+        
+        if (failedUpdates.length > 0) {
+          console.error('Some cabin updates failed:', failedUpdates);
+          toast.error(`Private hall updated but ${failedUpdates.length} cabin deposits failed to save`);
+        }
+      }
+
+      // Step 3: Upload any new images
       if (images.length > 0 && imageUploadRef.current) {
         try {
           await imageUploadRef.current.uploadImages();
-          toast.success('Private hall and images updated successfully!');
+          toast.success('Private hall, cabin deposits, and images updated successfully!');
         } catch (error) {
           console.error('Error uploading images:', error);
-          toast.error('Private hall updated but failed to upload new images');
+          toast.error('Private hall and deposits updated but failed to upload new images');
         }
       } else {
-        toast.success('Private hall updated successfully!');
+        toast.success('Private hall and cabin deposits updated successfully!');
       }
 
       onClose();
