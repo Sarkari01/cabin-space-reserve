@@ -383,7 +383,7 @@ export function UnifiedBookingDetailModal({
               </Button>
             )}
             
-            {userRole === 'merchant' && booking.status === 'pending' && onConfirm && (
+            {(userRole === 'merchant' || userRole === 'admin') && booking.status === 'pending' && onConfirm && (
               <Button 
                 onClick={() => {
                   onConfirm(booking.id);
@@ -396,7 +396,7 @@ export function UnifiedBookingDetailModal({
               </Button>
             )}
             
-            {userRole === 'student' && booking.status === 'pending' && onCancel && (
+            {(userRole === 'merchant' || userRole === 'admin' || userRole === 'student') && booking.status === 'pending' && onCancel && (
               <Button 
                 variant="destructive"
                 onClick={() => {

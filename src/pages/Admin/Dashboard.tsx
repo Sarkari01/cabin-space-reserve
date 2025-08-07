@@ -82,7 +82,7 @@ const AdminDashboard = () => {
     deleteUser, 
     updateStudyHallStatus 
   } = useAdminData();
-  const { bookings, loading: bookingsLoading, fetchAdminBookings } = useAdminBookings();
+  const { bookings, loading: bookingsLoading, fetchAdminBookings, updateBookingStatus } = useAdminBookings();
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   const { operationalUsers, loading: operationalLoading } = useOperationalUsers();
   const { callLogs: allCallLogs } = useCallLogs();
@@ -448,6 +448,26 @@ const AdminDashboard = () => {
   const handleEditBooking = (booking: any) => {
     setSelectedBooking(booking);
     setBookingEditOpen(true);
+  };
+
+  const handleConfirmBooking = async (bookingId: string) => {
+    setActionLoading(true);
+    try {
+      const ok = await updateBookingStatus(bookingId, 'confirmed');
+      if (ok) await fetchAdminBookings();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    setActionLoading(true);
+    try {
+      const ok = await updateBookingStatus(bookingId, 'cancelled');
+      if (ok) await fetchAdminBookings();
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleSaveBooking = async (bookingId: string, updates: any) => {
@@ -1532,6 +1552,8 @@ const AdminDashboard = () => {
               } as any
         ) : null}
         userRole="admin"
+        onConfirm={handleConfirmBooking}
+        onCancel={handleCancelBooking}
         loading={actionLoading}
       />
 

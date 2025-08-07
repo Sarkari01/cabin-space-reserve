@@ -29,7 +29,9 @@ export function BookingQRCode({ booking, userRole }: BookingQRCodeProps) {
         user_phone: booking.user?.phone || "N/A",
         study_hall: booking.study_hall?.name || "Study Hall",
         location: booking.study_hall?.location || "N/A",
-        seat: `${booking.seat?.row_name}${booking.seat?.seat_number}`,
+        seat: (booking.seat?.row_name && booking.seat?.seat_number)
+          ? `${booking.seat?.row_name}${booking.seat?.seat_number}`
+          : (booking.seat?.seat_id || 'N/A'),
         period: booking.booking_period,
         start_date: booking.start_date,
         end_date: booking.end_date,

@@ -1675,6 +1675,7 @@ const MerchantDashboard = () => {
           ) : null}
           userRole={userRole === "admin" ? "admin" : "merchant"}
           onConfirm={handleConfirmBooking}
+          onCancel={handleCancelBooking}
           onEdit={handleEditBooking}
           loading={actionLoading}
         />
