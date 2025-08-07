@@ -174,34 +174,38 @@ export function CabinBookingDetailModal({
                       <div>
                         <p className="text-sm text-muted-foreground">Payment Breakdown</p>
                         <div className="space-y-1">
-                          {booking.booking_amount && booking.deposit_amount ? (
-                            <>
-                              <p className="font-medium">Total: ₹{Number(booking.total_amount).toLocaleString()}</p>
-                              <div className="text-sm text-muted-foreground space-y-0.5">
-                                <p>Booking Amount: ₹{Number(booking.booking_amount).toLocaleString()}</p>
-                                <p>
-                                  Refundable Deposit: ₹{Number(booking.deposit_amount).toLocaleString()}
-                                  {booking.deposit_refunded && (
-                                    <Badge variant="default" className="ml-2 text-xs">Refunded</Badge>
-                                  )}
-                                </p>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <p className="font-medium">Total: ₹{Number(booking.total_amount).toLocaleString()}</p>
-                              <div className="text-sm text-muted-foreground space-y-0.5">
-                                <p>Monthly Rate: ₹{Number(booking.monthly_amount).toLocaleString()}</p>
-                                {booking.deposit_amount && Number(booking.deposit_amount) > 0 && (
-                                  <p>
-                                    Refundable Deposit: ₹{Number(booking.deposit_amount).toLocaleString()}
-                                    {booking.deposit_refunded && (
-                                      <Badge variant="default" className="ml-2 text-xs">Refunded</Badge>
+                          <p className="font-medium">Total: ₹{Number(booking.total_amount).toLocaleString()}</p>
+                          
+                          {/* Always show deposit breakdown when available */}
+                          {(booking.booking_amount || booking.deposit_amount) && (
+                            <div className="bg-muted/30 p-2 rounded text-sm space-y-1">
+                              {booking.booking_amount && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Booking Amount:</span>
+                                  <span className="font-medium">₹{Number(booking.booking_amount).toLocaleString()}</span>
+                                </div>
+                              )}
+                              
+                              {booking.deposit_amount && Number(booking.deposit_amount) > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Refundable Deposit:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-blue-600">₹{Number(booking.deposit_amount).toLocaleString()}</span>
+                                    {booking.deposit_refunded ? (
+                                      <Badge variant="default" className="text-xs">Refunded</Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="text-xs">Held</Badge>
                                     )}
-                                  </p>
-                                )}
-                              </div>
-                            </>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {!booking.booking_amount && !booking.deposit_amount && (
+                                <div className="text-xs text-muted-foreground">
+                                  Monthly Rate: ₹{Number(booking.monthly_amount).toLocaleString()}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>

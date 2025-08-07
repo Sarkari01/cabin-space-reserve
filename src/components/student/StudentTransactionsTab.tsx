@@ -3,16 +3,19 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useCombinedTransactions } from "@/hooks/useCombinedTransactions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, Clock, DollarSign, Download } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, DollarSign, Download, Eye } from "lucide-react";
 import { safeFormatDistanceToNow } from "@/lib/dateUtils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { StudentTransactionDetailsModal } from "./StudentTransactionDetailsModal";
 
 export const StudentTransactionsTab = () => {
   const { transactions, loading } = useTransactions("student");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -193,18 +196,38 @@ export const StudentTransactionsTab = () => {
                     )}
                   </div>
                   
-                  {transaction.status === "completed" && (
-                    <Button size="sm" variant="outline">
-                      <Download className="h-4 w-4 mr-2" />
-                      Receipt
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedTransaction(transaction);
+                        setDetailModalOpen(true);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Details
                     </Button>
-                  )}
+                    
+                    {transaction.status === "completed" && (
+                      <Button size="sm" variant="outline">
+                        <Download className="h-4 w-4 mr-2" />
+                        Receipt
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      <StudentTransactionDetailsModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 };

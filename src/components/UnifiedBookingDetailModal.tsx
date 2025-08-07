@@ -255,6 +255,26 @@ export function UnifiedBookingDetailModal({
                     <span className="text-muted-foreground">Total Amount:</span>
                     <span className="font-medium text-lg">₹{Number(booking.total_amount).toLocaleString()}</span>
                   </div>
+                  
+                  {/* Show deposit breakdown for cabin bookings */}
+                  {bookingType === 'cabin' && (booking as any).booking_amount && (booking as any).deposit_amount && Number((booking as any).deposit_amount) > 0 && (
+                    <div className="space-y-1 pt-2 border-t">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Booking Amount:</span>
+                        <span className="font-medium">₹{Number((booking as any).booking_amount).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Refundable Deposit:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">₹{Number((booking as any).deposit_amount).toLocaleString()}</span>
+                          {(booking as any).deposit_refunded && (
+                            <Badge variant="default" className="text-xs">Refunded</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Booking Status:</span>
                     <Badge variant={getStatusColor(booking.status)} className="h-5">
