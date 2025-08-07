@@ -28,9 +28,12 @@ export interface MerchantBooking {
   deposit_amount?: number; // cabin-only
   deposit_refunded?: boolean; // cabin-only
   is_vacated?: boolean; // cabin-only
+  months_booked?: number; // cabin-only
+  monthly_amount?: number; // cabin-only
   user?: {
     full_name: string;
     email: string;
+    phone?: string;
   };
   guest_name?: string;
   guest_phone?: string;
@@ -111,6 +114,8 @@ export const useMerchantBookings = () => {
           user_id,
           start_date,
           end_date,
+          months_booked,
+          monthly_amount,
           total_amount,
           status,
           payment_status,
@@ -125,7 +130,7 @@ export const useMerchantBookings = () => {
             merchant_id,
             location
           ),
-          cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
+          cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name, amenities),
           user:profiles!cabin_bookings_user_id_fkey(full_name, email),
           booking_amount,
           deposit_amount,
@@ -214,7 +219,9 @@ export const useMerchantBookings = () => {
             booking_amount: booking.booking_amount,
             deposit_amount: booking.deposit_amount,
             deposit_refunded: booking.deposit_refunded,
-            is_vacated: booking.is_vacated
+            is_vacated: booking.is_vacated,
+            months_booked: booking.months_booked,
+            monthly_amount: booking.monthly_amount
           });
         }
       }

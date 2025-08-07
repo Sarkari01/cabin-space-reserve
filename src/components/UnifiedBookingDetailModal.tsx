@@ -217,28 +217,19 @@ export function UnifiedBookingDetailModal({
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Name:</span>
                       <span className="font-medium">
-                        {booking.user_id ? 
-                          (isComboBooking ? 'Registered User' : (booking.user?.full_name || 'N/A')) : 
-                          (booking.guest_name || 'N/A')
-                        }
+                        {booking.user_id ? ((booking as any).user?.full_name || 'N/A') : (booking.guest_name || 'N/A')}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Email:</span>
                       <span className="font-medium">
-                        {booking.user_id ? 
-                          (isComboBooking ? 'User Email' : (booking.user?.email || 'N/A')) : 
-                          (booking.guest_email || 'Not provided')
-                        }
+                        {booking.user_id ? ((booking as any).user?.email || 'N/A') : (booking.guest_email || 'Not provided')}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Phone:</span>
                       <span className="font-medium">
-                        {booking.user_id ? 
-                          (isComboBooking ? 'User Phone' : (booking.user?.phone || 'Not provided')) : 
-                          (booking.guest_phone || 'Not provided')
-                        }
+                        {booking.user_id ? ((booking as any).user?.phone || 'Not provided') : (booking.guest_phone || 'Not provided')}
                       </span>
                     </div>
                   </div>
@@ -297,7 +288,27 @@ export function UnifiedBookingDetailModal({
           {/* QR Code Ticket - Show for confirmed/completed/active bookings */}
           {(booking.status === 'confirmed' || booking.status === 'completed' || booking.status === 'active') && (
             bookingType === 'cabin' ? (
-              <CabinBookingQRCode booking={booking as any} userRole={userRole} />
+              (() => {
+                const cabinName = (isComboBooking ? (booking as any).unit?.name || (booking as any).unit?.identifier : (booking as any).seat?.seat_id) || 'Cabin';
+                const qrBooking = {
+                  id: booking.id,
+                  booking_number: booking.booking_number as number,
+                  start_date: booking.start_date,
+                  end_date: booking.end_date,
+                  months_booked: (booking as any).months_booked ?? 1,
+                  monthly_amount: (booking as any).monthly_amount ?? Number(booking.total_amount),
+                  total_amount: booking.total_amount,
+                  status: booking.status,
+                  user_id: booking.user_id || undefined,
+                  guest_name: booking.guest_name,
+                  guest_phone: booking.guest_phone,
+                  guest_email: booking.guest_email,
+                  cabin: { cabin_name: cabinName },
+                  private_hall: { name: locationName || 'Private Hall', location: locationAddress || '' },
+                  user: (booking as any).user
+                };
+                return <CabinBookingQRCode booking={qrBooking as any} userRole={userRole} />;
+              })()
             ) : (
               <BookingQRCode booking={booking as any} userRole={userRole} />
             )

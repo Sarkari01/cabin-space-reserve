@@ -1621,6 +1621,7 @@ const MerchantDashboard = () => {
                   payment_status: selectedBooking.payment_status,
                   created_at: selectedBooking.created_at,
                   updated_at: selectedBooking.updated_at,
+                  user: selectedBooking.user ? { full_name: selectedBooking.user.full_name, email: selectedBooking.user.email } : undefined,
                   guest_name: selectedBooking.guest_name,
                   guest_email: selectedBooking.guest_email,
                   guest_phone: selectedBooking.guest_phone,
@@ -1634,10 +1635,12 @@ const MerchantDashboard = () => {
                     name: selectedBooking.unit_name,
                     identifier: selectedBooking.unit_name
                   },
-                  // Extra fields for deposit breakdown
+                  // Extra fields for deposit breakdown and QR
                   booking_amount: selectedBooking.booking_amount,
                   deposit_amount: selectedBooking.deposit_amount,
-                  deposit_refunded: selectedBooking.deposit_refunded
+                  deposit_refunded: selectedBooking.deposit_refunded,
+                  months_booked: selectedBooking.months_booked,
+                  monthly_amount: selectedBooking.monthly_amount
                 } as any
               : {
                   id: selectedBooking.id,
