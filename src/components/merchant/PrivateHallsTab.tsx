@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { PrivateHallCreationModal } from '@/components/PrivateHallCreationModal';
 import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
-import { Plus, MapPin, Calendar, DollarSign, Users, Eye, Edit, Trash } from 'lucide-react';
+import { DepositRefundManagement } from '@/components/merchant/DepositRefundManagement';
+import { Plus, MapPin, Calendar, DollarSign, Users, Eye, Edit, Trash, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
 
@@ -74,8 +76,8 @@ export const PrivateHallsTab: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Private Halls</h2>
-          <p className="text-muted-foreground">Manage your cabin-style private halls for monthly bookings</p>
+          <h2 className="text-2xl font-bold">Private Halls Management</h2>
+          <p className="text-muted-foreground">Manage your cabin-style private halls and deposit refunds</p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -83,7 +85,14 @@ export const PrivateHallsTab: React.FC = () => {
         </Button>
       </div>
 
-      {privateHalls.length === 0 ? (
+      <Tabs defaultValue="halls" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="halls">Private Halls</TabsTrigger>
+          <TabsTrigger value="deposits">Deposit Refunds</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="halls" className="space-y-4">
+          {privateHalls.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -204,6 +213,12 @@ export const PrivateHallsTab: React.FC = () => {
           ))}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="deposits" className="space-y-4">
+          <DepositRefundManagement />
+        </TabsContent>
+      </Tabs>
 
       <PrivateHallCreationModal
         isOpen={showCreateModal}
