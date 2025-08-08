@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { DollarSign, Building, Clock, CheckCircle, Search, Plus, TrendingUp, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSettlementRequests } from "@/hooks/useSettlementRequests";
 
 const SettlementManagerDashboard = () => {
   const { user } = useAuth();
@@ -18,6 +19,8 @@ const SettlementManagerDashboard = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedSettlement, setSelectedSettlement] = useState(null);
+
+  const { requests, loading: requestsLoading, approveRequest, rejectRequest, fetchRequests } = useSettlementRequests();
 
   const pendingSettlements = settlements.filter(settlement => 
     settlement.status === 'pending' || settlement.status === 'approved'
@@ -108,6 +111,8 @@ const SettlementManagerDashboard = () => {
         return 'outline';
     }
   };
+
+  const pendingRequests = (requests || []).filter(r => r.status === 'pending');
 
   return (
     <DashboardSidebar
@@ -234,6 +239,87 @@ const SettlementManagerDashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Pending Settlement Requests (from merchants) */}
+          <Card>
+            <CardHeader className="flex items-center justify-between">
+              <div>
+                <CardTitle>Pending Settlement Requests</CardTitle>
+                <CardDescription>
+                  Review merchant-initiated requests. Booking and deposit amounts are shown; fees apply only on booking amount.
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => fetchRequests()}>
+                  Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {requestsLoading && (
+                  <div className="text-sm text-muted-foreground">Loading requests...</div>
+                )}
+                {!requestsLoading && pendingRequests.length === 0 && (
+                  <div className="text-sm text-muted-foreground">No pending settlement requests</div>
+                )}
+                {pendingRequests.slice(0, 8).map((req) => (
+                  <div key={req.id} className="p-4 border rounded-lg">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div>
+                        <p className="font-medium">Request #{req.id.slice(0, 8)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Merchant: {req.merchant_id.slice(-8)} • {new Date(req.created_at).toLocaleString()}
+                        </p>
+                        <div className="mt-2 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                          <div>
+                            <div className="text-muted-foreground">Booking Amount</div>
+                            <div className="font-semibold">₹{Number(req.total_booking_amount || 0).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Deposit Amount</div>
+                            <div className="font-semibold">₹{Number(req.total_deposit_amount || 0).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Total</div>
+                            <div className="font-semibold">₹{Number(req.total_amount || 0).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Platform Fee ({req.platform_fee_percentage}%)</div>
+                            <div className="font-semibold">-₹{Number(req.platform_fee_amount || 0).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Net Settlement</div>
+                            <div className="font-semibold">₹{Number(req.net_settlement_amount || 0).toLocaleString()}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={async () => {
+                            // Minimal flow: approve without payment meta; can be updated later
+                            await approveRequest(req.id);
+                            await fetchSettlements();
+                          }}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={async () => {
+                            await rejectRequest(req.id);
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -248,7 +334,6 @@ const SettlementManagerDashboard = () => {
               { label: "Settlements", active: true }
             ]}
           />
-
           <ResponsiveTable
             data={settlements}
             columns={[

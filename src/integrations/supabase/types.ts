@@ -2206,6 +2206,66 @@ export type Database = {
         }
         Relationships: []
       }
+      settlement_requests: {
+        Row: {
+          admin_id: string | null
+          created_at: string
+          id: string
+          linked_settlement_id: string | null
+          merchant_id: string
+          net_settlement_amount: number
+          notes: string | null
+          platform_fee_amount: number
+          platform_fee_percentage: number
+          processed_at: string | null
+          requested_by: string
+          status: string
+          total_amount: number
+          total_booking_amount: number
+          total_deposit_amount: number
+          transaction_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          linked_settlement_id?: string | null
+          merchant_id: string
+          net_settlement_amount?: number
+          notes?: string | null
+          platform_fee_amount?: number
+          platform_fee_percentage?: number
+          processed_at?: string | null
+          requested_by: string
+          status?: string
+          total_amount?: number
+          total_booking_amount?: number
+          total_deposit_amount?: number
+          transaction_ids: string[]
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          linked_settlement_id?: string | null
+          merchant_id?: string
+          net_settlement_amount?: number
+          notes?: string | null
+          platform_fee_amount?: number
+          platform_fee_percentage?: number
+          processed_at?: string | null
+          requested_by?: string
+          status?: string
+          total_amount?: number
+          total_booking_amount?: number
+          total_deposit_amount?: number
+          transaction_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       settlement_transactions: {
         Row: {
           booking_id: string | null
@@ -3038,6 +3098,14 @@ export type Database = {
         Args: { p_merchant_id: string }
         Returns: Json
       }
+      approve_settlement_request: {
+        Args: {
+          p_request_id: string
+          p_payment_method?: string
+          p_payment_reference?: string
+        }
+        Returns: Json
+      }
       audit_and_fix_study_hall_seats: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3422,6 +3490,18 @@ export type Database = {
       progress_booking_statuses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      reject_settlement_request: {
+        Args: { p_request_id: string; p_admin_notes?: string }
+        Returns: Json
+      }
+      request_settlement: {
+        Args: {
+          p_transaction_ids: string[]
+          p_platform_fee_percentage?: number
+          p_notes?: string
+        }
+        Returns: Json
       }
       run_booking_lifecycle_checks: {
         Args: Record<PropertyKey, never>
