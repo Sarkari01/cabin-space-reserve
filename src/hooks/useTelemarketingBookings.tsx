@@ -27,6 +27,8 @@ export interface TelemarketingBooking {
   guest_email?: string;
   merchant_id?: string;
   merchant_name?: string;
+  is_vacated?: boolean;
+  vacated_at?: string;
 }
 
 export const useTelemarketingBookings = () => {
@@ -109,7 +111,9 @@ export const useTelemarketingBookings = () => {
             merchant_id
           ),
           cabin:cabins!cabin_bookings_cabin_id_fkey(cabin_name),
-          user:profiles!cabin_bookings_user_id_fkey(full_name, email)
+          user:profiles!cabin_bookings_user_id_fkey(full_name, email),
+          is_vacated,
+          vacated_at
         `)
         .order("created_at", { ascending: false });
 

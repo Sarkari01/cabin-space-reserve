@@ -28,6 +28,8 @@ export interface MerchantBooking {
   deposit_amount?: number; // cabin-only
   deposit_refunded?: boolean; // cabin-only
   is_vacated?: boolean; // cabin-only
+  vacated_at?: string; // cabin-only
+  vacate_reason?: string; // cabin-only
   months_booked?: number; // cabin-only
   monthly_amount?: number; // cabin-only
   user?: {
@@ -100,7 +102,9 @@ export const useMerchantBookings = () => {
           booking_amount,
           deposit_amount,
           deposit_refunded,
-          is_vacated
+          is_vacated,
+          vacated_at,
+          vacate_reason
         `)
         .eq('private_hall.merchant_id', user.id)
         .order("created_at", { ascending: false });
@@ -157,6 +161,8 @@ export const useMerchantBookings = () => {
             deposit_amount: booking.deposit_amount,
             deposit_refunded: booking.deposit_refunded,
             is_vacated: booking.is_vacated,
+            vacated_at: booking.vacated_at,
+            vacate_reason: booking.vacate_reason,
             months_booked: booking.months_booked,
             monthly_amount: booking.monthly_amount
           });

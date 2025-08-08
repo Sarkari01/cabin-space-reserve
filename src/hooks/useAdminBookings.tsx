@@ -24,6 +24,8 @@ export interface AdminBooking {
   deposit_amount?: number;
   deposit_refunded?: boolean;
   is_vacated?: boolean;
+  vacated_at?: string;
+  vacate_reason?: string;
   months_booked?: number;
   monthly_amount?: number;
   user?: {
@@ -126,7 +128,9 @@ export const useAdminBookings = () => {
           booking_amount,
           deposit_amount,
           deposit_refunded,
-          is_vacated
+          is_vacated,
+          vacated_at,
+          vacate_reason
         `)
         .order("created_at", { ascending: false });
 
@@ -191,6 +195,8 @@ export const useAdminBookings = () => {
             deposit_amount: booking.deposit_amount,
             deposit_refunded: booking.deposit_refunded,
             is_vacated: booking.is_vacated,
+            vacated_at: booking.vacated_at,
+            vacate_reason: booking.vacate_reason,
             months_booked: booking.months_booked,
             monthly_amount: booking.monthly_amount
           });

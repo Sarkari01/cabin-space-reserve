@@ -278,8 +278,8 @@ export function CabinBookingDetailModal({
               </Card>
             )}
 
-            {/* QR Code Ticket - Show for active/completed bookings */}
-            {(booking.status === 'active' || booking.status === 'completed') && booking.payment_status === 'paid' && (
+            {/* QR Code Ticket - Show for active/completed bookings (hide if vacated) */}
+            {(booking.status === 'active' || booking.status === 'completed') && booking.payment_status === 'paid' && !booking.is_vacated && (
               <CabinBookingQRCode booking={booking} userRole={userRole} />
             )}
 
@@ -335,8 +335,8 @@ export function CabinBookingDetailModal({
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2 pt-4 border-t">
-              {/* Vacate Button for Active/Pending Bookings */}
-              {(booking.status === 'active' || booking.status === 'pending') && 
+              {/* Vacate Button for Active Bookings (paid and not already vacated) */}
+              {booking.status === 'active' && 
                booking.payment_status === 'paid' && 
                !booking.is_vacated && (
                 <CabinVacateButton 
