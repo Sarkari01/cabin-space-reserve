@@ -10,6 +10,7 @@ interface CreatePaymentRequest {
   action: 'create';
   bookingId: string;
   amount: number;
+  platform_fee_amount?: number;
 }
 
 interface VerifyPaymentRequest {

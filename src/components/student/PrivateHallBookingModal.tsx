@@ -26,6 +26,8 @@ import {
 import { useCabinBooking } from '@/hooks/useCabinBooking';
 import { CouponInput } from '@/components/CouponInput';
 import { RewardsInput } from '@/components/RewardsInput';
+import { useBusinessSettings } from '@/hooks/useBusinessSettings';
+import { computePlatformFee } from '@/utils/platformFee';
 
 interface PrivateHallBookingModalProps {
   isOpen: boolean;
@@ -51,8 +53,9 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
   const { user, session } = useAuth();
   const { error, handleError, clearError, retry } = useCabinBookingErrorHandler();
   const { toast } = useToast();
-  // Import from hook to avoid conflicts with existing function
-  const bookingHook = useCabinBooking();
+// Import from hook to avoid conflicts with existing function
+const bookingHook = useCabinBooking();
+const { settings } = useBusinessSettings();
 
   const handleCabinSelectFromLayout = async (cabinId: string) => {
     setSelectedCabinFromLayout(cabinId);
@@ -219,7 +222,11 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
     const rewardsDiscount = appliedRewards?.discount || 0;
     const totalDiscount = couponDiscount + rewardsDiscount;
     const discountedBookingAmount = Math.max(0, bookingAmount - totalDiscount);
-    const finalAmount = discountedBookingAmount + depositAmount;
+    const finalAmount = discountedBookingAmount + depositAmount; // excludes platform fee by design
+
+    // Platform fee applies to discounted booking amount only
+    const platformFee = computePlatformFee(discountedBookingAmount, settings || undefined);
+    const totalPayable = finalAmount + platformFee;
 
     return { 
       days, 
@@ -232,7 +239,9 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       rewardsDiscount, 
       totalDiscount, 
       discountedBookingAmount,
-      finalAmount, 
+      finalAmount,
+      platformFee,
+      totalPayable,
       endDate 
     };
   };
@@ -320,7 +329,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
       });
 
       // Initiate payment process
-      await initiatePayment(bookingId, bookingDetails.finalAmount);
+      await initiatePayment(bookingId, bookingDetails.totalPayable, bookingDetails.platformFee);
 
     } catch (error) {
       handleError(error);
@@ -329,9 +338,9 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
     }
   };
 
-  const initiatePayment = async (bookingId: string, amount: number) => {
+  const initiatePayment = async (bookingId: string, amount: number, platformFee?: number) => {
     try {
-      console.log('Initiating payment for booking:', bookingId, 'Amount:', amount);
+      console.log('Initiating payment for booking:', bookingId, 'Amount:', amount, 'Platform Fee:', platformFee);
       
       // Create payment order
       const { data: orderData, error } = await supabase.functions.invoke('cabin-booking-payment', {
@@ -339,6 +348,7 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
           action: 'create',
           bookingId: bookingId,
           amount: amount,
+          platform_fee_amount: platformFee ?? 0,
         }
       });
 
@@ -505,30 +515,64 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
           <div className="space-y-6">
             {/* Clean Student Cabin Layout */}
             {privateHall.cabin_layout_json ? (
-              <StudentCabinLayoutViewer
-                layout={privateHall.cabin_layout_json}
-                privateHallId={privateHall.id}
-                privateHallName={privateHall.name}
-                onCabinSelect={handleCabinSelectFromLayout}
-                selectedCabinId={selectedCabinFromLayout || undefined}
-                startDate={startDate}
-                onStartDateChange={setStartDate}
-                appliedCoupon={appliedCoupon}
-                appliedRewards={appliedRewards}
-                onCouponApplied={(discount, code) => setAppliedCoupon({ discount, code })}
-                onCouponRemoved={() => setAppliedCoupon(null)}
-                onRewardsApplied={(discount, pointsUsed) => setAppliedRewards({ discount, pointsUsed })}
-                onRewardsRemoved={() => setAppliedRewards(null)}
-                onClose={onClose}
-                onBookNow={() => {
-                  if (selectedCabinFromLayout && startDate) {
-                    handleBooking();
-                  } else {
-                    handleError(new ValidationError('cabin and start date'));
-                  }
-                }}
-                cabins={cabins}
-              />
+              <>
+                <StudentCabinLayoutViewer
+                  layout={privateHall.cabin_layout_json}
+                  privateHallId={privateHall.id}
+                  privateHallName={privateHall.name}
+                  onCabinSelect={handleCabinSelectFromLayout}
+                  selectedCabinId={selectedCabinFromLayout || undefined}
+                  startDate={startDate}
+                  onStartDateChange={setStartDate}
+                  appliedCoupon={appliedCoupon}
+                  appliedRewards={appliedRewards}
+                  onCouponApplied={(discount, code) => setAppliedCoupon({ discount, code })}
+                  onCouponRemoved={() => setAppliedCoupon(null)}
+                  onRewardsApplied={(discount, pointsUsed) => setAppliedRewards({ discount, pointsUsed })}
+                  onRewardsRemoved={() => setAppliedRewards(null)}
+                  onClose={onClose}
+                  onBookNow={() => {
+                    if (selectedCabinFromLayout && startDate) {
+                      handleBooking();
+                    } else {
+                      handleError(new ValidationError('cabin and start date'));
+                    }
+                  }}
+                  cabins={cabins}
+                />
+
+                {/* Charges Summary (Layout Mode) */}
+                {bookingDetails && (
+                  <Card className="p-4 bg-blue-50 border-blue-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <DollarSign className="h-5 w-5 text-blue-600" />
+                      <Label className="text-base font-semibold text-blue-800">Charges</Label>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Booking Amount:</span>
+                        <span className="font-medium">₹{bookingDetails.discountedBookingAmount.toLocaleString()}</span>
+                      </div>
+                      {bookingDetails.depositAmount > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Refundable Deposit:</span>
+                          <span className="font-medium">₹{bookingDetails.depositAmount.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {bookingDetails.platformFee > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Platform Fee:</span>
+                          <span className="font-medium">₹{bookingDetails.platformFee.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-semibold text-base border-t border-blue-200 pt-2 text-blue-800">
+                        <span>Total Payable:</span>
+                        <span>₹{bookingDetails.totalPayable.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </>
             ) : (
               <>
                 {/* Fallback Cabin Selection */}
@@ -676,9 +720,15 @@ export const PrivateHallBookingModal: React.FC<PrivateHallBookingModalProps> = (
                                <span>-₹{bookingDetails.rewardsDiscount.toLocaleString()}</span>
                              </div>
                            )}
+                           {bookingDetails.platformFee > 0 && (
+                             <div className="flex justify-between">
+                               <span className="text-muted-foreground">Platform Fee:</span>
+                               <span className="font-medium">₹{bookingDetails.platformFee.toLocaleString()}</span>
+                             </div>
+                           )}
                            <div className="flex justify-between font-semibold text-base border-t border-blue-200 pt-2 text-blue-800">
-                             <span>Final Amount:</span>
-                             <span>₹{bookingDetails.finalAmount.toLocaleString()}</span>
+                             <span>Total Payable:</span>
+                             <span>₹{bookingDetails.totalPayable.toLocaleString()}</span>
                            </div>
                          </div>
                        </Card>
