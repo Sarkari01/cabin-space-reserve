@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PrivateHallImageUpload } from '@/components/PrivateHallImageUpload';
 import { CabinLayoutDesigner } from '@/components/CabinLayoutDesigner';
-import { RowBasedCabinDesigner } from '@/components/RowBasedCabinDesigner';
+import { EnhancedRowBasedCabinDesigner } from '@/components/EnhancedRowBasedCabinDesigner';
 import { LocationPicker } from '@/components/maps/LocationPicker';
 import { usePrivateHalls, useCabins } from '@/hooks/usePrivateHalls';
 import { supabase } from '@/integrations/supabase/client';
@@ -399,10 +399,13 @@ export const PrivateHallEditModal: React.FC<PrivateHallEditModalProps> = ({
             </div>
 
             {useRowBasedDesign ? (
-              <RowBasedCabinDesigner
+              <EnhancedRowBasedCabinDesigner
                 layout={cabinLayout}
                 onChange={setCabinLayout}
                 basePrice={formData.monthly_price || 0}
+                baseDeposit={0}
+                privateHallId={privateHall.id}
+                showAvailability={true}
               />
             ) : (
               <CabinLayoutDesigner

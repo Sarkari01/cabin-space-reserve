@@ -56,7 +56,7 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
       setLoading(true);
 
       // Fetch cabins first
-      const { data: cabins, error: cabinsError } = await supabase
+      const { data: dbCabins, error: cabinsError } = await supabase
         .from('cabins')
         .select('*')
         .eq('private_hall_id', privateHallId);
@@ -66,10 +66,12 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
         return;
       }
 
+      const dbCabinsList = dbCabins || [];
+
       // Then fetch bookings separately to avoid JOIN issues
-      const cabinIds = cabins?.map(cabin => cabin.id) || [];
+      const cabinIds = dbCabinsList.map((c: any) => c.id);
       let bookings: any[] = [];
-      
+
       if (cabinIds.length > 0) {
         const { data: bookingsData, error: bookingsError } = await supabase
           .from('cabin_bookings')
@@ -84,19 +86,67 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
           bookings = bookingsData || [];
         }
       }
+
+      // Build mapping from layout cabin IDs to DB cabin IDs
+      const sortedDbCabins = [...dbCabinsList].sort((a, b) => (a.cabin_number || 0) - (b.cabin_number || 0));
+      const cabinIdMap: Record<string, string> = {};
+
+      const extractNumber = (name: string) => {
+        const m = name?.match(/(\d+)/);
+        return m ? parseInt(m[1], 10) : NaN;
+      };
+
+      layout.cabins.forEach((lc, idx) => {
+        let match = dbCabinsList.find((c: any) => c.cabin_name === lc.name);
+        if (!match) {
+          const num = extractNumber(lc.name);
+          if (!isNaN(num)) {
+            match = dbCabinsList.find((c: any) => c.cabin_number === num);
+          }
+        }
+        if (!match) {
+          match = sortedDbCabins[idx];
+        }
+        if (match) {
+          cabinIdMap[lc.id] = match.id;
+        }
+      });
+
+      // Determine availability per layout cabin
+      const today = new Date();
+      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
       const availabilityMap: CabinAvailability = {};
-      cabins?.forEach(cabin => {
-        const activeBookings = bookings.filter(booking => 
-          booking.cabin_id === cabin.id && 
-          booking.status === 'active' && 
-          booking.payment_status === 'paid'
+
+      layout.cabins.forEach((lc) => {
+        const dbId = cabinIdMap[lc.id];
+        if (!dbId) {
+          availabilityMap[lc.id] = { status: 'available', bookings: 0 };
+          return;
+        }
+
+        const cabinRecord = dbCabinsList.find((c: any) => c.id === dbId);
+
+        // Check maintenance first
+        if (cabinRecord?.status === 'maintenance') {
+          availabilityMap[lc.id] = { status: 'maintenance', bookings: 0 };
+          return;
+        }
+
+        const activePaid = bookings.filter((b) =>
+          b.cabin_id === dbId &&
+          b.payment_status === 'paid' &&
+          b.is_vacated !== true &&
+          (b.status === 'active' || b.status === 'pending') &&
+          b.end_date && new Date(b.end_date) >= todayDate
         );
-        
-        availabilityMap[cabin.id] = {
-          status: activeBookings.length > 0 ? 'occupied' : 'available',
-          bookings: activeBookings.length
+
+        availabilityMap[lc.id] = {
+          status: activePaid.length > 0 ? 'occupied' : 'available',
+          bookings: activePaid.length,
         };
       });
+
       setAvailability(availabilityMap);
     } catch (error) {
       console.error('Error:', error);
@@ -108,15 +158,27 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
     if (showAvailability && privateHallId) {
       fetchAvailability();
 
-      // Set up real-time subscription
-      const channel = supabase.channel('cabin-bookings-changes').on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'cabin_bookings',
-        filter: `private_hall_id=eq.${privateHallId}`
-      }, () => {
-        fetchAvailability();
-      }).subscribe();
+      // Set up real-time subscriptions for both bookings and cabin status changes
+      const channel = supabase
+        .channel('private-hall-availability')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'cabin_bookings',
+          filter: `private_hall_id=eq.${privateHallId}`
+        }, () => {
+          fetchAvailability();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'cabins',
+          filter: `private_hall_id=eq.${privateHallId}`
+        }, () => {
+          fetchAvailability();
+        })
+        .subscribe();
+
       return () => {
         supabase.removeChannel(channel);
       };
@@ -185,9 +247,17 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
     onChange(newLayout);
   };
 
-  // Initial layout update
+  // Only generate layout if none provided
   useEffect(() => {
-    updateLayout(rows);
+    if (!layout?.cabins?.length) {
+      updateLayout(rows);
+    }
+  }, []);
+  // If layout not provided, rebuild when availability changes to keep preview reactive
+  useEffect(() => {
+    if (!layout?.cabins?.length) {
+      updateLayout(rows);
+    }
   }, [availability]);
   const getCabinStatusInfo = (cabin: any) => {
     const cabinAvailability = availability[cabin.id];
