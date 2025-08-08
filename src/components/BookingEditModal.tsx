@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Booking } from "@/hooks/useBookings";
+import { CabinBooking } from "@/types/PrivateHall";
 import { Calendar } from "lucide-react";
 
 interface BookingEditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  booking: Booking | null;
-  onSave: (bookingId: string, updates: Partial<Booking>) => Promise<boolean>;
+  booking: (Booking | CabinBooking) | null;
+  onSave: (bookingId: string, updates: Partial<Booking> | Partial<CabinBooking>) => Promise<boolean>;
   loading?: boolean;
 }
 
@@ -22,23 +23,41 @@ export function BookingEditModal({
   onSave, 
   loading = false 
 }: BookingEditModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{ 
+    start_date: string;
+    end_date: string;
+    status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'refunded' | 'active';
+    booking_period: '1_month' | '2_months' | '3_months' | '6_months' | '12_months'
+  }>({
     start_date: '',
     end_date: '',
-    status: 'pending' as 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'refunded',
-    booking_period: '1_month' as '1_month' | '2_months' | '3_months' | '6_months' | '12_months'
+    status: 'pending',
+    booking_period: '1_month'
   });
+
+  const isCabinBooking = (b: any): b is CabinBooking => !!b && 'cabin_id' in b;
 
   useEffect(() => {
     if (booking) {
-      setFormData({
-        start_date: booking.start_date,
-        end_date: booking.end_date,
-        status: booking.status,
-        booking_period: booking.booking_period
-      });
+      if (isCabinBooking(booking)) {
+        setFormData(prev => ({
+          ...prev,
+          start_date: booking.start_date,
+          end_date: booking.end_date,
+          status: booking.status as any,
+        }));
+      } else {
+        setFormData({
+          start_date: booking.start_date,
+          end_date: booking.end_date,
+          status: booking.status as any,
+          booking_period: booking.booking_period,
+        });
+      }
     }
   }, [booking]);
+
+  const isCabin = booking ? isCabinBooking(booking) : false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +76,16 @@ export function BookingEditModal({
     });
 
     try {
-      const success = await onSave(booking.id, formData);
+      const updates: any = {
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        status: (isCabin && formData.status === 'confirmed') ? 'active' : formData.status,
+      };
+      if (!isCabin) {
+        updates.booking_period = formData.booking_period;
+      }
+
+      const success = await onSave(booking.id, updates);
       if (success) {
         console.log("Booking update successful, closing modal");
         onOpenChange(false);
@@ -93,26 +121,28 @@ export function BookingEditModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="booking_period">Booking Period</Label>
-            <Select 
-              value={formData.booking_period} 
-              onValueChange={(value: '1_month' | '2_months' | '3_months' | '6_months' | '12_months') => 
-                setFormData(prev => ({ ...prev, booking_period: value }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select period" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1_month">1 Month</SelectItem>
-                <SelectItem value="2_months">2 Months</SelectItem>
-                <SelectItem value="3_months">3 Months</SelectItem>
-                <SelectItem value="6_months">6 Months</SelectItem>
-                <SelectItem value="12_months">12 Months</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {!isCabin && (
+            <div className="space-y-2">
+              <Label htmlFor="booking_period">Booking Period</Label>
+              <Select 
+                value={formData.booking_period} 
+                onValueChange={(value: any) => 
+                  setFormData(prev => ({ ...prev, booking_period: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1_month">1 Month</SelectItem>
+                  <SelectItem value="2_months">2 Months</SelectItem>
+                  <SelectItem value="3_months">3 Months</SelectItem>
+                  <SelectItem value="6_months">6 Months</SelectItem>
+                  <SelectItem value="12_months">12 Months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -141,7 +171,7 @@ export function BookingEditModal({
             <Label htmlFor="status">Status</Label>
             <Select 
               value={formData.status} 
-              onValueChange={(value: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'refunded') => 
+              onValueChange={(value: any) => 
                 setFormData(prev => ({ ...prev, status: value }))
               }
             >
@@ -149,11 +179,23 @@ export function BookingEditModal({
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="refunded">Refunded</SelectItem>
+                {isCabin ? (
+                  <>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
