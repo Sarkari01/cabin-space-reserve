@@ -282,14 +282,14 @@ const MerchantDashboard = () => {
   });
   const handleExportBookings = () => {
     // Create CSV content
-    const headers = ["Booking ID", "User Name", "Email", "Study Hall", "Seat", "Period", "Start Date", "End Date", "Amount", "Status", "Created"];
+    const headers = ["Booking ID", "User Name", "Email", "Private Hall", "Cabin", "Months", "Start Date", "End Date", "Amount", "Status", "Created"];
     const csvData = filteredBookings.map(booking => [
       booking.booking_number ? `B${booking.booking_number}` : 'Pending',
       booking.user?.full_name || booking.guest_name || 'N/A',
       booking.user?.email || booking.guest_email || 'N/A', 
       booking.location_name || 'N/A',
       booking.unit_name || 'N/A',
-      booking.booking_type || 'N/A',
+      booking.months_booked ?? '',
       formatDate(booking.start_date),
       formatDate(booking.end_date),
       Number(booking.total_amount).toLocaleString(),
@@ -723,6 +723,7 @@ const MerchantDashboard = () => {
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                       <SelectItem value="refunded">Refunded</SelectItem>
@@ -926,7 +927,7 @@ const MerchantDashboard = () => {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold">Users</h3>
               <div className="text-sm text-muted-foreground">
-                Users who have booked in your study halls
+                Users who have booked your private halls
               </div>
             </div>
 
@@ -952,6 +953,7 @@ const MerchantDashboard = () => {
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
@@ -1032,12 +1034,12 @@ const MerchantDashboard = () => {
                           {userData.bookings.length > 0 && (
                             <div className="space-y-2 text-sm">
                               <div>
-                                <span className="text-muted-foreground">Study Hall:</span>
-                                <p className="font-medium">{userData.bookings[0].study_hall?.name}</p>
+                                <span className="text-muted-foreground">Private Hall:</span>
+                                <p className="font-medium">{userData.bookings[0].location_name}</p>
                               </div>
                               <div>
-                                <span className="text-muted-foreground">Seat:</span>
-                                <p className="font-medium">{userData.bookings[0].seat?.seat_id}</p>
+                                <span className="text-muted-foreground">Cabin:</span>
+                                <p className="font-medium">{userData.bookings[0].unit_name}</p>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Date:</span>
@@ -1124,7 +1126,7 @@ const MerchantDashboard = () => {
               <div className="text-center py-12 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg">No users found</p>
-                <p className="text-sm">Users who book in your study halls will appear here</p>
+                <p className="text-sm">Users who book your private halls will appear here</p>
               </div>
             )}
           </TabsContent>
@@ -1212,6 +1214,7 @@ const MerchantDashboard = () => {
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
@@ -1292,12 +1295,12 @@ const MerchantDashboard = () => {
                           {userData.bookings.length > 0 && (
                             <div className="space-y-2 text-sm">
                               <div>
-                                <span className="text-muted-foreground">Study Hall:</span>
-                                <p className="font-medium">{userData.bookings[0].study_hall?.name}</p>
+                                <span className="text-muted-foreground">Private Hall:</span>
+                                <p className="font-medium">{userData.bookings[0].location_name}</p>
                               </div>
                               <div>
-                                <span className="text-muted-foreground">Seat:</span>
-                                <p className="font-medium">{userData.bookings[0].seat?.seat_id}</p>
+                                <span className="text-muted-foreground">Cabin:</span>
+                                <p className="font-medium">{userData.bookings[0].unit_name}</p>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Date:</span>
@@ -1384,7 +1387,7 @@ const MerchantDashboard = () => {
               <div className="text-center py-12 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg">No users found</p>
-                <p className="text-sm">Users who book in your study halls will appear here</p>
+                <p className="text-sm">Users who book your private halls will appear here</p>
               </div>
             )}
           </div>

@@ -67,42 +67,7 @@ export const useMerchantBookings = () => {
         return;
       }
 
-      // Fetch study hall bookings
-      console.log('🔍 MerchantBookings: Fetching study hall bookings...');
-      const { data: studyHallBookings, error: studyHallError } = await supabase
-        .from("bookings")
-        .select(`
-          id,
-          booking_number,
-          user_id,
-          start_date,
-          end_date,
-          total_amount,
-          status,
-          payment_status,
-          created_at,
-          updated_at,
-          guest_name,
-          guest_phone,
-          guest_email,
-          study_hall:study_halls!inner(
-            id,
-            name,
-            merchant_id,
-            location,
-            image_url
-          ),
-          seat:seats(seat_id, row_name, seat_number),
-          user:profiles(full_name, email, phone)
-        `)
-        .eq('study_hall.merchant_id', user.id)
-        .order("created_at", { ascending: false });
-
-      if (studyHallError) {
-        console.error("🔍 MerchantBookings: Error fetching study hall bookings:", studyHallError);
-      } else {
-        console.log('✅ MerchantBookings: Study hall bookings fetched:', studyHallBookings?.length || 0);
-      }
+      // Skipping study hall bookings fetch - merchant dashboard is cabin-only
 
       // Fetch cabin bookings with correct relationship syntax
       console.log('🔍 MerchantBookings: Fetching cabin bookings...');
@@ -164,35 +129,7 @@ export const useMerchantBookings = () => {
 
       const enrichedBookings: MerchantBooking[] = [];
 
-      // Process study hall bookings
-      if (studyHallBookings) {
-        for (const booking of studyHallBookings) {
-          enrichedBookings.push({
-            id: booking.id,
-            booking_number: booking.booking_number,
-            user_id: booking.user_id,
-            start_date: booking.start_date,
-            end_date: booking.end_date,
-            total_amount: booking.total_amount,
-            status: booking.status,
-            payment_status: booking.payment_status,
-            created_at: booking.created_at,
-            updated_at: booking.updated_at,
-            booking_type: 'study_hall',
-            location_name: booking.study_hall?.name || "Unknown Study Hall",
-            unit_name: booking.seat?.seat_id || "Unknown Seat",
-            seat_id: booking.seat?.seat_id,
-            seat_row_name: booking.seat?.row_name,
-            seat_number: booking.seat?.seat_number,
-            location_address: booking.study_hall?.location,
-            location_image_url: booking.study_hall?.image_url,
-            user: Array.isArray(booking.user) ? booking.user[0] : booking.user,
-            guest_name: booking.guest_name,
-            guest_phone: booking.guest_phone,
-            guest_email: booking.guest_email
-          });
-        }
-      }
+      // Skipping study hall bookings processing - cabin-only mode
 
       // Process cabin bookings
       if (cabinBookings) {
@@ -229,12 +166,7 @@ export const useMerchantBookings = () => {
       // Sort by creation date (newest first)
       enrichedBookings.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      console.log(`✅ MerchantBookings: Successfully fetched ${enrichedBookings.length} combined bookings for merchant ${user.id}`);
-      console.log('🔍 MerchantBookings: Booking breakdown:', {
-        studyHallBookings: studyHallBookings?.length || 0,
-        cabinBookings: cabinBookings?.length || 0,
-        totalCombined: enrichedBookings.length
-      });
+      console.log(`✅ MerchantBookings: Successfully fetched ${enrichedBookings.length} cabin bookings for merchant ${user.id}`);
       setBookings(enrichedBookings);
 
     } catch (error) {
@@ -259,13 +191,6 @@ export const useMerchantBookings = () => {
 
     const channel = supabase
       .channel('merchant-bookings')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings' },
-        () => {
-          fetchMerchantBookings();
-        }
-      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'cabin_bookings' },

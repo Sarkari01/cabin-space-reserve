@@ -392,7 +392,7 @@ export function UnifiedBookingDetailModal({
                 disabled={loading}
                 className="min-h-[44px]"
               >
-                {loading ? "Confirming..." : "Confirm Booking"}
+                {loading ? (bookingType === 'cabin' ? "Activating..." : "Confirming...") : (bookingType === 'cabin' ? "Activate Booking" : "Confirm Booking")}
               </Button>
             )}
             
