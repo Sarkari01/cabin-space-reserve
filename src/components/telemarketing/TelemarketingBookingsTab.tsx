@@ -253,12 +253,12 @@ export const TelemarketingBookingsTab = () => {
 
       {/* Booking Detail Modal */}
       {selectedBooking && (
-        <BookingDetailModal
-          booking={selectedBooking}
-          open={bookingDetailOpen}
-          onOpenChange={setBookingDetailOpen}
-          userRole="admin"
-        />
+      <UnifiedBookingDetailModal
+        booking={selectedBooking}
+        open={bookingDetailOpen}
+        onOpenChange={setBookingDetailOpen}
+        userRole="telemarketing_executive"
+      />
       )}
     </div>
   );
