@@ -49,7 +49,7 @@ export const ActiveCabinBookingsList: React.FC<Props> = ({ privateHallId }) => {
         .eq('private_hall_id', privateHallId)
         .eq('is_vacated', false)
         .eq('payment_status', 'paid')
-        .in('status', ['active', 'confirmed'])
+        .eq('status', 'active')
         .gte('end_date', new Date().toISOString().slice(0, 10))
         .order('end_date', { ascending: true });
 
