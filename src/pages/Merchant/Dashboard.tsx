@@ -42,16 +42,39 @@ import { MerchantReportsTab } from "@/components/reports/MerchantReportsTab";
 import { PrivateHallsTab } from "@/components/merchant/PrivateHallsTab";
 import { supabase } from "@/integrations/supabase/client";
 import { CabinVacateButton } from "@/components/CabinVacateButton";
-
 const MerchantDashboard = () => {
-  const { user, userRole, loading: authLoading } = useAuth();
+  const {
+    user,
+    userRole,
+    loading: authLoading
+  } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { studyHalls, loading, createStudyHall, updateStudyHall, deleteStudyHall, toggleStudyHallStatus, fetchStudyHalls } = useStudyHalls();
-  const { bookings, loading: bookingsLoading, fetchMerchantBookings, updateMerchantBookingStatus } = useMerchantBookings();
-  const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
-  const { limits, checkStudyHallCreationLimit } = useSubscriptionLimits();
-  
+  const {
+    studyHalls,
+    loading,
+    createStudyHall,
+    updateStudyHall,
+    deleteStudyHall,
+    toggleStudyHallStatus,
+    fetchStudyHalls
+  } = useStudyHalls();
+  const {
+    bookings,
+    loading: bookingsLoading,
+    fetchMerchantBookings,
+    updateMerchantBookingStatus
+  } = useMerchantBookings();
+  const {
+    analytics,
+    loading: analyticsLoading,
+    lastUpdate,
+    refreshAnalytics
+  } = useDashboardAnalytics();
+  const {
+    limits,
+    checkStudyHallCreationLimit
+  } = useSubscriptionLimits();
   const [studyHallModalOpen, setStudyHallModalOpen] = useState(false);
   // Simplified modal state for creation only
   const [selectedStudyHall, setSelectedStudyHall] = useState<any>(null);
@@ -64,8 +87,9 @@ const MerchantDashboard = () => {
   const [filterDateFrom, setFilterDateFrom] = useState<string>("");
   const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [searchUser, setSearchUser] = useState<string>("");
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
@@ -78,7 +102,7 @@ const MerchantDashboard = () => {
     if (navigationState?.refreshBookings) {
       console.log("Merchant dashboard: Refresh triggered from navigation state");
       fetchMerchantBookings();
-      
+
       // Switch to bookings tab if requested
       if (navigationState?.activeTab) {
         setActiveTab(navigationState.activeTab);
@@ -102,74 +126,69 @@ const MerchantDashboard = () => {
 
   // Enhanced loading state with user validation
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
+    return <div className="flex items-center justify-center min-h-screen">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    );
+      </div>;
   }
-
   if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
+    return <div className="flex items-center justify-center min-h-screen">
         <div className="text-muted-foreground">Redirecting to authentication...</div>
-      </div>
-    );
+      </div>;
   }
-
-  const stats = [
-    {
-      title: "Total Study Halls",
-      value: analytics.merchantStats?.totalStudyHalls || studyHalls.length,
-      icon: Home,
-      trend: { value: 5, label: "this month" }
-    },
-    {
-      title: "Total Seats",
-      value: analytics.merchantStats?.totalSeats || studyHalls.reduce((acc, hall) => acc + hall.total_seats, 0),
-      icon: Users,
-      trend: { value: 12, label: "this month" }
-    },
-    {
-      title: "Active Study Halls",
-      value: analytics.merchantStats?.activeStudyHalls || studyHalls.filter(hall => hall.status === 'active').length,
-      icon: Calendar,
-      trend: { value: 8, label: "this week" }
-    },
-    {
-      title: "Monthly Earnings",
-      value: `₹${(analytics.merchantStats?.monthlyEarnings || analytics.totalRevenue).toLocaleString()}`,
-      icon: DollarSign,
-      trend: { value: analytics.revenueGrowth || 15, label: "from last month" }
+  const stats = [{
+    title: "Total Study Halls",
+    value: analytics.merchantStats?.totalStudyHalls || studyHalls.length,
+    icon: Home,
+    trend: {
+      value: 5,
+      label: "this month"
     }
-  ];
-
+  }, {
+    title: "Total Seats",
+    value: analytics.merchantStats?.totalSeats || studyHalls.reduce((acc, hall) => acc + hall.total_seats, 0),
+    icon: Users,
+    trend: {
+      value: 12,
+      label: "this month"
+    }
+  }, {
+    title: "Active Study Halls",
+    value: analytics.merchantStats?.activeStudyHalls || studyHalls.filter(hall => hall.status === 'active').length,
+    icon: Calendar,
+    trend: {
+      value: 8,
+      label: "this week"
+    }
+  }, {
+    title: "Monthly Earnings",
+    value: `₹${(analytics.merchantStats?.monthlyEarnings || analytics.totalRevenue).toLocaleString()}`,
+    icon: DollarSign,
+    trend: {
+      value: analytics.revenueGrowth || 15,
+      label: "from last month"
+    }
+  }];
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
+    return <div className="flex items-center justify-center min-h-screen">
         <div className="animate-pulse text-muted-foreground">Loading dashboard data...</div>
-      </div>
-    );
+      </div>;
   }
-
   const handleAddStudyHall = () => {
     setStudyHallModalOpen(true);
   };
-
   const handleDeleteStudyHall = async (id: string) => {
     await deleteStudyHall(id);
   };
 
   // Format booking data for display
-  const formatDate = (dateString) => {
+  const formatDate = dateString => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
   };
-
-  const getStatusColor = (status) => {
+  const getStatusColor = status => {
     switch (status) {
       case 'confirmed':
         return 'default';
@@ -185,16 +204,14 @@ const MerchantDashboard = () => {
         return 'secondary';
     }
   };
-
   const handleViewBookingDetails = (booking: any) => {
     setSelectedBooking(booking);
     setBookingDetailOpen(true);
   };
-
   const handleConfirmBooking = async (bookingId: string) => {
     setActionLoading(true);
     try {
-      const booking = bookings.find((b) => b.id === bookingId);
+      const booking = bookings.find(b => b.id === bookingId);
       const nextStatus = booking?.booking_type === 'cabin' ? 'active' : 'confirmed';
       const success = await updateMerchantBookingStatus(bookingId, nextStatus);
       if (success) {
@@ -204,7 +221,6 @@ const MerchantDashboard = () => {
       setActionLoading(false);
     }
   };
-
   const handleCancelBooking = async (bookingId: string) => {
     setActionLoading(true);
     try {
@@ -216,60 +232,54 @@ const MerchantDashboard = () => {
       setActionLoading(false);
     }
   };
-
   const handleEditBooking = (booking: any) => {
     setSelectedBooking(booking);
     setBookingEditOpen(true);
   };
-
   const handleSaveBooking = async (bookingId: string, updates: any) => {
     setActionLoading(true);
     try {
       const isCabin = selectedBooking?.booking_type === 'cabin';
       const table = isCabin ? 'cabin_bookings' : 'bookings';
-
       const payload: any = {
         start_date: updates.start_date,
         end_date: updates.end_date,
         status: isCabin && updates.status === 'confirmed' ? 'active' : updates.status,
-        updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       if (!isCabin && typeof updates.booking_period !== 'undefined') {
         payload.booking_period = updates.booking_period;
       }
-
-      const { error } = await supabase
-        .from(table)
-        .update(payload)
-        .eq('id', bookingId);
-
+      const {
+        error
+      } = await supabase.from(table).update(payload).eq('id', bookingId);
       if (error) throw error;
-
-      toast({ title: 'Success', description: 'Booking updated successfully' });
+      toast({
+        title: 'Success',
+        description: 'Booking updated successfully'
+      });
       await fetchMerchantBookings();
       setActionLoading(false);
       return true;
     } catch (error: any) {
       console.error('Error updating booking:', error);
-      toast({ title: 'Error', description: `Failed to update booking: ${error.message || error}`, variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: `Failed to update booking: ${error.message || error}`,
+        variant: 'destructive'
+      });
       setActionLoading(false);
       return false;
     }
   };
 
   // Keep only private hall (cabin) bookings
-  const cabinBookings = bookings.filter((b) => b.booking_type === 'cabin');
+  const cabinBookings = bookings.filter(b => b.booking_type === 'cabin');
 
   // Filter bookings based on criteria
   const filteredBookings = cabinBookings.filter(booking => {
     const matchesStatus = filterStatus === "all" || booking.status === filterStatus;
-    const matchesUser = !searchUser || 
-      (booking.user?.full_name?.toLowerCase().includes(searchUser.toLowerCase()) ||
-       booking.user?.email?.toLowerCase().includes(searchUser.toLowerCase()) ||
-       booking.guest_name?.toLowerCase?.().includes(searchUser.toLowerCase()) ||
-       booking.guest_email?.toLowerCase?.().includes(searchUser.toLowerCase()) ||
-       booking.booking_number?.toString().includes(searchUser));
-    
+    const matchesUser = !searchUser || booking.user?.full_name?.toLowerCase().includes(searchUser.toLowerCase()) || booking.user?.email?.toLowerCase().includes(searchUser.toLowerCase()) || booking.guest_name?.toLowerCase?.().includes(searchUser.toLowerCase()) || booking.guest_email?.toLowerCase?.().includes(searchUser.toLowerCase()) || booking.booking_number?.toString().includes(searchUser);
     let matchesDate = true;
     if (filterDateFrom) {
       matchesDate = matchesDate && new Date(booking.start_date) >= new Date(filterDateFrom);
@@ -277,28 +287,16 @@ const MerchantDashboard = () => {
     if (filterDateTo) {
       matchesDate = matchesDate && new Date(booking.start_date) <= new Date(filterDateTo);
     }
-    
     return matchesStatus && matchesUser && matchesDate;
   });
   const handleExportBookings = () => {
     // Create CSV content
     const headers = ["Booking ID", "User Name", "Email", "Private Hall", "Cabin", "Months", "Start Date", "End Date", "Amount", "Status", "Created"];
-    const csvData = filteredBookings.map(booking => [
-      booking.booking_number ? `B${booking.booking_number}` : 'Pending',
-      booking.user?.full_name || booking.guest_name || 'N/A',
-      booking.user?.email || booking.guest_email || 'N/A', 
-      booking.location_name || 'N/A',
-      booking.unit_name || 'N/A',
-      booking.months_booked ?? '',
-      formatDate(booking.start_date),
-      formatDate(booking.end_date),
-      Number(booking.total_amount).toLocaleString(),
-      booking.status,
-      formatDate(booking.created_at)
-    ]);
-    
+    const csvData = filteredBookings.map(booking => [booking.booking_number ? `B${booking.booking_number}` : 'Pending', booking.user?.full_name || booking.guest_name || 'N/A', booking.user?.email || booking.guest_email || 'N/A', booking.location_name || 'N/A', booking.unit_name || 'N/A', booking.months_booked ?? '', formatDate(booking.start_date), formatDate(booking.end_date), Number(booking.total_amount).toLocaleString(), booking.status, formatDate(booking.created_at)]);
     const csvContent = [headers, ...csvData].map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], {
+      type: 'text/csv'
+    });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('hidden', '');
@@ -307,26 +305,18 @@ const MerchantDashboard = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    
     toast({
       title: "Export Successful",
-      description: "Booking data has been exported to CSV",
+      description: "Booking data has been exported to CSV"
     });
   };
-
-  return (
-    <>
+  return <>
       <BookingLifecycleManager />
       <SeatSynchronizer onSeatUpdate={() => {
-        // Refresh study halls when seat updates occur
-        fetchStudyHalls();
-      }} />
-      <DashboardSidebar 
-        userRole="merchant" 
-        userName={user?.email || 'Merchant'}
-        onTabChange={setActiveTab}
-        activeTab={activeTab}
-      >
+      // Refresh study halls when seat updates occur
+      fetchStudyHalls();
+    }} />
+      <DashboardSidebar userRole="merchant" userName={user?.email || 'Merchant'} onTabChange={setActiveTab} activeTab={activeTab}>
       <div className="p-6">
         {/* Banner Carousel */}
         <BannerCarousel targetAudience="merchant" className="mb-6" />
@@ -338,94 +328,48 @@ const MerchantDashboard = () => {
               <div>
                 <h2 className="text-3xl font-bold text-foreground mb-2">
                   Merchant Dashboard
-                  {userRole === "admin" && (
-                    <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-md">
+                  {userRole === "admin" && <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-md">
                       Admin View
-                    </span>
-                  )}
+                    </span>}
                 </h2>
                 <p className="text-muted-foreground">Welcome back, {user?.email || 'Merchant'}</p>
               </div>
               <RealTimeIndicator lastUpdate={lastUpdate} />
             </div>
           </div>
-          <Button onClick={handleAddStudyHall}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Study Hall
-          </Button>
+          
         </div>
 
         {/* Stats Cards - Show only on overview tab */}
-        {activeTab === "overview" && (
-          <>
+        {activeTab === "overview" && <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="md:col-span-2 lg:col-span-1">
                 <SubscriptionStatusCard />
               </div>
-              {stats.map((stat, index) => (
-                <StatCard
-                  key={index}
-                  title={stat.title}
-                  value={stat.value.toString()}
-                  icon={stat.icon}
-                  trend={stat.trend}
-                  loading={analyticsLoading}
-                />
-              ))}
+              {stats.map((stat, index) => <StatCard key={index} title={stat.title} value={stat.value.toString()} icon={stat.icon} trend={stat.trend} loading={analyticsLoading} />)}
             </div>
 
             {/* Analytics Charts */}
             <div className="grid lg:grid-cols-2 gap-6 mb-8">
-              <AnalyticsChart
-                title="Revenue Trend"
-                description="Daily earnings over the last 30 days"
-                data={analytics.bookingsTrend}
-                type="line"
-                dataKey="revenue"
-                trend={analytics.revenueGrowth}
-                value={`₹${analytics.totalRevenue.toLocaleString()}`}
-                onRefresh={refreshAnalytics}
-                loading={analyticsLoading}
-              />
-              {analytics.studyHallPerformance && (
-                <AnalyticsChart
-                  title="Study Hall Performance"
-                  description="Revenue by study hall"
-                  data={analytics.studyHallPerformance}
-                  type="bar"
-                  dataKey="revenue"
-                  xAxisKey="name"
-                  onRefresh={refreshAnalytics}
-                  loading={analyticsLoading}
-                />
-              )}
+              <AnalyticsChart title="Revenue Trend" description="Daily earnings over the last 30 days" data={analytics.bookingsTrend} type="line" dataKey="revenue" trend={analytics.revenueGrowth} value={`₹${analytics.totalRevenue.toLocaleString()}`} onRefresh={refreshAnalytics} loading={analyticsLoading} />
+              {analytics.studyHallPerformance && <AnalyticsChart title="Study Hall Performance" description="Revenue by study hall" data={analytics.studyHallPerformance} type="bar" dataKey="revenue" xAxisKey="name" onRefresh={refreshAnalytics} loading={analyticsLoading} />}
             </div>
-          </>
-        )}
+          </>}
 
         {/* Coupons Tab */}
-        {activeTab === "coupons" && (
-          <MerchantCouponsTab />
-        )}
+        {activeTab === "coupons" && <MerchantCouponsTab />}
 
         {/* Reviews Tab */}
-        {activeTab === "reviews" && (
-          <MerchantReviewsTab />
-        )}
+        {activeTab === "reviews" && <MerchantReviewsTab />}
 
         {/* Reports Tab */}
-        {activeTab === "reports" && (
-          <MerchantReportsTab />
-        )}
+        {activeTab === "reports" && <MerchantReportsTab />}
 
         {/* Private Halls Tab */}
-        {activeTab === "privatehalls" && (
-          <PrivateHallsTab />
-        )}
+        {activeTab === "privatehalls" && <PrivateHallsTab />}
 
         {/* Main Content based on active tab */}
-        {activeTab === "overview" && (
-          <Tabs defaultValue="studyhalls" className="space-y-6">
+        {activeTab === "overview" && <Tabs defaultValue="studyhalls" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="studyhalls">My Study Halls</TabsTrigger>
               <TabsTrigger value="bookings">Recent Bookings</TabsTrigger>
@@ -445,20 +389,11 @@ const MerchantDashboard = () => {
             </div>
             
             <div className="grid lg:grid-cols-2 gap-6">
-              {studyHalls.map((studyHall) => (
-                <Card key={studyHall.id} className="hover:shadow-md transition-shadow">
+              {studyHalls.map(studyHall => <Card key={studyHall.id} className="hover:shadow-md transition-shadow">
                   <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                    {studyHall.image_url ? (
-                      <img 
-                        src={studyHall.image_url} 
-                        alt={studyHall.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                    {studyHall.image_url ? <img src={studyHall.image_url} alt={studyHall.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
                         <span className="text-muted-foreground">{studyHall.name}</span>
-                      </div>
-                    )}
+                      </div>}
                   </div>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
@@ -471,18 +406,8 @@ const MerchantDashboard = () => {
                         <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
                           {studyHall.status}
                         </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleStudyHallStatus(studyHall.id, studyHall.status)}
-                          className="h-8 w-8 p-0"
-                          title={studyHall.status === "active" ? "Deactivate" : "Activate"}
-                        >
-                          {studyHall.status === "active" ? (
-                            <PowerOff className="h-4 w-4 text-destructive" />
-                          ) : (
-                            <Power className="h-4 w-4 text-green-600" />
-                          )}
+                        <Button variant="ghost" size="sm" onClick={() => toggleStudyHallStatus(studyHall.id, studyHall.status)} className="h-8 w-8 p-0" title={studyHall.status === "active" ? "Deactivate" : "Activate"}>
+                          {studyHall.status === "active" ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-green-600" />}
                         </Button>
                       </div>
                     </div>
@@ -507,40 +432,24 @@ const MerchantDashboard = () => {
                     </div>
                     
                     {/* Amenities */}
-                    {studyHall.amenities && studyHall.amenities.length > 0 && (
-                      <div className="mb-4">
+                    {studyHall.amenities && studyHall.amenities.length > 0 && <div className="mb-4">
                         <p className="text-sm text-muted-foreground mb-2">Amenities</p>
                         <div className="flex flex-wrap gap-1">
-                          {studyHall.amenities.slice(0, 4).map((amenity, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
+                          {studyHall.amenities.slice(0, 4).map((amenity, index) => <Badge key={index} variant="outline" className="text-xs">
                               {amenity}
-                            </Badge>
-                          ))}
-                          {studyHall.amenities.length > 4 && (
-                            <Badge variant="outline" className="text-xs">
+                            </Badge>)}
+                          {studyHall.amenities.length > 4 && <Badge variant="outline" className="text-xs">
                               +{studyHall.amenities.length - 4} more
-                            </Badge>
-                          )}
+                            </Badge>}
                         </div>
-                      </div>
-                    )}
+                      </div>}
                     
                     <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1"
-                        disabled
-                      >
+                      <Button variant="outline" size="sm" className="flex-1" disabled>
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1"
-                        disabled
-                      >
+                      <Button variant="outline" size="sm" className="flex-1" disabled>
                         <Eye className="h-4 w-4 mr-1" />
                         View Layout
                       </Button>
@@ -549,8 +458,7 @@ const MerchantDashboard = () => {
                       </Button>
                     </div>
                   </CardContent>
-                </Card>
-              ))}
+                </Card>)}
             </div>
         </TabsContent>
 
@@ -573,18 +481,14 @@ const MerchantDashboard = () => {
           <TabsContent value="bookings" className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold mb-4">Recent Bookings</h3>
-              {bookingsLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse">
+              {bookingsLoading ? <div className="space-y-4">
+                  {[1, 2, 3].map(i => <div key={i} className="animate-pulse">
                       <div className="h-24 bg-muted rounded-lg"></div>
-                    </div>
-                  ))}
-                </div>
-                ) : cabinBookings.length > 0 ? (
-                <div className="space-y-4">
-                  {cabinBookings.slice(0, 5).map((booking, index) => (
-                    <Card key={booking.id} className="animate-fade-in hover:shadow-lg transition-all duration-300" style={{ animationDelay: `${index * 100}ms` }}>
+                    </div>)}
+                </div> : cabinBookings.length > 0 ? <div className="space-y-4">
+                  {cabinBookings.slice(0, 5).map((booking, index) => <Card key={booking.id} className="animate-fade-in hover:shadow-lg transition-all duration-300" style={{
+                  animationDelay: `${index * 100}ms`
+                }}>
                       <CardContent className="p-6">
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                           {/* User Details */}
@@ -643,43 +547,20 @@ const MerchantDashboard = () => {
                               <span className="text-sm font-medium">Actions</span>
                             </div>
                             <div className="flex flex-col space-y-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleViewBookingDetails(booking)}
-                                className="w-full"
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleViewBookingDetails(booking)} className="w-full">
                                 <Eye className="h-3 w-3 mr-1" />
                                 View Details
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditBooking(booking)}
-                                className="w-full"
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleEditBooking(booking)} className="w-full">
                                 <Edit className="h-3 w-3 mr-1" />
                                 Edit
                               </Button>
-                              {booking.status === 'pending' && (
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={() => handleConfirmBooking(booking.id)}
-                                  disabled={actionLoading || (booking.booking_type === 'cabin' && booking.payment_status !== 'paid')}
-                                  className="w-full"
-                                >
-                                  {booking.booking_type === 'cabin'
-                                    ? (actionLoading ? "Activating..." : "Activate")
-                                    : (actionLoading ? "Confirming..." : "Confirm")}
-                                </Button>
-                              )}
-                              {booking.booking_type === 'cabin' && booking.payment_status === 'paid' && !booking.is_vacated && (booking.status === 'pending' || booking.status === 'active') && (
-                                <CabinVacateButton 
-                                  bookingId={booking.id}
-                                  onVacated={async () => { await fetchMerchantBookings(); }}
-                                />
-                              )}
+                              {booking.status === 'pending' && <Button variant="default" size="sm" onClick={() => handleConfirmBooking(booking.id)} disabled={actionLoading || booking.booking_type === 'cabin' && booking.payment_status !== 'paid'} className="w-full">
+                                  {booking.booking_type === 'cabin' ? actionLoading ? "Activating..." : "Activate" : actionLoading ? "Confirming..." : "Confirm"}
+                                </Button>}
+                              {booking.booking_type === 'cabin' && booking.payment_status === 'paid' && !booking.is_vacated && (booking.status === 'pending' || booking.status === 'active') && <CabinVacateButton bookingId={booking.id} onVacated={async () => {
+                            await fetchMerchantBookings();
+                          }} />}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               Created: {formatDate(booking.created_at)}
@@ -687,16 +568,12 @@ const MerchantDashboard = () => {
                           </div>
                         </div>
                       </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                    </Card>)}
+                </div> : <div className="text-center py-8 text-muted-foreground">
                   <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>No private hall bookings yet</p>
                   <p className="text-sm">Cabin bookings for your private halls will appear here</p>
-                </div>
-              )}
+                </div>}
             </div>
           </TabsContent>
 
@@ -733,62 +610,40 @@ const MerchantDashboard = () => {
                 
                 <div>
                   <label className="text-sm font-medium mb-2 block">From Date</label>
-                  <Input
-                    type="date"
-                    value={filterDateFrom}
-                    onChange={(e) => setFilterDateFrom(e.target.value)}
-                  />
+                  <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
                 </div>
                 
                 <div>
                   <label className="text-sm font-medium mb-2 block">To Date</label>
-                  <Input
-                    type="date"
-                    value={filterDateTo}
-                    onChange={(e) => setFilterDateTo(e.target.value)}
-                  />
+                  <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
                 </div>
                 
                 <div>
                   <label className="text-sm font-medium mb-2 block">Search Bookings</label>
-                  <Input
-                    placeholder="Search by booking #, name, or email"
-                    value={searchUser}
-                    onChange={(e) => setSearchUser(e.target.value)}
-                  />
+                  <Input placeholder="Search by booking #, name, or email" value={searchUser} onChange={e => setSearchUser(e.target.value)} />
                 </div>
               </div>
               
               <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                 <span>Showing {filteredBookings.length} of {cabinBookings.length} bookings</span>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    setFilterStatus("all");
-                    setFilterDateFrom("");
-                    setFilterDateTo("");
-                    setSearchUser("");
-                  }}
-                >
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setFilterStatus("all");
+                  setFilterDateFrom("");
+                  setFilterDateTo("");
+                  setSearchUser("");
+                }}>
                   Clear Filters
                 </Button>
               </div>
             </Card>
 
             {/* Booking List */}
-            {bookingsLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
+            {bookingsLoading ? <div className="space-y-4">
+                {[1, 2, 3].map(i => <div key={i} className="animate-pulse">
                     <div className="h-32 bg-muted rounded-lg"></div>
-                  </div>
-                ))}
-              </div>
-            ) : filteredBookings.length > 0 ? (
-              <div className="space-y-4">
-                {filteredBookings.map((booking, index) => (
-                  <Card key={booking.id} className="hover:shadow-lg transition-all duration-300">
+                  </div>)}
+              </div> : filteredBookings.length > 0 ? <div className="space-y-4">
+                {filteredBookings.map((booking, index) => <Card key={booking.id} className="hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* User Details Section */}
@@ -869,57 +724,30 @@ const MerchantDashboard = () => {
                           </div>
                           
                           <div className="flex flex-col sm:flex-row gap-2 mt-4">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleViewBookingDetails(booking)}
-                              className="flex-1"
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleViewBookingDetails(booking)} className="flex-1">
                               <Eye className="h-3 w-3 mr-1" />
                               Details
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditBooking(booking)}
-                              className="flex-1"
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleEditBooking(booking)} className="flex-1">
                               <Edit className="h-3 w-3 mr-1" />
                               Edit
                             </Button>
-                            {booking.status === 'pending' && (
-                              <Button 
-                                variant="default" 
-                                size="sm"
-                                onClick={() => handleConfirmBooking(booking.id)}
-                                disabled={actionLoading || (booking.booking_type === 'cabin' && booking.payment_status !== 'paid')}
-                                className="flex-1"
-                              >
-                                {booking.booking_type === 'cabin'
-                                  ? (actionLoading ? "Activating..." : "Activate")
-                                  : (actionLoading ? "Confirming..." : "Confirm")}
-                              </Button>
-                            )}
-                            {booking.booking_type === 'cabin' && booking.payment_status === 'paid' && !booking.is_vacated && (booking.status === 'pending' || booking.status === 'active') && (
-                              <CabinVacateButton 
-                                bookingId={booking.id}
-                                onVacated={async () => { await fetchMerchantBookings(); }}
-                              />
-                            )}
+                            {booking.status === 'pending' && <Button variant="default" size="sm" onClick={() => handleConfirmBooking(booking.id)} disabled={actionLoading || booking.booking_type === 'cabin' && booking.payment_status !== 'paid'} className="flex-1">
+                                {booking.booking_type === 'cabin' ? actionLoading ? "Activating..." : "Activate" : actionLoading ? "Confirming..." : "Confirm"}
+                              </Button>}
+                            {booking.booking_type === 'cabin' && booking.payment_status === 'paid' && !booking.is_vacated && (booking.status === 'pending' || booking.status === 'active') && <CabinVacateButton bookingId={booking.id} onVacated={async () => {
+                          await fetchMerchantBookings();
+                        }} />}
                           </div>
                         </div>
                       </div>
                     </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
+                  </Card>)}
+              </div> : <div className="text-center py-12 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg">No bookings found</p>
                 <p className="text-sm">Try adjusting your filters to see more results</p>
-              </div>
-            )}
+              </div>}
           </TabsContent>
 
           {/* Users Tab */}
@@ -936,11 +764,7 @@ const MerchantDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Search Users</label>
-                  <Input
-                    placeholder="Search by name or email"
-                    value={searchUser}
-                    onChange={(e) => setSearchUser(e.target.value)}
-                  />
+                  <Input placeholder="Search by name or email" value={searchUser} onChange={e => setSearchUser(e.target.value)} />
                 </div>
                 
                 <div>
@@ -961,14 +785,10 @@ const MerchantDashboard = () => {
                 </div>
                 
                 <div className="flex items-end">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => {
-                      setFilterStatus("all");
-                      setSearchUser("");
-                    }}
-                    className="w-full"
-                  >
+                  <Button variant="ghost" onClick={() => {
+                    setFilterStatus("all");
+                    setSearchUser("");
+                  }} className="w-full">
                     Clear Filters
                   </Button>
                 </div>
@@ -976,31 +796,26 @@ const MerchantDashboard = () => {
             </Card>
 
             {/* Users List */}
-            {bookingsLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
+            {bookingsLoading ? <div className="space-y-4">
+                {[1, 2, 3].map(i => <div key={i} className="animate-pulse">
                     <div className="h-24 bg-muted rounded-lg"></div>
-                  </div>
-                ))}
-              </div>
-            ) : filteredBookings.length > 0 ? (
-              <div className="space-y-4">
+                  </div>)}
+              </div> : filteredBookings.length > 0 ? <div className="space-y-4">
                 {/* Group bookings by user */}
-                {Object.entries(
-                  filteredBookings.reduce((acc, booking) => {
-                    const userId = booking.user_id;
-                    if (!acc[userId]) {
-                      acc[userId] = {
-                        user: booking.user,
-                        bookings: []
-                      };
-                    }
-                    acc[userId].bookings.push(booking);
-                    return acc;
-                  }, {} as Record<string, { user: any; bookings: any[] }>)
-                ).map(([userId, userData]) => (
-                  <Card key={userId} className="hover:shadow-lg transition-all duration-300">
+                {Object.entries(filteredBookings.reduce((acc, booking) => {
+                const userId = booking.user_id;
+                if (!acc[userId]) {
+                  acc[userId] = {
+                    user: booking.user,
+                    bookings: []
+                  };
+                }
+                acc[userId].bookings.push(booking);
+                return acc;
+              }, {} as Record<string, {
+                user: any;
+                bookings: any[];
+              }>)).map(([userId, userData]) => <Card key={userId} className="hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                         {/* User Info */}
@@ -1031,8 +846,7 @@ const MerchantDashboard = () => {
                             <Calendar className="h-5 w-5 text-muted-foreground" />
                             <span className="font-semibold">Latest Booking</span>
                           </div>
-                          {userData.bookings.length > 0 && (
-                            <div className="space-y-2 text-sm">
+                          {userData.bookings.length > 0 && <div className="space-y-2 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Private Hall:</span>
                                 <p className="font-medium">{userData.bookings[0].location_name}</p>
@@ -1048,8 +862,7 @@ const MerchantDashboard = () => {
                               <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
                                 {(userData.bookings[0].status || 'pending').toUpperCase()}
                               </Badge>
-                            </div>
-                          )}
+                            </div>}
                         </div>
 
                         {/* Statistics */}
@@ -1081,34 +894,24 @@ const MerchantDashboard = () => {
                             <span className="font-semibold">Actions</span>
                           </div>
                           <div className="space-y-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="w-full"
-                              onClick={() => {
-                                // Set filter to show only this user's bookings in history tab
-                                setSearchUser(userData.user?.email || '');
-                                setActiveTab("overview");
-                                // Switch to history tab
-                                setTimeout(() => {
-                                  const historyTab = document.querySelector('[value="history"]') as HTMLElement;
-                                  historyTab?.click();
-                                }, 100);
-                              }}
-                            >
+                            <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                          // Set filter to show only this user's bookings in history tab
+                          setSearchUser(userData.user?.email || '');
+                          setActiveTab("overview");
+                          // Switch to history tab
+                          setTimeout(() => {
+                            const historyTab = document.querySelector('[value="history"]') as HTMLElement;
+                            historyTab?.click();
+                          }, 100);
+                        }}>
                               <Eye className="h-3 w-3 mr-1" />
                               View All Bookings
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="w-full"
-                              onClick={() => {
-                                if (userData.bookings.length > 0) {
-                                  handleViewBookingDetails(userData.bookings[0]);
-                                }
-                              }}
-                            >
+                            <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                          if (userData.bookings.length > 0) {
+                            handleViewBookingDetails(userData.bookings[0]);
+                          }
+                        }}>
                               <User className="h-3 w-3 mr-1" />
                               Latest Booking Details
                             </Button>
@@ -1119,16 +922,12 @@ const MerchantDashboard = () => {
                         </div>
                       </div>
                     </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
+                  </Card>)}
+              </div> : <div className="text-center py-12 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg">No users found</p>
                 <p className="text-sm">Users who book your private halls will appear here</p>
-              </div>
-            )}
+              </div>}
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -1159,32 +958,22 @@ const MerchantDashboard = () => {
               </Card>
             </div>
             </TabsContent>
-          </Tabs>
-        )}
+          </Tabs>}
 
         {/* Direct tab content for sidebar navigation */}
-        {activeTab === "news" && (
-          <NewsTab userRole="merchant" />
-        )}
+        {activeTab === "news" && <NewsTab userRole="merchant" />}
 
-        {activeTab === "community" && (
-          <CommunityTab userRole="merchant" />
-        )}
+        {activeTab === "community" && <CommunityTab userRole="merchant" />}
 
-        {activeTab === "chat" && (
-          <ChatTab userRole="merchant" />
-        )}
+        {activeTab === "chat" && <ChatTab userRole="merchant" />}
 
         {/* Profile Tab */}
-        {activeTab === "profile" && (
-          <div className="space-y-6">
+        {activeTab === "profile" && <div className="space-y-6">
             <h3 className="text-2xl font-semibold">Profile Settings</h3>
             <UserProfileSettings />
-          </div>
-        )}
+          </div>}
 
-        {activeTab === "users" && (
-          <div className="space-y-6">
+        {activeTab === "users" && <div className="space-y-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold">Users</h3>
               <div className="text-sm text-muted-foreground">
@@ -1197,11 +986,7 @@ const MerchantDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Search Users</label>
-                  <Input
-                    placeholder="Search by name or email"
-                    value={searchUser}
-                    onChange={(e) => setSearchUser(e.target.value)}
-                  />
+                  <Input placeholder="Search by name or email" value={searchUser} onChange={e => setSearchUser(e.target.value)} />
                 </div>
                 
                 <div>
@@ -1222,14 +1007,10 @@ const MerchantDashboard = () => {
                 </div>
                 
                 <div className="flex items-end">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => {
-                      setFilterStatus("all");
-                      setSearchUser("");
-                    }}
-                    className="w-full"
-                  >
+                  <Button variant="ghost" onClick={() => {
+                  setFilterStatus("all");
+                  setSearchUser("");
+                }} className="w-full">
                     Clear Filters
                   </Button>
                 </div>
@@ -1237,31 +1018,26 @@ const MerchantDashboard = () => {
             </Card>
 
             {/* Users List */}
-            {bookingsLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
+            {bookingsLoading ? <div className="space-y-4">
+                {[1, 2, 3].map(i => <div key={i} className="animate-pulse">
                     <div className="h-24 bg-muted rounded-lg"></div>
-                  </div>
-                ))}
-              </div>
-            ) : filteredBookings.length > 0 ? (
-              <div className="space-y-4">
+                  </div>)}
+              </div> : filteredBookings.length > 0 ? <div className="space-y-4">
                 {/* Group bookings by user */}
-                {Object.entries(
-                  filteredBookings.reduce((acc, booking) => {
-                    const userId = booking.user_id;
-                    if (!acc[userId]) {
-                      acc[userId] = {
-                        user: booking.user,
-                        bookings: []
-                      };
-                    }
-                    acc[userId].bookings.push(booking);
-                    return acc;
-                  }, {} as Record<string, { user: any; bookings: any[] }>)
-                ).map(([userId, userData]) => (
-                  <Card key={userId} className="hover:shadow-lg transition-all duration-300">
+                {Object.entries(filteredBookings.reduce((acc, booking) => {
+              const userId = booking.user_id;
+              if (!acc[userId]) {
+                acc[userId] = {
+                  user: booking.user,
+                  bookings: []
+                };
+              }
+              acc[userId].bookings.push(booking);
+              return acc;
+            }, {} as Record<string, {
+              user: any;
+              bookings: any[];
+            }>)).map(([userId, userData]) => <Card key={userId} className="hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                         {/* User Info */}
@@ -1292,8 +1068,7 @@ const MerchantDashboard = () => {
                             <Calendar className="h-5 w-5 text-muted-foreground" />
                             <span className="font-semibold">Latest Booking</span>
                           </div>
-                          {userData.bookings.length > 0 && (
-                            <div className="space-y-2 text-sm">
+                          {userData.bookings.length > 0 && <div className="space-y-2 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Private Hall:</span>
                                 <p className="font-medium">{userData.bookings[0].location_name}</p>
@@ -1309,8 +1084,7 @@ const MerchantDashboard = () => {
                               <Badge variant={getStatusColor(userData.bookings[0].status)} className="text-xs">
                                 {(userData.bookings[0].status || 'pending').toUpperCase()}
                               </Badge>
-                            </div>
-                          )}
+                            </div>}
                         </div>
 
                         {/* Statistics */}
@@ -1342,34 +1116,24 @@ const MerchantDashboard = () => {
                             <span className="font-semibold">Actions</span>
                           </div>
                           <div className="space-y-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="w-full"
-                              onClick={() => {
-                                // Set filter to show only this user's bookings in history tab
-                                setSearchUser(userData.user?.email || '');
-                                setActiveTab("overview");
-                                // Switch to history tab
-                                setTimeout(() => {
-                                  const historyTab = document.querySelector('[value="history"]') as HTMLElement;
-                                  historyTab?.click();
-                                }, 100);
-                              }}
-                            >
+                            <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                        // Set filter to show only this user's bookings in history tab
+                        setSearchUser(userData.user?.email || '');
+                        setActiveTab("overview");
+                        // Switch to history tab
+                        setTimeout(() => {
+                          const historyTab = document.querySelector('[value="history"]') as HTMLElement;
+                          historyTab?.click();
+                        }, 100);
+                      }}>
                               <Eye className="h-3 w-3 mr-1" />
                               View All Bookings
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="w-full"
-                              onClick={() => {
-                                if (userData.bookings.length > 0) {
-                                  handleViewBookingDetails(userData.bookings[0]);
-                                }
-                              }}
-                            >
+                            <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                        if (userData.bookings.length > 0) {
+                          handleViewBookingDetails(userData.bookings[0]);
+                        }
+                      }}>
                               <User className="h-3 w-3 mr-1" />
                               Latest Booking Details
                             </Button>
@@ -1380,22 +1144,16 @@ const MerchantDashboard = () => {
                         </div>
                       </div>
                     </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
+                  </Card>)}
+              </div> : <div className="text-center py-12 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg">No users found</p>
                 <p className="text-sm">Users who book your private halls will appear here</p>
-              </div>
-            )}
-          </div>
-        )}
+              </div>}
+          </div>}
 
         {/* Direct tab content for sidebar navigation */}
-        {activeTab === "studyhalls" && (
-          <div className="space-y-6">
+        {activeTab === "studyhalls" && <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold">Your Study Halls</h3>
               <Button variant="outline" onClick={handleAddStudyHall}>
@@ -1405,20 +1163,11 @@ const MerchantDashboard = () => {
             </div>
             
             <div className="grid lg:grid-cols-2 gap-6">
-              {studyHalls.map((studyHall) => (
-                <Card key={studyHall.id} className="hover:shadow-md transition-shadow">
+              {studyHalls.map(studyHall => <Card key={studyHall.id} className="hover:shadow-md transition-shadow">
                   <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                    {studyHall.image_url ? (
-                      <img 
-                        src={studyHall.image_url} 
-                        alt={studyHall.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                    {studyHall.image_url ? <img src={studyHall.image_url} alt={studyHall.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
                         <span className="text-muted-foreground">{studyHall.name}</span>
-                      </div>
-                    )}
+                      </div>}
                   </div>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
@@ -1431,18 +1180,8 @@ const MerchantDashboard = () => {
                         <Badge variant={studyHall.status === "active" ? "default" : "secondary"}>
                           {studyHall.status}
                         </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleStudyHallStatus(studyHall.id, studyHall.status)}
-                          className="h-8 w-8 p-0"
-                          title={studyHall.status === "active" ? "Deactivate" : "Activate"}
-                        >
-                          {studyHall.status === "active" ? (
-                            <PowerOff className="h-4 w-4 text-destructive" />
-                          ) : (
-                            <Power className="h-4 w-4 text-green-600" />
-                          )}
+                        <Button variant="ghost" size="sm" onClick={() => toggleStudyHallStatus(studyHall.id, studyHall.status)} className="h-8 w-8 p-0" title={studyHall.status === "active" ? "Deactivate" : "Activate"}>
+                          {studyHall.status === "active" ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-green-600" />}
                         </Button>
                       </div>
                     </div>
@@ -1467,40 +1206,24 @@ const MerchantDashboard = () => {
                     </div>
                     
                     {/* Amenities */}
-                    {studyHall.amenities && studyHall.amenities.length > 0 && (
-                      <div className="mb-4">
+                    {studyHall.amenities && studyHall.amenities.length > 0 && <div className="mb-4">
                         <p className="text-sm text-muted-foreground mb-2">Amenities</p>
                         <div className="flex flex-wrap gap-1">
-                          {studyHall.amenities.slice(0, 4).map((amenity, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
+                          {studyHall.amenities.slice(0, 4).map((amenity, index) => <Badge key={index} variant="outline" className="text-xs">
                               {amenity}
-                            </Badge>
-                          ))}
-                          {studyHall.amenities.length > 4 && (
-                            <Badge variant="outline" className="text-xs">
+                            </Badge>)}
+                          {studyHall.amenities.length > 4 && <Badge variant="outline" className="text-xs">
                               +{studyHall.amenities.length - 4} more
-                            </Badge>
-                          )}
+                            </Badge>}
                         </div>
-                      </div>
-                    )}
+                      </div>}
                     
                     <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1"
-                        disabled
-                      >
+                      <Button variant="outline" size="sm" className="flex-1" disabled>
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1"
-                        disabled
-                      >
+                      <Button variant="outline" size="sm" className="flex-1" disabled>
                         <Eye className="h-4 w-4 mr-1" />
                         View Layout
                       </Button>
@@ -1509,28 +1232,19 @@ const MerchantDashboard = () => {
                       </Button>
                     </div>
                   </CardContent>
-                </Card>
-              ))}
+                </Card>)}
             </div>
-          </div>
-        )}
+          </div>}
 
-        {activeTab === "bookings" && (
-          <div className="space-y-6">
+        {activeTab === "bookings" && <div className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold mb-4">All Bookings</h3>
-              {bookingsLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse">
+              {bookingsLoading ? <div className="space-y-4">
+                  {[1, 2, 3].map(i => <div key={i} className="animate-pulse">
                       <div className="h-24 bg-muted rounded-lg"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : bookings.length > 0 ? (
-                <div className="space-y-4">
-                  {bookings.map((booking) => (
-                    <Card key={booking.id}>
+                    </div>)}
+                </div> : bookings.length > 0 ? <div className="space-y-4">
+                  {bookings.map(booking => <Card key={booking.id}>
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div className="space-y-2">
@@ -1554,77 +1268,44 @@ const MerchantDashboard = () => {
                           <div className="text-right">
                             <p className="text-lg font-semibold">₹{Number(booking.total_amount).toLocaleString()}</p>
                             <div className="flex space-x-2 mt-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleViewBookingDetails(booking)}
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleViewBookingDetails(booking)}>
                                 View Details
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditBooking(booking)}
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleEditBooking(booking)}>
                                 <Edit className="h-4 w-4 mr-1" />
                                 Edit
                               </Button>
-                              {booking.status === 'pending' && (
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={() => handleConfirmBooking(booking.id)}
-                                  disabled={actionLoading}
-                                >
+                              {booking.status === 'pending' && <Button variant="default" size="sm" onClick={() => handleConfirmBooking(booking.id)} disabled={actionLoading}>
                                   {actionLoading ? "Confirming..." : "Confirm"}
-                                </Button>
-                              )}
+                                </Button>}
                             </div>
                           </div>
                         </div>
                       </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                    </Card>)}
+                </div> : <div className="text-center py-8 text-muted-foreground">
                   <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>No bookings yet</p>
                   <p className="text-sm">Bookings for your study halls will appear here</p>
-                </div>
-              )}
+                </div>}
             </div>
-          </div>
-        )}
+          </div>}
 
-        {activeTab === "subscriptions" && (
-          <MerchantSubscriptionTab />
-        )}
+        {activeTab === "subscriptions" && <MerchantSubscriptionTab />}
 
-        {activeTab === "subscription-transactions" && (
-          <MerchantSubscriptionTransactionsTab />
-        )}
+        {activeTab === "subscription-transactions" && <MerchantSubscriptionTransactionsTab />}
 
-        {activeTab === "transactions" && (
-          <MerchantTransactionsTab />
-        )}
+        {activeTab === "transactions" && <MerchantTransactionsTab />}
 
-        {activeTab === "settlements" && (
-          <ErrorBoundary fallback={
-            <div className="p-8 text-center">
+        {activeTab === "settlements" && <ErrorBoundary fallback={<div className="p-8 text-center">
               <p className="text-muted-foreground">Unable to load settlements data. Please try refreshing the page.</p>
-            </div>
-          }>
+            </div>}>
             <MerchantSettlementsTab />
-          </ErrorBoundary>
-        )}
+          </ErrorBoundary>}
 
-        {activeTab === "incharges" && (
-          <InchargeManagementTab />
-        )}
+        {activeTab === "incharges" && <InchargeManagementTab />}
 
-        {activeTab === "analytics" && (
-          <div className="space-y-6">
+        {activeTab === "analytics" && <div className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
@@ -1650,109 +1331,91 @@ const MerchantDashboard = () => {
                 </CardContent>
               </Card>
             </div>
-          </div>
-        )}
+          </div>}
 
         <ErrorBoundary>
-          <EnhancedStudyHallCreationModal
-            open={studyHallModalOpen}
-            onOpenChange={setStudyHallModalOpen}
-            onSuccess={() => {
-              fetchStudyHalls();
-              refreshAnalytics();
-            }}
-          />
+          <EnhancedStudyHallCreationModal open={studyHallModalOpen} onOpenChange={setStudyHallModalOpen} onSuccess={() => {
+            fetchStudyHalls();
+            refreshAnalytics();
+          }} />
         </ErrorBoundary>
 
         {/* Booking Detail Modal */}
-        <UnifiedBookingDetailModal
-          open={bookingDetailOpen}
-          onOpenChange={setBookingDetailOpen}
-          booking={selectedBooking ? (
-            selectedBooking.booking_type === 'cabin'
-              ? {
-                  id: selectedBooking.id,
-                  booking_number: selectedBooking.booking_number,
-                  type: 'cabin',
-                  user_id: selectedBooking.user_id || null,
-                  location_id: '',
-                  unit_id: '',
-                  start_date: selectedBooking.start_date,
-                  end_date: selectedBooking.end_date,
-                  total_amount: selectedBooking.total_amount,
-                  status: selectedBooking.status,
-                  payment_status: selectedBooking.payment_status,
-                  created_at: selectedBooking.created_at,
-                  updated_at: selectedBooking.updated_at,
-                  user: selectedBooking.user ? { full_name: selectedBooking.user.full_name, email: selectedBooking.user.email, phone: selectedBooking.user.phone } : undefined,
-                  guest_name: selectedBooking.guest_name,
-                  guest_email: selectedBooking.guest_email,
-                  guest_phone: selectedBooking.guest_phone,
-                  is_vacated: selectedBooking.is_vacated,
-                  // Provide related data for display
-                  location: {
-                    name: selectedBooking.location_name,
-                    location: selectedBooking.location_address || ''
-                  },
-                  unit: {
-                    name: selectedBooking.unit_name,
-                    identifier: selectedBooking.unit_name
-                  },
-                  // Extra fields for deposit breakdown and QR
-                  booking_amount: selectedBooking.booking_amount,
-                  deposit_amount: selectedBooking.deposit_amount,
-                  deposit_refunded: selectedBooking.deposit_refunded,
-                  months_booked: selectedBooking.months_booked,
-                  monthly_amount: selectedBooking.monthly_amount
-                } as any
-              : {
-                  id: selectedBooking.id,
-                  booking_number: selectedBooking.booking_number,
-                  user_id: selectedBooking.user_id || null,
-                  study_hall_id: '',
-                  seat_id: '',
-                  start_date: selectedBooking.start_date,
-                  end_date: selectedBooking.end_date,
-                  total_amount: selectedBooking.total_amount,
-                  status: selectedBooking.status,
-                  payment_status: selectedBooking.payment_status,
-                  created_at: selectedBooking.created_at,
-                  updated_at: selectedBooking.updated_at,
-                  guest_name: selectedBooking.guest_name,
-                  guest_email: selectedBooking.guest_email,
-                  guest_phone: selectedBooking.guest_phone,
-                  user: selectedBooking.user ? { full_name: selectedBooking.user.full_name, email: selectedBooking.user.email, phone: selectedBooking.user.phone } : undefined,
-                  study_hall: {
-                    name: selectedBooking.location_name,
-                    location: selectedBooking.location_address || '',
-                    image_url: selectedBooking.location_image_url || ''
-                  },
-                  seat: {
-                    seat_id: selectedBooking.seat_id || selectedBooking.unit_name,
-                    row_name: selectedBooking.seat_row_name || '',
-                    seat_number: selectedBooking.seat_number || 0
-                  }
-                } as any
-          ) : null}
-          userRole={userRole === "admin" ? "admin" : "merchant"}
-          onConfirm={handleConfirmBooking}
-          onCancel={handleCancelBooking}
-          onEdit={handleEditBooking}
-          loading={actionLoading}
-        />
+        <UnifiedBookingDetailModal open={bookingDetailOpen} onOpenChange={setBookingDetailOpen} booking={selectedBooking ? selectedBooking.booking_type === 'cabin' ? {
+          id: selectedBooking.id,
+          booking_number: selectedBooking.booking_number,
+          type: 'cabin',
+          user_id: selectedBooking.user_id || null,
+          location_id: '',
+          unit_id: '',
+          start_date: selectedBooking.start_date,
+          end_date: selectedBooking.end_date,
+          total_amount: selectedBooking.total_amount,
+          status: selectedBooking.status,
+          payment_status: selectedBooking.payment_status,
+          created_at: selectedBooking.created_at,
+          updated_at: selectedBooking.updated_at,
+          user: selectedBooking.user ? {
+            full_name: selectedBooking.user.full_name,
+            email: selectedBooking.user.email,
+            phone: selectedBooking.user.phone
+          } : undefined,
+          guest_name: selectedBooking.guest_name,
+          guest_email: selectedBooking.guest_email,
+          guest_phone: selectedBooking.guest_phone,
+          is_vacated: selectedBooking.is_vacated,
+          // Provide related data for display
+          location: {
+            name: selectedBooking.location_name,
+            location: selectedBooking.location_address || ''
+          },
+          unit: {
+            name: selectedBooking.unit_name,
+            identifier: selectedBooking.unit_name
+          },
+          // Extra fields for deposit breakdown and QR
+          booking_amount: selectedBooking.booking_amount,
+          deposit_amount: selectedBooking.deposit_amount,
+          deposit_refunded: selectedBooking.deposit_refunded,
+          months_booked: selectedBooking.months_booked,
+          monthly_amount: selectedBooking.monthly_amount
+        } as any : {
+          id: selectedBooking.id,
+          booking_number: selectedBooking.booking_number,
+          user_id: selectedBooking.user_id || null,
+          study_hall_id: '',
+          seat_id: '',
+          start_date: selectedBooking.start_date,
+          end_date: selectedBooking.end_date,
+          total_amount: selectedBooking.total_amount,
+          status: selectedBooking.status,
+          payment_status: selectedBooking.payment_status,
+          created_at: selectedBooking.created_at,
+          updated_at: selectedBooking.updated_at,
+          guest_name: selectedBooking.guest_name,
+          guest_email: selectedBooking.guest_email,
+          guest_phone: selectedBooking.guest_phone,
+          user: selectedBooking.user ? {
+            full_name: selectedBooking.user.full_name,
+            email: selectedBooking.user.email,
+            phone: selectedBooking.user.phone
+          } : undefined,
+          study_hall: {
+            name: selectedBooking.location_name,
+            location: selectedBooking.location_address || '',
+            image_url: selectedBooking.location_image_url || ''
+          },
+          seat: {
+            seat_id: selectedBooking.seat_id || selectedBooking.unit_name,
+            row_name: selectedBooking.seat_row_name || '',
+            seat_number: selectedBooking.seat_number || 0
+          }
+        } as any : null} userRole={userRole === "admin" ? "admin" : "merchant"} onConfirm={handleConfirmBooking} onCancel={handleCancelBooking} onEdit={handleEditBooking} loading={actionLoading} />
 
         {/* Booking Edit Modal */}
-        <BookingEditModal
-          open={bookingEditOpen}
-          onOpenChange={setBookingEditOpen}
-          booking={selectedBooking}
-          onSave={handleSaveBooking}
-          loading={actionLoading}
-        />
+        <BookingEditModal open={bookingEditOpen} onOpenChange={setBookingEditOpen} booking={selectedBooking} onSave={handleSaveBooking} loading={actionLoading} />
       </div>
     </DashboardSidebar>
-    </>
-  );
+    </>;
 };
-
 export default MerchantDashboard;
