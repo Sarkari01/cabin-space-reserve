@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, Users, Clock, DollarSign, User, Building, Edit, Phone } from "lucide-react";
 import { Booking } from "@/hooks/useBookings";
 import { BookingQRCode } from "./BookingQRCode";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BookingDetailModalProps {
   open: boolean;
@@ -28,6 +30,22 @@ export function BookingDetailModal({
   loading = false 
 }: BookingDetailModalProps) {
   if (!booking) return null;
+
+  const [platformFee, setPlatformFee] = useState<number>(0);
+
+  useEffect(() => {
+    const loadFee = async () => {
+      if (!booking?.id) return;
+      const { data } = await supabase
+        .from('transactions')
+        .select('platform_fee_amount')
+        .eq('booking_id', booking.id)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      setPlatformFee(Number((data as any)?.platform_fee_amount || 0));
+    };
+    loadFee();
+  }, [booking?.id]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -186,8 +204,18 @@ export function BookingDetailModal({
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Amount:</span>
-                    <span className="font-medium text-lg">₹{Number(booking.total_amount).toLocaleString()}</span>
+                    <span className="text-muted-foreground">Base Amount:</span>
+                    <span className="font-medium">₹{Number(booking.total_amount).toLocaleString()}</span>
+                  </div>
+                  {platformFee > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Platform Fee:</span>
+                      <span className="font-medium">₹{platformFee.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Payable:</span>
+                    <span className="font-medium text-lg">₹{(Number(booking.total_amount) + platformFee).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Booking Status:</span>

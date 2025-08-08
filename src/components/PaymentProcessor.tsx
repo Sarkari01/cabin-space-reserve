@@ -522,12 +522,15 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       }
 
       // Create transaction record with booking intent data
+      const platformFeeAmount = computePlatformFee(bookingIntent.total_amount, settings || null);
+      const payAmount = bookingIntent.total_amount + platformFeeAmount;
       const transaction = await createTransaction({
         booking_id: null, // No booking exists yet
-        amount: bookingIntent.total_amount,
+        amount: payAmount,
+        platform_fee_amount: platformFeeAmount,
         payment_method: "razorpay",
         payment_data: {
-          bookingIntent: bookingIntent
+          bookingIntent: { ...bookingIntent, platform_fee_amount: platformFeeAmount, pay_amount: payAmount }
         }
       });
 
@@ -542,7 +545,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       const { data: orderResponse, error } = await supabase.functions.invoke('razorpay-payment', {
         body: {
           action: 'create_order',
-          amount: bookingIntent.total_amount,
+          amount: payAmount,
           booking_id: transaction.id, // Use transaction ID as temporary identifier
         },
       });
@@ -727,9 +730,12 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       console.log('Offline: Creating transaction and booking');
       
       // Create transaction record first
+      const platformFeeAmount = computePlatformFee(bookingIntent.total_amount, settings || null);
+      const payAmount = bookingIntent.total_amount + platformFeeAmount;
       const transaction = await createTransaction({
         booking_id: null, // Will be updated after booking creation
-        amount: bookingIntent.total_amount,
+        amount: payAmount,
+        platform_fee_amount: platformFeeAmount,
         payment_method: "offline",
       });
 
@@ -801,7 +807,11 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             )}
             
             <div className="text-sm text-muted-foreground space-y-1 bg-muted/30 p-3 rounded-lg">
-              <p>Amount: ₹{bookingIntent.total_amount}</p>
+              <p>Base Amount: ₹{bookingIntent.total_amount}</p>
+              {computePlatformFee(bookingIntent.total_amount, settings || null) > 0 && (
+                <p>Platform Fee: ₹{computePlatformFee(bookingIntent.total_amount, settings || null)}</p>
+              )}
+              <p className="font-medium">Total Payable: ₹{bookingIntent.total_amount + computePlatformFee(bookingIntent.total_amount, settings || null)}</p>
               <p className="break-all">Order ID: {qrData.orderId}</p>
               <p className="text-orange-600 font-medium mt-2">
                 Do not close this window until payment is complete
@@ -831,8 +841,18 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
             <h4 className="font-medium pointer-events-auto">Booking Summary</h4>
             <div className="text-sm space-y-1 bg-muted/30 p-3 rounded-lg pointer-events-auto">
               <div className="flex justify-between pointer-events-auto">
-                <span className="pointer-events-auto">Amount:</span>
+                <span className="pointer-events-auto">Base Amount:</span>
                 <span className="font-medium pointer-events-auto">₹{bookingIntent.total_amount}</span>
+              </div>
+              {computePlatformFee(bookingIntent.total_amount, settings || null) > 0 && (
+                <div className="flex justify-between pointer-events-auto">
+                  <span className="pointer-events-auto">Platform Fee:</span>
+                  <span className="pointer-events-auto">₹{computePlatformFee(bookingIntent.total_amount, settings || null)}</span>
+                </div>
+              )}
+              <div className="flex justify-between pointer-events-auto">
+                <span className="pointer-events-auto font-medium">Total Payable:</span>
+                <span className="font-bold pointer-events-auto">₹{bookingIntent.total_amount + computePlatformFee(bookingIntent.total_amount, settings || null)}</span>
               </div>
               <div className="flex justify-between pointer-events-auto">
                 <span className="pointer-events-auto">Period:</span>

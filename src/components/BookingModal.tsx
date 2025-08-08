@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { CouponInput } from "./CouponInput";
 import { RewardsInput } from "./RewardsInput";
 import { calculateBookingAmountWithFees } from "@/utils/feeCalculations";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { computePlatformFee } from "@/utils/platformFee";
 
 interface StudyHall {
   id: string;
@@ -78,6 +80,7 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
 
   const { toast } = useToast();
   const { checkSeatAvailability, getSeatAvailabilityMap } = useBookingAvailability();
+  const { settings } = useBusinessSettings();
   
   // Filter seats based on date-specific availability
   const getAvailableSeats = () => {
@@ -502,6 +505,18 @@ export function BookingModal({ open, onOpenChange, studyHall, seats, onSuccess }
                     <div className="border-t pt-2 flex justify-between items-center">
                       <span className="font-medium">Final Amount:</span>
                       <span className="text-lg font-bold">₹{getFinalAmount().toLocaleString()}</span>
+                    </div>
+
+                    {computePlatformFee(getFinalAmount(), settings || null) > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span>Platform Fee:</span>
+                        <span>₹{computePlatformFee(getFinalAmount(), settings || null).toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    <div className="border-t pt-2 flex justify-between items-center">
+                      <span className="font-medium">Total Payable:</span>
+                      <span className="text-lg font-bold">₹{(getFinalAmount() + computePlatformFee(getFinalAmount(), settings || null)).toLocaleString()}</span>
                     </div>
                     
                     <div className="text-sm text-muted-foreground">
