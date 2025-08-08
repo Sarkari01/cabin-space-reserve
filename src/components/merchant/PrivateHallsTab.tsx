@@ -6,12 +6,12 @@ import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { PrivateHallCreationModal } from '@/components/PrivateHallCreationModal';
 import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
-import { Plus, MapPin, Calendar, DollarSign, Users, Eye, Edit, Trash, Activity } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, MapPin, DollarSign, Users, Eye, Edit, Trash } from 'lucide-react';
 import type { PrivateHall } from '@/types/PrivateHall';
 import { CabinAvailabilityBadge } from '@/components/CabinAvailabilityBadge';
 import { AutoExpireButton } from '@/components/AutoExpireButton';
 import { useCombinedBookings } from '@/hooks/useCombinedBookings';
+import { computeHallCabinStatus } from '@/utils/cabinStatus';
 
 export const PrivateHallsTab: React.FC = () => {
   const { privateHalls, loading, updatePrivateHall, deletePrivateHall } = usePrivateHalls();
@@ -45,17 +45,8 @@ export const PrivateHallsTab: React.FC = () => {
     }
   };
 
-  const getCabinOccupancyStatus = (privateHallId: string) => {
-    const hallBookings = bookings.filter(b => 
-      b.type === 'cabin' &&
-      b.location_id === privateHallId && 
-      b.status === 'active' && 
-      b.payment_status === 'paid' &&
-      !b.is_vacated
-    );
-    
-    if (hallBookings.length === 0) return 'available';
-    return 'booked';
+  const getCabinStatusData = (privateHallId: string) => {
+    return computeHallCabinStatus(bookings as any, privateHallId);
   };
 
   if (loading) {
@@ -123,113 +114,118 @@ export const PrivateHallsTab: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {privateHalls.map((hall) => (
-            <Card key={hall.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{hall.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground flex items-center mt-1">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {hall.location}
-                    </p>
-                  </div>
-                  <Badge className={getStatusColor(hall.status)}>
-                    {hall.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Monthly Price</span>
-                    <span className="font-semibold">₹{hall.monthly_price.toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Cabins</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{hall.cabin_count}</span>
-                      <CabinAvailabilityBadge 
-                        status={getCabinOccupancyStatus(hall.id)}
-                        size="sm"
-                      />
+          {privateHalls.map((hall) => {
+            const statusData = getCabinStatusData(hall.id);
+            return (
+              <Card key={hall.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{hall.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground flex items-center mt-1">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {hall.location}
+                      </p>
                     </div>
+                    <Badge className={getStatusColor(hall.status)}>
+                      {hall.status}
+                    </Badge>
                   </div>
-                  
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Total Revenue</span>
-                    <span className="font-semibold">₹{hall.total_revenue.toLocaleString()}</span>
-                  </div>
-                  
-                  {hall.amenities && hall.amenities.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs text-muted-foreground mb-1">Amenities</p>
-                      <div className="flex flex-wrap gap-1">
-                        {hall.amenities.slice(0, 3).map((amenity, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {amenity}
-                          </Badge>
-                        ))}
-                        {hall.amenities.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{hall.amenities.length - 3} more
-                          </Badge>
-                        )}
+                </CardHeader>
+                
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Monthly Price</span>
+                      <span className="font-semibold">₹{hall.monthly_price.toLocaleString()}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Cabins</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{hall.cabin_count}</span>
+                        <CabinAvailabilityBadge 
+                          status={statusData.status}
+                          bookedUntil={statusData.bookedUntil}
+                          daysRemaining={statusData.daysRemaining}
+                          size="sm"
+                        />
                       </div>
                     </div>
-                  )}
-                  
-                  <div className="flex justify-between items-center text-xs text-muted-foreground pt-2 border-t">
-                    <span>Created {new Date(hall.created_at).toLocaleDateString()}</span>
+                    
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Total Revenue</span>
+                      <span className="font-semibold">₹{hall.total_revenue.toLocaleString()}</span>
+                    </div>
+                    
+                    {hall.amenities && hall.amenities.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground mb-1">Amenities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {hall.amenities.slice(0, 3).map((amenity, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {amenity}
+                            </Badge>
+                          ))}
+                          {hall.amenities.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{hall.amenities.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center text-xs text-muted-foreground pt-2 border-t">
+                      <span>Created {new Date(hall.created_at).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedHall(hall);
+                          setShowDetailModal(true);
+                        }}
+                        className="flex-1"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedHall(hall);
+                          setShowEditModal(true);
+                        }}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleStatus(hall)}
+                      >
+                        {hall.status === 'active' ? 'Deactivate' : 'Activate'}
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDelete(hall)}
+                      >
+                        <Trash className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedHall(hall);
-                        setShowDetailModal(true);
-                      }}
-                      className="flex-1"
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedHall(hall);
-                        setShowEditModal(true);
-                      }}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleToggleStatus(hall)}
-                    >
-                      {hall.status === 'active' ? 'Deactivate' : 'Activate'}
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(hall)}
-                    >
-                      <Trash className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

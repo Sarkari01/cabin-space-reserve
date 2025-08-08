@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { EnhancedRowBasedCabinDesigner } from '@/components/EnhancedRowBasedCabinDesigner';
 import { useAuth } from '@/hooks/useAuth';
 import type { PrivateHall } from '@/types/PrivateHall';
+import { ActiveCabinBookingsList } from '@/components/ActiveCabinBookingsList';
 
 interface PrivateHallDetailModalProps {
   isOpen: boolean;
@@ -224,6 +225,9 @@ export const PrivateHallDetailModal: React.FC<PrivateHallDetailModalProps> = ({
               </div>
             )}
           </Card>
+
+          {/* NEW: Active Cabin Bookings with manual Vacate for Admin/Merchant */}
+          <ActiveCabinBookingsList privateHallId={privateHall.id} />
 
           {/* Actions */}
           <div className="flex justify-end gap-2">

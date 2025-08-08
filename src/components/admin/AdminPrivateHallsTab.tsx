@@ -13,6 +13,7 @@ import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
+import { computeHallCabinStatus } from '@/utils/cabinStatus';
 
 export const AdminPrivateHallsTab: React.FC = () => {
   const { privateHalls, loading, deletePrivateHall } = usePrivateHalls();
@@ -53,17 +54,9 @@ export const AdminPrivateHallsTab: React.FC = () => {
     }
   };
 
-  const getCabinOccupancyStatus = (privateHallId: string) => {
-    const hallBookings = bookings.filter(b => 
-      b.type === 'cabin' &&
-      b.location_id === privateHallId && 
-      b.status === 'active' && 
-      b.payment_status === 'paid' &&
-      !b.is_vacated
-    );
-    
-    if (hallBookings.length === 0) return 'available';
-    return 'booked';
+  // NEW: compute hall-level cabin status using bookings (paid, not vacated, end_date >= today)
+  const getCabinStatusData = (privateHallId: string) => {
+    return computeHallCabinStatus(bookings as any, privateHallId);
   };
 
   if (loading) {
@@ -177,74 +170,79 @@ export const AdminPrivateHallsTab: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredHalls.map((hall) => (
-            <Card key={hall.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">{hall.name}</CardTitle>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      {hall.location}
+          {filteredHalls.map((hall) => {
+            const statusData = getCabinStatusData(hall.id);
+            return (
+              <Card key={hall.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">{hall.name}</CardTitle>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {hall.location}
+                      </div>
+                    </div>
+                    <Badge variant={getStatusColor(hall.status)}>
+                      {hall.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>{hall.cabin_count} cabins</span>
+                      <CabinAvailabilityBadge 
+                        status={statusData.status}
+                        bookedUntil={statusData.bookedUntil}
+                        daysRemaining={statusData.daysRemaining}
+                        size="sm"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span>₹{hall.monthly_price}/month</span>
                     </div>
                   </div>
-                  <Badge variant={getStatusColor(hall.status)}>
-                    {hall.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{hall.cabin_count} cabins</span>
-                    <CabinAvailabilityBadge 
-                      status={getCabinOccupancyStatus(hall.id)}
+
+                  {hall.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {hall.description}
+                    </p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
                       size="sm"
-                    />
+                      onClick={() => handleView(hall)}
+                      className="flex-1"
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(hall)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(hall)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <span>₹{hall.monthly_price}/month</span>
-                  </div>
-                </div>
-
-                {hall.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {hall.description}
-                  </p>
-                )}
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleView(hall)}
-                    className="flex-1"
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(hall)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(hall)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
