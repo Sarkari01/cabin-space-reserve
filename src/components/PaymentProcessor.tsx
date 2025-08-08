@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { createBookingFromIntent } from "./BookingCreator";
 import { Loader2, QrCode } from "lucide-react";
+import { computePlatformFee } from "@/utils/platformFee";
 
 
 interface PaymentProcessorProps {
@@ -141,12 +142,18 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
 
       // Create transaction record with booking intent data
       console.log('💾 EKQR: Creating transaction record...');
+      const platformFeeAmount = (await import('@/utils/platformFee')).computePlatformFee(
+        bookingIntent.total_amount,
+        settings || null
+      );
+      const payAmount = bookingIntent.total_amount + platformFeeAmount;
       const transaction = await createTransaction({
         booking_id: null, // No booking exists yet
-        amount: bookingIntent.total_amount,
+        amount: payAmount,
+        platform_fee_amount: platformFeeAmount,
         payment_method: "ekqr",
         payment_data: {
-          bookingIntent: bookingIntent
+          bookingIntent: { ...bookingIntent, platform_fee_amount: platformFeeAmount, pay_amount: payAmount }
         }
       });
 
@@ -170,7 +177,7 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
       const { data: orderResponse, error } = await supabase.functions.invoke('ekqr-payment', {
         body: {
           action: 'createOrder',
-          amount: bookingIntent.total_amount,
+          amount: payAmount,
           bookingId: transaction.id, // Use transaction ID as temporary identifier
           ...customerData,
           studyHallId: bookingIntent.study_hall_id,
