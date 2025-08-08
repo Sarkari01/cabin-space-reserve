@@ -282,7 +282,7 @@ export function SettlementsTab() {
                            <TableHead>Transaction ID</TableHead>
                            <TableHead>Booking ID</TableHead>
                            <TableHead>Date</TableHead>
-                           <TableHead>Study Hall</TableHead>
+                           <TableHead>Location</TableHead>
                            <TableHead>Customer</TableHead>
                            <TableHead>Booking Period</TableHead>
                            <TableHead className="text-right">Amount</TableHead>

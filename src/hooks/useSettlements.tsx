@@ -16,7 +16,8 @@ export interface SettlementTransaction {
   id: string;
   settlement_id: string;
   transaction_id: string;
-  booking_id: string;
+  booking_id?: string;
+  cabin_booking_id?: string;
   transaction_amount: number;
   transaction_number?: number;
   booking_number?: number;
@@ -34,6 +35,7 @@ export interface EligibleTransaction {
   study_hall_name: string;
   transaction_number?: number;
   booking_number?: number;
+  booking_type?: 'study_hall' | 'cabin';
 }
 
 export interface UnsettledSummary {
@@ -133,7 +135,7 @@ export function useSettlements() {
       }
       
       // Validate and sanitize the data
-      const validatedData = (data || []).map(transaction => ({
+      const validatedData = (data || []).map((transaction: any) => ({
         transaction_id: transaction?.transaction_id || '',
         booking_id: transaction?.booking_id || '',
         amount: Number(transaction?.amount || 0),
@@ -143,7 +145,8 @@ export function useSettlements() {
         user_email: transaction?.user_email || '',
         study_hall_name: transaction?.study_hall_name || '',
         transaction_number: Number(transaction?.transaction_number || 0),
-        booking_number: Number(transaction?.booking_number || 0)
+        booking_number: Number(transaction?.booking_number || 0),
+        booking_type: (transaction?.booking_type as 'study_hall' | 'cabin') || 'study_hall'
       }));
       
       return validatedData;
@@ -195,13 +198,15 @@ export function useSettlements() {
       if (settlementError) throw settlementError;
 
       // Create settlement transactions
-      const settlementTransactions = selectedTransactions.map(t => ({
+      const settlementTransactions = selectedTransactions.map((t) => ({
         settlement_id: settlement.id,
         transaction_id: t.transaction_id,
-        booking_id: t.booking_id,
         transaction_amount: t.amount,
         transaction_number: t.transaction_number,
         booking_number: t.booking_number,
+        ...(t.booking_type === 'cabin'
+          ? { cabin_booking_id: t.booking_id }
+          : { booking_id: t.booking_id })
       }));
 
       const { error: transactionError } = await supabase

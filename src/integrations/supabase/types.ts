@@ -3308,6 +3308,7 @@ export type Database = {
           study_hall_name: string
           transaction_number: number
           booking_number: number
+          booking_type: string
         }[]
       }
       get_merchant_available_balance: {
