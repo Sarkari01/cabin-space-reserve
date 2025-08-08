@@ -15,12 +15,15 @@ import { WithdrawalRequestModal } from "./WithdrawalRequestModal";
 import { useSettlements, Settlement } from "@/hooks/useSettlements";
 import { useWithdrawals } from "@/hooks/useWithdrawals";
 import { useAuth } from "@/hooks/useAuth";
-import { DollarSignIcon, CalendarIcon, TrendingUp, Clock, CheckIcon, XIcon, Download, IndianRupee } from "lucide-react";
+import { DollarSignIcon, CalendarIcon, TrendingUp, Clock, CheckIcon, XIcon, Download, IndianRupee, Filter, Search } from "lucide-react";
 import { safeFormatDate, safeFormatTime } from "@/lib/dateUtils";
 import { ExportButton } from "@/components/ui/export-button";
 import { ExportColumn, formatCurrency, formatDate } from "@/utils/exportUtils";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
-
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import DateRangePicker, { DateRange } from "@/components/ui/DateRangePicker";
+import SettlementDetailsDrawer from "./SettlementDetailsDrawer";
 
 export function MerchantSettlementsTab() {
   const { settlements, loading, getSettlementTransactions } = useSettlements();
@@ -31,11 +34,22 @@ export function MerchantSettlementsTab() {
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
   const [settlementTransactions, setSettlementTransactions] = useState<any[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
-const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+
+  // Advanced filters state
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [statuses, setStatuses] = useState<string[]>(["pending", "approved", "paid", "rejected"]);
+  const [amountMin, setAmountMin] = useState<string>("");
+  const [amountMax, setAmountMax] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("all");
+  const [hasPaymentRef, setHasPaymentRef] = useState<boolean>(false);
+  const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
+
+  const toggleStatus = (status: string) =>
+    setStatuses((prev) => (prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]));
 
   const { settings } = useBusinessSettings();
   const minWithdrawal = Number(settings?.minimum_withdrawal_amount ?? 500);
-
 
   // Early return if user not loaded
   if (!user) {
@@ -47,19 +61,57 @@ const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   }
 
   // Filter settlements for current merchant with null safety
-  const merchantSettlements = settlements?.filter(s => s?.merchant_id === user?.id) || [];
+  const merchantSettlements = settlements?.filter((s) => s?.merchant_id === user?.id) || [];
 
-  // Apply additional filters with null safety
-  const filteredSettlements = merchantSettlements.filter(settlement => {
+  // Apply advanced filters with null safety
+  const filteredSettlements = merchantSettlements.filter((settlement) => {
     if (!settlement) return false;
-    
-    const matchesStatus = statusFilter === "all" || settlement.status === statusFilter;
-    const matchesSearch = searchTerm === "" || 
+
+    // Status filters: support legacy single-select and new multi-select
+    const singleStatusOk = statusFilter === "all" || settlement.status === statusFilter;
+    const multiStatusOk = statuses.length === 0 || statuses.includes(settlement.status as string);
+
+    // Search by settlement number or payment reference
+    const matchesSearch =
+      !searchTerm ||
       settlement.settlement_number?.toString()?.includes(searchTerm) ||
       settlement.payment_reference?.toLowerCase()?.includes(searchTerm.toLowerCase());
-    
-    return matchesStatus && matchesSearch;
+
+    // Date range (created_at)
+    const created = settlement.created_at ? new Date(settlement.created_at) : null;
+    const matchesDate =
+      !dateRange?.from || !created
+        ? true
+        : dateRange?.to
+        ? created >= new Date(dateRange.from.setHours(0, 0, 0, 0)) &&
+          created <= new Date(dateRange.to.setHours(23, 59, 59, 999))
+        : created >= new Date(dateRange.from.setHours(0, 0, 0, 0));
+
+    // Amount range (net amount)
+    const net = Number(settlement.net_settlement_amount || 0);
+    const minOk = amountMin ? net >= Number(amountMin) : true;
+    const maxOk = amountMax ? net <= Number(amountMax) : true;
+
+    // Payment method
+    const pmOk = paymentMethod === "all" || (settlement.payment_method || "").toLowerCase() === paymentMethod.toLowerCase();
+
+    // Has payment reference
+    const refOk = hasPaymentRef ? Boolean(settlement.payment_reference) : true;
+
+    return singleStatusOk && multiStatusOk && matchesSearch && matchesDate && minOk && maxOk && pmOk && refOk;
   });
+
+  // Toolbar helpers
+  const paymentMethodOptions = Array.from(
+    new Set((merchantSettlements || []).map((s) => s?.payment_method).filter(Boolean))
+  ) as string[];
+
+  const totals = React.useMemo(() => {
+    const net = filteredSettlements.reduce((sum, s) => sum + Number(s?.net_settlement_amount || 0), 0);
+    const fee = filteredSettlements.reduce((sum, s) => sum + Number(s?.platform_fee_amount || 0), 0);
+    const gross = filteredSettlements.reduce((sum, s) => sum + Number(s?.total_booking_amount || 0), 0);
+    return { net, fee, gross };
+  }, [filteredSettlements]);
 
   const handleViewDetails = async (settlement: Settlement) => {
     setSelectedSettlement(settlement);
