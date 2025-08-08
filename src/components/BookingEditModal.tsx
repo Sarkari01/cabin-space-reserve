@@ -59,6 +59,20 @@ export function BookingEditModal({
 
   const isCabin = booking ? isCabinBooking(booking) : false;
 
+  const displayName = booking
+    ? (isCabin
+        ? (booking.guest_name || booking.guest_email || 'Guest')
+        : ((booking as Booking).user?.full_name || (booking as Booking).user?.email || (booking as any).guest_name || (booking as any).guest_email || 'Guest')
+      )
+    : '';
+
+  const displayPhone = booking
+    ? (isCabin
+        ? booking.guest_phone
+        : ((booking as Booking).user?.phone || (booking as any).guest_phone)
+      )
+    : undefined;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!booking) return;
@@ -115,8 +129,7 @@ export function BookingEditModal({
             <span>Edit Booking</span>
           </DialogTitle>
           <DialogDescription>
-            Update booking details for {booking.user?.full_name || booking.user?.email} 
-            {booking.user?.phone && `(${booking.user.phone})`}
+            Update booking details for {displayName} {displayPhone ? `(${displayPhone})` : null}
           </DialogDescription>
         </DialogHeader>
 

@@ -40,6 +40,7 @@ import { InchargeManagementTab } from "@/components/merchant/InchargeManagementT
 import { MerchantReviewsTab } from "@/components/merchant/MerchantReviewsTab";
 import { MerchantReportsTab } from "@/components/reports/MerchantReportsTab";
 import { PrivateHallsTab } from "@/components/merchant/PrivateHallsTab";
+import { supabase } from "@/integrations/supabase/client";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
@@ -220,14 +221,37 @@ const MerchantDashboard = () => {
 
   const handleSaveBooking = async (bookingId: string, updates: any) => {
     setActionLoading(true);
-    // Note: Update booking functionality would need to be implemented in useMerchantBookings
-    toast({
-      title: "Feature Note",
-      description: "Booking editing will be implemented in future update", 
-      variant: "default",
-    });
-    setActionLoading(false);
-    return true;
+    try {
+      const isCabin = selectedBooking?.booking_type === 'cabin';
+      const table = isCabin ? 'cabin_bookings' : 'bookings';
+
+      const payload: any = {
+        start_date: updates.start_date,
+        end_date: updates.end_date,
+        status: isCabin && updates.status === 'confirmed' ? 'active' : updates.status,
+        updated_at: new Date().toISOString(),
+      };
+      if (!isCabin && typeof updates.booking_period !== 'undefined') {
+        payload.booking_period = updates.booking_period;
+      }
+
+      const { error } = await supabase
+        .from(table)
+        .update(payload)
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: 'Booking updated successfully' });
+      await fetchMerchantBookings();
+      setActionLoading(false);
+      return true;
+    } catch (error: any) {
+      console.error('Error updating booking:', error);
+      toast({ title: 'Error', description: `Failed to update booking: ${error.message || error}`, variant: 'destructive' });
+      setActionLoading(false);
+      return false;
+    }
   };
 
   // Filter bookings based on criteria

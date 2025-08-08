@@ -473,32 +473,34 @@ const AdminDashboard = () => {
   const handleSaveBooking = async (bookingId: string, updates: any) => {
     setActionLoading(true);
     try {
+      const isCabin = selectedBooking?.booking_type === 'cabin';
+      const table = isCabin ? 'cabin_bookings' : 'bookings';
+
+      // Sanitize payload
+      const payload: any = {
+        start_date: updates.start_date,
+        end_date: updates.end_date,
+        status: isCabin && updates.status === 'confirmed' ? 'active' : updates.status,
+        updated_at: new Date().toISOString(),
+      };
+      if (!isCabin && typeof updates.booking_period !== 'undefined') {
+        payload.booking_period = updates.booking_period;
+      }
+
       const { error } = await supabase
-        .from("bookings")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", bookingId);
+        .from(table)
+        .update(payload)
+        .eq('id', bookingId);
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Booking updated successfully",
-      });
-
-      // Refresh bookings to show the updated information
+      toast({ title: 'Success', description: 'Booking updated successfully' });
       fetchAdminBookings();
       setActionLoading(false);
       return true;
-    } catch (error) {
-      console.error("Error updating booking:", error);
-      toast({
-        title: "Error", 
-        description: `Failed to update booking: ${error.message}`,
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      console.error('Error updating booking:', error);
+      toast({ title: 'Error', description: `Failed to update booking: ${error.message || error}`, variant: 'destructive' });
       setActionLoading(false);
       return false;
     }
