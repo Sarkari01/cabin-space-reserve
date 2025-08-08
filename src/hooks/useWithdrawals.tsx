@@ -22,10 +22,16 @@ export interface MerchantBalance {
 
 export const useWithdrawals = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState<MerchantBalance | null>(null);
+  const [balance, setBalance] = useState<MerchantBalance>({
+    total_earnings: 0,
+    platform_fees: 0,
+    net_earnings: 0,
+    pending_withdrawals: 0,
+    available_balance: 0,
+  });
 
   const fetchWithdrawals = async () => {
     try {
@@ -44,8 +50,8 @@ export const useWithdrawals = () => {
         .order("created_at", { ascending: false });
 
       // For merchants, only fetch their own withdrawals
-      if (user?.role === "merchant") {
-        query = query.eq("merchant_id", user.id);
+      if (userRole === "merchant") {
+        query = query.eq("merchant_id", user?.id as string);
       }
 
       const { data, error } = await query;
@@ -75,7 +81,7 @@ export const useWithdrawals = () => {
   };
 
   const fetchMerchantBalance = async (merchantId?: string) => {
-    if (!merchantId && user?.role !== "merchant") return;
+    if (!merchantId && userRole !== "merchant") return;
     
     const targetMerchantId = merchantId || user?.id;
     if (!targetMerchantId) return;
@@ -243,11 +249,11 @@ export const useWithdrawals = () => {
   useEffect(() => {
     if (user) {
       fetchWithdrawals();
-      if (user.role === "merchant") {
+      if (userRole === "merchant") {
         fetchMerchantBalance();
       }
     }
-  }, [user]);
+  }, [user, userRole]);
 
   return {
     withdrawals,
