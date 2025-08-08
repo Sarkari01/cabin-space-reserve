@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { ResponsiveTable } from '@/components/ResponsiveTable';
 import { Calendar, User, Building, Search, Eye, CreditCard, Clock } from 'lucide-react';
 import { UnifiedBookingDetailModal } from '@/components/UnifiedBookingDetailModal';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 export const TelemarketingBookingsTab = () => {
   const { bookings, loading, fetchTelemarketingBookings } = useTelemarketingBookings();
@@ -19,6 +20,8 @@ export const TelemarketingBookingsTab = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [bookingDetailOpen, setBookingDetailOpen] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const { toast } = useToast();
 
   const filteredBookings = bookings.filter(booking => {
     const user = booking.user || users.find(u => u.id === booking.user_id);
@@ -50,6 +53,63 @@ export const TelemarketingBookingsTab = () => {
     setBookingDetailOpen(true);
   };
 
+  const handleConfirm = useCallback(async (bookingId: string) => {
+    setUpdating(true);
+    try {
+      const b = bookings.find((x) => x.id === bookingId);
+      if (!b) return;
+
+      if (b.booking_type === 'cabin') {
+        const { error } = await supabase.functions.invoke('cabin-vacate', {
+          body: { action: 'update-status', bookingId, newStatus: 'active' }
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('bookings')
+          .update({ status: 'confirmed', updated_at: new Date().toISOString() })
+          .eq('id', bookingId);
+        if (error) throw error;
+      }
+
+      toast({ title: 'Success', description: 'Booking updated successfully.' });
+      await fetchTelemarketingBookings();
+    } catch (err: any) {
+      console.error('Confirm error:', err);
+      toast({ title: 'Error', description: err?.message || 'Failed to update booking.', variant: 'destructive' });
+    } finally {
+      setUpdating(false);
+    }
+  }, [bookings, fetchTelemarketingBookings, toast]);
+
+  const handleCancel = useCallback(async (bookingId: string) => {
+    setUpdating(true);
+    try {
+      const b = bookings.find((x) => x.id === bookingId);
+      if (!b) return;
+
+      if (b.booking_type === 'cabin') {
+        const { error } = await supabase.functions.invoke('cabin-vacate', {
+          body: { action: 'update-status', bookingId, newStatus: 'cancelled' }
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('bookings')
+          .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .eq('id', bookingId);
+        if (error) throw error;
+      }
+
+      toast({ title: 'Success', description: 'Booking cancelled.' });
+      await fetchTelemarketingBookings();
+    } catch (err: any) {
+      console.error('Cancel error:', err);
+      toast({ title: 'Error', description: err?.message || 'Failed to cancel booking.', variant: 'destructive' });
+    } finally {
+      setUpdating(false);
+    }
+  }, [bookings, fetchTelemarketingBookings, toast]);
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       confirmed: 'default',
@@ -258,6 +318,9 @@ export const TelemarketingBookingsTab = () => {
         open={bookingDetailOpen}
         onOpenChange={setBookingDetailOpen}
         userRole="telemarketing_executive"
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        loading={updating}
       />
       )}
     </div>
