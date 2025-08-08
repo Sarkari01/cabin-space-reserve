@@ -29,6 +29,7 @@ interface CabinBooking {
   is_vacated?: boolean;
   vacated_at?: string;
   vacated_by?: string;
+  vacate_reason?: string;
   cabin?: {
     cabin_name: string;
     amenities?: string[];
@@ -321,6 +322,12 @@ export function CabinBookingDetailModal({
                         Vacated Early
                       </Badge>
                     </div>
+                    {booking.vacate_reason && (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground">Reason</p>
+                        <p className="whitespace-pre-wrap">{booking.vacate_reason}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

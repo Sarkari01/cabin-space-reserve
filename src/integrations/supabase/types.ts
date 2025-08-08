@@ -3442,8 +3442,8 @@ export type Database = {
       vacate_cabin_booking: {
         Args: {
           p_booking_id: string
-          p_vacated_by_user_id?: string
-          p_reason?: string
+          p_vacated_by_user_id: string
+          p_reason: string
         }
         Returns: Json
       }
