@@ -297,6 +297,32 @@ const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
                       }
                     },
                     {
+                      key: "platform_fee_percentage",
+                      title: "Platform Fee %",
+                      render: (value: any, item: any) => {
+                        try {
+                          const pct = Number(item?.platform_fee_percentage ?? 0);
+                          return `${pct}%`;
+                        } catch (error) {
+                          console.error("Error formatting platform fee %:", error);
+                          return "0%";
+                        }
+                      }
+                    },
+                    {
+                      key: "platform_fee_amount",
+                      title: "Platform Fee Amount",
+                      render: (value: any, item: any) => {
+                        try {
+                          const amt = Number(item?.platform_fee_amount || 0);
+                          return `₹${amt.toFixed(2)}`;
+                        } catch (error) {
+                          console.error("Error formatting platform fee amount:", error);
+                          return "₹0.00";
+                        }
+                      }
+                    },
+                    {
                       key: "net_settlement_amount",
                       title: "Net Amount",
                       render: (value: any, item: any) => {
