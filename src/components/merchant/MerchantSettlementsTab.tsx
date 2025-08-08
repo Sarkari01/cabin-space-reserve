@@ -19,6 +19,8 @@ import { DollarSignIcon, CalendarIcon, TrendingUp, Clock, CheckIcon, XIcon, Down
 import { safeFormatDate, safeFormatTime } from "@/lib/dateUtils";
 import { ExportButton } from "@/components/ui/export-button";
 import { ExportColumn, formatCurrency, formatDate } from "@/utils/exportUtils";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+
 
 export function MerchantSettlementsTab() {
   const { settlements, loading, getSettlementTransactions } = useSettlements();
@@ -29,7 +31,11 @@ export function MerchantSettlementsTab() {
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
   const [settlementTransactions, setSettlementTransactions] = useState<any[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
-  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+
+  const { settings } = useBusinessSettings();
+  const minWithdrawal = Number(settings?.minimum_withdrawal_amount ?? 500);
+
 
   // Early return if user not loaded
   if (!user) {
@@ -174,12 +180,13 @@ export function MerchantSettlementsTab() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ₹{(settlements || [])
-                  .reduce((sum, s) => sum + Number(s?.platform_fee_amount || 0), 0)
-                  .toLocaleString()}
+                ₹{Number(balance?.platform_fees || 0).toLocaleString()}
               </div>
               <div className="text-sm text-muted-foreground">
-                Total deducted
+                All-time platform fees from earnings
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Settled fees: ₹{(settlements || []).reduce((sum, s) => sum + Number(s?.platform_fee_amount || 0), 0).toLocaleString()}
               </div>
             </CardContent>
           </Card>
@@ -350,7 +357,7 @@ export function MerchantSettlementsTab() {
                   />
                   <Button 
                     onClick={() => setShowWithdrawalModal(true)}
-                    disabled={!balance || balance.available_balance <= 0}
+                    disabled={!balance || balance.available_balance < minWithdrawal}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Request Withdrawal

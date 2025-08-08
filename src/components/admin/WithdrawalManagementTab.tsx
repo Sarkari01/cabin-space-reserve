@@ -11,9 +11,11 @@ import { ResponsiveTable } from "@/components/ResponsiveTable";
 import { Download, Eye, CheckCircle, XCircle, Clock, IndianRupee, Building2, CreditCard } from "lucide-react";
 import { useWithdrawals } from "@/hooks/useWithdrawals";
 import { safeFormatDate, safeFormatTime, safeFormatDateTime } from "@/lib/dateUtils";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 export function WithdrawalManagementTab() {
   const { withdrawals, loading, updateWithdrawalStatus } = useWithdrawals();
+  const { settings } = useBusinessSettings();
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any>(null);
   const [newStatus, setNewStatus] = useState("");
   const [adminNotes, setAdminNotes] = useState("");

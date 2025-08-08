@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { IndianRupee, CreditCard, Building2 } from "lucide-react";
 import type { MerchantBalance } from "@/hooks/useWithdrawals";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 interface WithdrawalRequestModalProps {
   open: boolean;
@@ -25,13 +26,16 @@ export function WithdrawalRequestModal({
   const [amount, setAmount] = useState("");
   const [withdrawalMethod, setWithdrawalMethod] = useState("bank_transfer");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { settings } = useBusinessSettings();
+  const minWithdrawal = Number(settings?.minimum_withdrawal_amount ?? 500);
+  const numericAmount = parseFloat(amount || "0");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || parseFloat(amount) <= 0) return;
+    if (!amount || numericAmount <= 0) return;
 
     setIsSubmitting(true);
-    const success = await onSubmit(parseFloat(amount), withdrawalMethod);
+    const success = await onSubmit(numericAmount, withdrawalMethod);
     if (success) {
       setAmount("");
       setWithdrawalMethod("bank_transfer");
@@ -92,7 +96,7 @@ export function WithdrawalRequestModal({
               placeholder="Enter amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              min="1"
+              min={minWithdrawal}
               max={balance?.available_balance || 0}
               step="0.01"
               required
@@ -167,7 +171,7 @@ export function WithdrawalRequestModal({
             </Button>
             <Button
               type="submit"
-              disabled={!amount || parseFloat(amount) <= 0 || isSubmitting}
+              disabled={numericAmount < minWithdrawal || numericAmount > (balance?.available_balance || 0) || isSubmitting}
               className="flex-1"
             >
               {isSubmitting ? "Submitting..." : "Submit Request"}

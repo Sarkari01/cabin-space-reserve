@@ -36,16 +36,17 @@ export function TelemarketingSettlementsTab() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed": return "bg-green-100 text-green-800";
+      case "paid": return "bg-green-100 text-green-800";
+      case "approved": return "bg-blue-100 text-blue-800";
       case "pending": return "bg-yellow-100 text-yellow-800";
-      case "failed": return "bg-red-100 text-red-800";
+      case "rejected": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
 
   const totalSettlements = filteredSettlements.length;
   const pendingSettlements = filteredSettlements.filter(s => s.status === "pending").length;
-  const completedSettlements = filteredSettlements.filter(s => s.status === "completed").length;
+  const paidSettlements = filteredSettlements.filter(s => s.status === "paid").length;
   const totalAmount = filteredSettlements.reduce((sum, s) => sum + (s.net_settlement_amount || 0), 0);
 
   if (loading) {
