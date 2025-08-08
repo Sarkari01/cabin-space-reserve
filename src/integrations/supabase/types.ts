@@ -424,6 +424,7 @@ export type Database = {
           total_amount: number
           updated_at: string
           user_id: string | null
+          vacate_reason: string | null
           vacated_at: string | null
           vacated_by: string | null
         }
@@ -451,6 +452,7 @@ export type Database = {
           total_amount: number
           updated_at?: string
           user_id?: string | null
+          vacate_reason?: string | null
           vacated_at?: string | null
           vacated_by?: string | null
         }
@@ -478,6 +480,7 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string | null
+          vacate_reason?: string | null
           vacated_at?: string | null
           vacated_by?: string | null
         }
@@ -3439,7 +3442,7 @@ export type Database = {
       vacate_cabin_booking: {
         Args: {
           p_booking_id: string
-          p_vacated_by_user_id: string
+          p_vacated_by_user_id?: string
           p_reason?: string
         }
         Returns: Json
