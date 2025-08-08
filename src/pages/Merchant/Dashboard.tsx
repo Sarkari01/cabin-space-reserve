@@ -41,6 +41,7 @@ import { MerchantReviewsTab } from "@/components/merchant/MerchantReviewsTab";
 import { MerchantReportsTab } from "@/components/reports/MerchantReportsTab";
 import { PrivateHallsTab } from "@/components/merchant/PrivateHallsTab";
 import { supabase } from "@/integrations/supabase/client";
+import { CabinVacateButton } from "@/components/CabinVacateButton";
 
 const MerchantDashboard = () => {
   const { user, userRole, loading: authLoading } = useAuth();
@@ -193,7 +194,9 @@ const MerchantDashboard = () => {
   const handleConfirmBooking = async (bookingId: string) => {
     setActionLoading(true);
     try {
-      const success = await updateMerchantBookingStatus(bookingId, 'confirmed');
+      const booking = bookings.find((b) => b.id === bookingId);
+      const nextStatus = booking?.booking_type === 'cabin' ? 'active' : 'confirmed';
+      const success = await updateMerchantBookingStatus(bookingId, nextStatus);
       if (success) {
         await fetchMerchantBookings();
       }
@@ -254,12 +257,17 @@ const MerchantDashboard = () => {
     }
   };
 
+  // Keep only private hall (cabin) bookings
+  const cabinBookings = bookings.filter((b) => b.booking_type === 'cabin');
+
   // Filter bookings based on criteria
-  const filteredBookings = bookings.filter(booking => {
+  const filteredBookings = cabinBookings.filter(booking => {
     const matchesStatus = filterStatus === "all" || booking.status === filterStatus;
     const matchesUser = !searchUser || 
       (booking.user?.full_name?.toLowerCase().includes(searchUser.toLowerCase()) ||
        booking.user?.email?.toLowerCase().includes(searchUser.toLowerCase()) ||
+       booking.guest_name?.toLowerCase?.().includes(searchUser.toLowerCase()) ||
+       booking.guest_email?.toLowerCase?.().includes(searchUser.toLowerCase()) ||
        booking.booking_number?.toString().includes(searchUser));
     
     let matchesDate = true;
@@ -272,7 +280,6 @@ const MerchantDashboard = () => {
     
     return matchesStatus && matchesUser && matchesDate;
   });
-
   const handleExportBookings = () => {
     // Create CSV content
     const headers = ["Booking ID", "User Name", "Email", "Study Hall", "Seat", "Period", "Start Date", "End Date", "Amount", "Status", "Created"];
@@ -574,9 +581,9 @@ const MerchantDashboard = () => {
                     </div>
                   ))}
                 </div>
-              ) : bookings.length > 0 ? (
+                ) : cabinBookings.length > 0 ? (
                 <div className="space-y-4">
-                  {bookings.slice(0, 5).map((booking, index) => (
+                  {cabinBookings.slice(0, 5).map((booking, index) => (
                     <Card key={booking.id} className="animate-fade-in hover:shadow-lg transition-all duration-300" style={{ animationDelay: `${index * 100}ms` }}>
                       <CardContent className="p-6">
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -623,8 +630,8 @@ const MerchantDashboard = () => {
                               <Badge variant={getStatusColor(booking.status)} className="text-xs">
                                 {(booking.status || 'pending').toUpperCase()}
                               </Badge>
-                              <Badge variant={booking.status === 'confirmed' || booking.status === 'completed' ? 'default' : 'secondary'} className="text-xs ml-1">
-                                {booking.status === 'confirmed' || booking.status === 'completed' ? 'PAID' : 'PENDING'}
+                              <Badge variant={booking.payment_status === 'paid' ? 'default' : 'secondary'} className="text-xs ml-1">
+                                {booking.payment_status === 'paid' ? 'PAID' : 'PENDING'}
                               </Badge>
                             </div>
                           </div>
@@ -659,11 +666,19 @@ const MerchantDashboard = () => {
                                   variant="default" 
                                   size="sm"
                                   onClick={() => handleConfirmBooking(booking.id)}
-                                  disabled={actionLoading}
+                                  disabled={actionLoading || (booking.booking_type === 'cabin' && booking.payment_status !== 'paid')}
                                   className="w-full"
                                 >
-                                  {actionLoading ? "Confirming..." : "Confirm"}
+                                  {booking.booking_type === 'cabin'
+                                    ? (actionLoading ? "Activating..." : "Activate")
+                                    : (actionLoading ? "Confirming..." : "Confirm")}
                                 </Button>
+                              )}
+                              {booking.booking_type === 'cabin' && booking.payment_status === 'paid' && !booking.is_vacated && (booking.status === 'pending' || booking.status === 'active') && (
+                                <CabinVacateButton 
+                                  bookingId={booking.id}
+                                  onVacated={async () => { await fetchMerchantBookings(); }}
+                                />
                               )}
                             </div>
                             <div className="text-xs text-muted-foreground">
@@ -678,8 +693,8 @@ const MerchantDashboard = () => {
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No bookings yet</p>
-                  <p className="text-sm">Bookings for your study halls will appear here</p>
+                  <p>No private hall bookings yet</p>
+                  <p className="text-sm">Cabin bookings for your private halls will appear here</p>
                 </div>
               )}
             </div>
@@ -744,7 +759,7 @@ const MerchantDashboard = () => {
               </div>
               
               <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                <span>Showing {filteredBookings.length} of {bookings.length} bookings</span>
+                <span>Showing {filteredBookings.length} of {cabinBookings.length} bookings</span>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -842,8 +857,8 @@ const MerchantDashboard = () => {
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Payment:</span>
-                              <Badge variant={booking.status === 'confirmed' || booking.status === 'completed' ? 'default' : 'secondary'}>
-                                {booking.status === 'confirmed' || booking.status === 'completed' ? 'PAID' : 'PENDING'}
+                              <Badge variant={booking.payment_status === 'paid' ? 'default' : 'secondary'}>
+                                {booking.payment_status === 'paid' ? 'PAID' : 'PENDING'}
                               </Badge>
                             </div>
                             <div className="flex items-center justify-between">
@@ -852,7 +867,7 @@ const MerchantDashboard = () => {
                             </div>
                           </div>
                           
-                          <div className="flex space-x-2 mt-4">
+                          <div className="flex flex-col sm:flex-row gap-2 mt-4">
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -871,6 +886,25 @@ const MerchantDashboard = () => {
                               <Edit className="h-3 w-3 mr-1" />
                               Edit
                             </Button>
+                            {booking.status === 'pending' && (
+                              <Button 
+                                variant="default" 
+                                size="sm"
+                                onClick={() => handleConfirmBooking(booking.id)}
+                                disabled={actionLoading || (booking.booking_type === 'cabin' && booking.payment_status !== 'paid')}
+                                className="flex-1"
+                              >
+                                {booking.booking_type === 'cabin'
+                                  ? (actionLoading ? "Activating..." : "Activate")
+                                  : (actionLoading ? "Confirming..." : "Confirm")}
+                              </Button>
+                            )}
+                            {booking.booking_type === 'cabin' && booking.payment_status === 'paid' && !booking.is_vacated && (booking.status === 'pending' || booking.status === 'active') && (
+                              <CabinVacateButton 
+                                bookingId={booking.id}
+                                onVacated={async () => { await fetchMerchantBookings(); }}
+                              />
+                            )}
                           </div>
                         </div>
                       </div>
