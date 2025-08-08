@@ -7,6 +7,7 @@ import { Booking } from "@/hooks/useBookings";
 import { CombinedBooking } from "@/hooks/useCombinedBookings";
 import { BookingQRCode } from "./BookingQRCode";
 import { CabinBookingQRCode } from "./CabinBookingQRCode";
+import { CabinVacateButton } from "./CabinVacateButton";
 
 interface UnifiedBookingDetailModalProps {
   open: boolean;
@@ -394,6 +395,14 @@ export function UnifiedBookingDetailModal({
               >
                 {loading ? (bookingType === 'cabin' ? "Activating..." : "Confirming...") : (bookingType === 'cabin' ? "Activate Booking" : "Confirm Booking")}
               </Button>
+            )}
+
+            {(userRole === 'merchant' || userRole === 'admin') && bookingType === 'cabin' && paymentStatus === 'paid' && (booking as any).is_vacated !== true && (booking.status === 'pending' || booking.status === 'active') && (
+              <CabinVacateButton 
+                bookingId={booking.id}
+                onVacated={() => onOpenChange(false)}
+                variant="destructive"
+              />
             )}
             
             {(userRole === 'merchant' || userRole === 'admin' || userRole === 'student') && booking.status === 'pending' && onCancel && (

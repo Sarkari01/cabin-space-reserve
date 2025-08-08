@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Booking } from "@/hooks/useBookings";
 import { CabinBooking } from "@/types/PrivateHall";
 import { Calendar } from "lucide-react";
+import { CabinVacateButton } from "@/components/CabinVacateButton";
 
 interface BookingEditModalProps {
   open: boolean;
@@ -35,7 +36,7 @@ export function BookingEditModal({
     booking_period: '1_month'
   });
 
-  const isCabinBooking = (b: any): b is CabinBooking => !!b && 'cabin_id' in b;
+  const isCabinBooking = (b: any): b is CabinBooking => !!b && ('cabin_id' in b || (b as any).booking_type === 'cabin' || (b as any).type === 'cabin');
 
   useEffect(() => {
     if (booking) {
@@ -213,6 +214,13 @@ export function BookingEditModal({
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
+            {isCabin && (booking as any).payment_status === 'paid' && (booking as any).is_vacated !== true && (booking.status === 'pending' || booking.status === 'active') && (
+              <CabinVacateButton
+                bookingId={booking.id}
+                onVacated={() => onOpenChange(false)}
+                variant="destructive"
+              />
+            )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
