@@ -145,6 +145,7 @@ export type Database = {
           guest_phone: string | null
           id: string
           payment_status: string | null
+          platform_fee_amount: number
           seat_id: string
           start_date: string
           status: string
@@ -163,6 +164,7 @@ export type Database = {
           guest_phone?: string | null
           id?: string
           payment_status?: string | null
+          platform_fee_amount?: number
           seat_id: string
           start_date: string
           status?: string
@@ -181,6 +183,7 @@ export type Database = {
           guest_phone?: string | null
           id?: string
           payment_status?: string | null
+          platform_fee_amount?: number
           seat_id?: string
           start_date?: string
           status?: string
@@ -241,7 +244,10 @@ export type Database = {
           newsletter_description: string | null
           newsletter_enabled: boolean | null
           offline_enabled: boolean
+          platform_fee_enabled: boolean
           platform_fee_percentage: number | null
+          platform_fee_type: string
+          platform_fee_value: number
           points_per_booking: number | null
           points_per_referral: number | null
           points_profile_complete: number | null
@@ -302,7 +308,10 @@ export type Database = {
           newsletter_description?: string | null
           newsletter_enabled?: boolean | null
           offline_enabled?: boolean
+          platform_fee_enabled?: boolean
           platform_fee_percentage?: number | null
+          platform_fee_type?: string
+          platform_fee_value?: number
           points_per_booking?: number | null
           points_per_referral?: number | null
           points_profile_complete?: number | null
@@ -363,7 +372,10 @@ export type Database = {
           newsletter_description?: string | null
           newsletter_enabled?: boolean | null
           offline_enabled?: boolean
+          platform_fee_enabled?: boolean
           platform_fee_percentage?: number | null
+          platform_fee_type?: string
+          platform_fee_value?: number
           points_per_booking?: number | null
           points_per_referral?: number | null
           points_profile_complete?: number | null
@@ -416,6 +428,7 @@ export type Database = {
           monthly_amount: number
           months_booked: number
           payment_status: string | null
+          platform_fee_amount: number
           private_hall_id: string
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
@@ -444,6 +457,7 @@ export type Database = {
           monthly_amount: number
           months_booked: number
           payment_status?: string | null
+          platform_fee_amount?: number
           private_hall_id: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
@@ -472,6 +486,7 @@ export type Database = {
           monthly_amount?: number
           months_booked?: number
           payment_status?: string | null
+          platform_fee_amount?: number
           private_hall_id?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
@@ -2879,6 +2894,7 @@ export type Database = {
           payment_data: Json | null
           payment_id: string | null
           payment_method: string
+          platform_fee_amount: number
           qr_id: string | null
           status: string
           transaction_number: number | null
@@ -2896,6 +2912,7 @@ export type Database = {
           payment_data?: Json | null
           payment_id?: string | null
           payment_method: string
+          platform_fee_amount?: number
           qr_id?: string | null
           status?: string
           transaction_number?: number | null
@@ -2913,6 +2930,7 @@ export type Database = {
           payment_data?: Json | null
           payment_id?: string | null
           payment_method?: string
+          platform_fee_amount?: number
           qr_id?: string | null
           status?: string
           transaction_number?: number | null

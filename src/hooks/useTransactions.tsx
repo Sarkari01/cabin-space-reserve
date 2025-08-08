@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -19,6 +20,7 @@ export interface Transaction {
   payment_data: any;
   created_at: string;
   updated_at: string;
+  platform_fee_amount?: number;
   booking_type?: 'study_hall' | 'cabin';
   booking?: {
     id: string;
@@ -160,7 +162,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
             .eq("id", transaction.cabin_booking_id)
             .maybeSingle();
           
-          if (cabinBookingData) {
+        if (cabinBookingData) {
             private_hall = cabinBookingData.private_hall;
             cabin = cabinBookingData.cabin;
           }
@@ -194,6 +196,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
     amount: number;
     deposit_amount?: number;
     booking_amount?: number;
+    platform_fee_amount?: number;
     payment_method: "ekqr" | "offline" | "razorpay";
     payment_id?: string;
     qr_id?: string;
@@ -225,7 +228,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
 
       if (error) {
         console.error('Transaction creation error:', error);
-        console.error('Error details:', error.message, error.details, error.hint);
+        console.error('Error details:', (error as any).message, (error as any).details, (error as any).hint);
         throw error;
       }
 
@@ -236,7 +239,7 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
 
       fetchTransactions();
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating transaction:", error);
       toast({
         title: "Error",
@@ -305,9 +308,9 @@ export const useTransactions = (forceRole?: "student" | "merchant" | "admin" | "
             console.log('Transaction status updated:', payload.new);
             
             // Show toast notification for status changes
-            if (payload.new?.status === 'completed') {
+            if ((payload.new as any)?.status === 'completed') {
               console.log('Payment completed successfully!');
-            } else if (payload.new?.status === 'failed') {
+            } else if ((payload.new as any)?.status === 'failed') {
               console.log('Payment failed!');
             }
           }

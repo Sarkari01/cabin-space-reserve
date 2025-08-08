@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -35,8 +36,12 @@ interface BusinessSettings {
   // Maintenance mode
   maintenance_mode_enabled?: boolean;
   maintenance_message?: string;
-  maintenance_estimated_return?: string;
+  maintenance_estimated_return?: string | null;
   maintenance_target_roles?: string[];
+  // Platform fee (new)
+  platform_fee_enabled?: boolean;
+  platform_fee_type?: 'flat' | 'percent';
+  platform_fee_value?: number;
   // API Key previews
   google_maps_api_key_preview?: string;
   razorpay_key_id_preview?: string;
@@ -94,6 +99,10 @@ export const useBusinessSettings = () => {
           maintenance_message: 'We are currently performing maintenance. Please check back later.',
           maintenance_estimated_return: null,
           maintenance_target_roles: ['merchant', 'student', 'incharge', 'telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator', 'institution'],
+          // New platform fee defaults
+          platform_fee_enabled: false,
+          platform_fee_type: 'percent',
+          platform_fee_value: 0,
         };
 
         const { data: newData, error: createError } = await supabase
@@ -154,6 +163,22 @@ export const useBusinessSettings = () => {
 
       if (newSettings.trial_max_study_halls !== undefined && newSettings.trial_max_study_halls < 1) {
         throw new Error('Trial max study halls must be at least 1');
+      }
+
+      // New: platform fee validations
+      if (newSettings.platform_fee_enabled) {
+        if (newSettings.platform_fee_value !== undefined && newSettings.platform_fee_value < 0) {
+          throw new Error('Platform fee value must be >= 0');
+        }
+        if (newSettings.platform_fee_type === 'percent') {
+          const v = newSettings.platform_fee_value ?? settings?.platform_fee_value ?? 0;
+          if (v < 0 || v > 100) {
+            throw new Error('When type is percent, fee value must be between 0 and 100');
+          }
+        }
+        if (newSettings.platform_fee_type && !['flat', 'percent'].includes(newSettings.platform_fee_type)) {
+          throw new Error('Invalid platform fee type');
+        }
       }
 
       const { data, error: updateError } = await supabase

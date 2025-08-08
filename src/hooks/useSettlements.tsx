@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -165,7 +166,7 @@ export function useSettlements() {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      // Get eligible transactions for calculation
+      // Get eligible transactions for calculation (ids and display fields)
       const transactions = await getEligibleTransactions(merchantId);
       const selectedTransactions = transactions.filter(t => 
         transactionIds.includes(t.transaction_id)
@@ -175,7 +176,31 @@ export function useSettlements() {
         throw new Error("No valid transactions selected");
       }
 
-      const totalBookingAmount = selectedTransactions.reduce((sum, t) => sum + t.amount, 0);
+      // Fetch platform fee aware amounts from transactions table
+      const { data: txRows, error: txError } = await supabase
+        .from('transactions')
+        .select('id, amount, booking_amount, platform_fee_amount')
+        .in('id', transactionIds);
+
+      if (txError) throw txError;
+
+      const txMap = new Map<string, { amount: number; booking_amount: number; platform_fee_amount: number }>();
+      (txRows || []).forEach(r => {
+        txMap.set(r.id, {
+          amount: Number(r.amount || 0),
+          booking_amount: Number(r.booking_amount || 0),
+          platform_fee_amount: Number(r.platform_fee_amount || 0),
+        });
+      });
+
+      // Settlement should exclude platform fees; use booking_amount if present, otherwise (amount - platform_fee_amount)
+      const totalBookingAmount = selectedTransactions.reduce((sum, t) => {
+        const row = txMap.get(t.transaction_id);
+        if (!row) return sum;
+        const eligible = row.booking_amount > 0 ? row.booking_amount : (row.amount - row.platform_fee_amount);
+        return sum + eligible;
+      }, 0);
+
       const platformFeeAmount = (totalBookingAmount * platformFeePercentage) / 100;
       const netSettlementAmount = totalBookingAmount - platformFeeAmount;
 
@@ -201,7 +226,7 @@ export function useSettlements() {
       const settlementTransactions = selectedTransactions.map((t) => ({
         settlement_id: settlement.id,
         transaction_id: t.transaction_id,
-        transaction_amount: t.amount,
+        transaction_amount: txMap.get(t.transaction_id)?.amount ?? t.amount,
         transaction_number: t.transaction_number,
         booking_number: t.booking_number,
         ...(t.booking_type === 'cabin'

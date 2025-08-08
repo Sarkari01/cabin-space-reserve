@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Gift, Settings, DollarSign, Trophy, UserCheck } from "lucide-react";
+import { Loader2, Gift, Settings, DollarSign, Trophy, UserCheck, Percent } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const RewardsSettingsTab = () => {
   const { settings, loading, updateSettings } = useBusinessSettings();
@@ -20,6 +22,10 @@ export const RewardsSettingsTab = () => {
     points_per_referral: 500,
     points_profile_complete: 100,
     min_redemption_points: 10,
+    // Platform fee fields
+    platform_fee_enabled: false,
+    platform_fee_type: 'percent' as 'flat' | 'percent',
+    platform_fee_value: 0,
   });
   const [saving, setSaving] = useState(false);
 
@@ -32,6 +38,9 @@ export const RewardsSettingsTab = () => {
         points_per_referral: settings.points_per_referral ?? 500,
         points_profile_complete: settings.points_profile_complete ?? 100,
         min_redemption_points: settings.min_redemption_points ?? 10,
+        platform_fee_enabled: settings.platform_fee_enabled ?? false,
+        platform_fee_type: (settings.platform_fee_type as 'flat' | 'percent') ?? 'percent',
+        platform_fee_value: Number(settings.platform_fee_value ?? 0),
       });
     }
   }, [settings]);
@@ -39,6 +48,16 @@ export const RewardsSettingsTab = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Basic validations
+      if (formData.platform_fee_enabled) {
+        if (formData.platform_fee_value < 0) {
+          throw new Error("Platform fee value must be >= 0");
+        }
+        if (formData.platform_fee_type === 'percent' && formData.platform_fee_value > 100) {
+          throw new Error("When type is percent, fee value must be between 0 and 100");
+        }
+      }
+
       const success = await updateSettings({
         rewards_enabled: formData.rewards_enabled,
         rewards_conversion_rate: formData.rewards_conversion_rate,
@@ -46,19 +65,23 @@ export const RewardsSettingsTab = () => {
         points_per_referral: formData.points_per_referral,
         points_profile_complete: formData.points_profile_complete,
         min_redemption_points: formData.min_redemption_points,
-      });
+        // New platform fee fields
+        platform_fee_enabled: formData.platform_fee_enabled,
+        platform_fee_type: formData.platform_fee_type,
+        platform_fee_value: formData.platform_fee_value,
+      } as any);
 
       if (success) {
         toast({
           title: "Success",
-          description: "Rewards settings updated successfully",
+          description: "Settings updated successfully",
         });
       }
     } catch (error) {
-      console.error('Error saving rewards settings:', error);
+      console.error('Error saving rewards/platform settings:', error);
       toast({
         title: "Error",
-        description: "Failed to update rewards settings",
+        description: error instanceof Error ? error.message : "Failed to update settings",
         variant: "destructive",
       });
     } finally {
@@ -73,6 +96,15 @@ export const RewardsSettingsTab = () => {
     return `${points} points = ₹${rupees.toFixed(2)}`;
   };
 
+  const platformFeePreview = () => {
+    const sampleBooking = 1000; // sample booking base
+    const fee = formData.platform_fee_type === 'percent'
+      ? (sampleBooking * (formData.platform_fee_value / 100))
+      : formData.platform_fee_value;
+    const total = sampleBooking + fee;
+    return `On ₹${sampleBooking}: Platform Fee ₹${fee.toFixed(2)} → Total ₹${total.toFixed(2)}`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -85,18 +117,95 @@ export const RewardsSettingsTab = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">Rewards System Settings</h3>
+          <h3 className="text-lg font-medium">Rewards & Fees Settings</h3>
           <p className="text-sm text-muted-foreground">
-            Configure the rewards system, conversion rates, and earning rules
+            Configure the rewards system and platform fee applied to bookings
           </p>
         </div>
         <Badge variant={formData.rewards_enabled ? "default" : "secondary"}>
-          {formData.rewards_enabled ? "Active" : "Disabled"}
+          {formData.rewards_enabled ? "Rewards Active" : "Rewards Disabled"}
         </Badge>
       </div>
 
       <div className="grid gap-6">
-        {/* System Toggle */}
+        {/* Platform Fee */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Percent className="h-4 w-4" />
+                Platform Fee
+              </CardTitle>
+              <CardDescription>
+                Add a platform fee to each booking; this is added to user total and excluded from merchant payouts
+              </CardDescription>
+            </div>
+            <Switch
+              checked={formData.platform_fee_enabled}
+              onCheckedChange={(checked) =>
+                setFormData(prev => ({ ...prev, platform_fee_enabled: checked }))
+              }
+            />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Fee Type</Label>
+                <Select
+                  value={formData.platform_fee_type}
+                  onValueChange={(val: 'flat' | 'percent') =>
+                    setFormData(prev => ({ ...prev, platform_fee_type: val }))
+                  }
+                  disabled={!formData.platform_fee_enabled}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="flat">Flat (₹)</SelectItem>
+                    <SelectItem value="percent">Percent (%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Fee Value {formData.platform_fee_type === 'percent' ? '(%)' : '(₹)'}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={formData.platform_fee_type === 'percent' ? 100 : undefined}
+                  step={formData.platform_fee_type === 'percent' ? 0.01 : 1}
+                  value={formData.platform_fee_value}
+                  onChange={(e) =>
+                    setFormData(prev => ({
+                      ...prev,
+                      platform_fee_value: Number(e.target.value) || 0
+                    }))
+                  }
+                  disabled={!formData.platform_fee_enabled}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formData.platform_fee_type === 'percent'
+                    ? 'Applied as a percentage of booking price'
+                    : 'Added as a fixed amount'}
+                </p>
+              </div>
+              <div className="self-end">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-blue-900">
+                    Example: {platformFeePreview()}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-800">
+                <strong>Note:</strong> Platform fee is recorded as system revenue and excluded from merchant settlements.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rewards System */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "./use-toast";
@@ -15,6 +16,10 @@ export interface BusinessSettings {
   points_per_referral?: number;
   points_profile_complete?: number;
   min_redemption_points?: number;
+  // Platform fee (new)
+  platform_fee_enabled?: boolean;
+  platform_fee_type?: 'flat' | 'percent';
+  platform_fee_value?: number;
   // Brand Identity Fields
   logo_url?: string;
   favicon_url?: string;
@@ -71,6 +76,10 @@ export const useBusinessSettings = () => {
             points_profile_complete: 100,
             min_redemption_points: 10,
             brand_name: 'StudySpace Platform',
+            // New platform fee defaults
+            platform_fee_enabled: false,
+            platform_fee_type: 'percent',
+            platform_fee_value: 0,
           })
           .select()
           .single();
@@ -104,10 +113,25 @@ export const useBusinessSettings = () => {
 
     try {
       // Validate maintenance_estimated_return field if provided
-      if (updates.maintenance_estimated_return !== undefined && updates.maintenance_estimated_return !== null) {
-        const dateValue = new Date(updates.maintenance_estimated_return);
+      if ((updates as any).maintenance_estimated_return !== undefined && (updates as any).maintenance_estimated_return !== null) {
+        const dateValue = new Date((updates as any).maintenance_estimated_return as any);
         if (isNaN(dateValue.getTime())) {
           throw new Error("Invalid maintenance return date format");
+        }
+      }
+
+      // New: platform fee validations
+      if (updates.platform_fee_enabled) {
+        const type = updates.platform_fee_type;
+        const value = updates.platform_fee_value;
+        if (type && !['flat', 'percent'].includes(type)) {
+          throw new Error('Invalid platform fee type');
+        }
+        if (value !== undefined && value < 0) {
+          throw new Error('Platform fee value must be >= 0');
+        }
+        if (type === 'percent' && value !== undefined && value > 100) {
+          throw new Error('When type is percent, fee value must be between 0 and 100');
         }
       }
 
