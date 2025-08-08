@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { CabinLayoutData } from '@/types/PrivateHall';
 import { CouponInput } from '@/components/CouponInput';
 import { RewardsInput } from '@/components/RewardsInput';
-
+import { buildLayoutCabinMapping, isCabinBookingBlocking } from '@/utils/cabinAvailability';
 interface CabinAvailability {
   [cabinId: string]: {
     status: 'available' | 'occupied' | 'maintenance';
@@ -72,9 +72,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
   const createCabinIdMapping = async () => {
     try {
       console.log('Creating cabin ID mapping for private hall:', privateHallId);
-      console.log('Layout cabins:', layout.cabins.map(c => ({ id: c.id, name: c.name })));
-      
-      // Fetch all cabins for this private hall first
+      // Fetch all cabins for this private hall
       const { data: allCabins, error: cabinsError } = await supabase
         .from('cabins')
         .select('id, cabin_name, cabin_number')
@@ -86,53 +84,7 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
         return {};
       }
 
-      console.log('Database cabins:', allCabins);
-
-      const mapping: {[layoutId: string]: string} = {};
-      
-      // Create mapping using multiple strategies
-      for (const layoutCabin of layout.cabins) {
-        let dbCabinId: string | null = null;
-        
-        // Strategy 1: Direct name match (cabin name = layout cabin name)
-        let matchedCabin = allCabins?.find(dbCabin => dbCabin.cabin_name === layoutCabin.name);
-        if (matchedCabin) {
-          dbCabinId = matchedCabin.id;
-          console.log(`✅ Direct name match: ${layoutCabin.id} (${layoutCabin.name}) -> ${dbCabinId}`);
-        }
-        
-        // Strategy 2: Use RPC function for complex matching
-        if (!dbCabinId) {
-          const { data: rpcResult, error } = await supabase.rpc('get_cabin_id_mapping', {
-            p_private_hall_id: privateHallId,
-            p_layout_cabin_id: layoutCabin.id
-          });
-          
-          if (!error && rpcResult) {
-            dbCabinId = rpcResult;
-            console.log(`✅ RPC mapping: ${layoutCabin.id} -> ${dbCabinId}`);
-          }
-        }
-        
-        // Strategy 3: Extract number from layout cabin ID and match by position
-        if (!dbCabinId) {
-          const cabinMatch = layoutCabin.id.match(/cabin-(\d+)$/);
-          if (cabinMatch) {
-            const cabinPosition = parseInt(cabinMatch[1]);
-            if (allCabins && cabinPosition <= allCabins.length) {
-              dbCabinId = allCabins[cabinPosition - 1]?.id;
-              console.log(`✅ Position match: ${layoutCabin.id} (position ${cabinPosition}) -> ${dbCabinId}`);
-            }
-          }
-        }
-        
-        if (dbCabinId) {
-          mapping[layoutCabin.id] = dbCabinId;
-        } else {
-          console.warn(`❌ No mapping found for layout cabin: ${layoutCabin.id} (${layoutCabin.name})`);
-        }
-      }
-      
+      const mapping: { [layoutId: string]: string } = buildLayoutCabinMapping(layout, allCabins || []);
       console.log('Final cabin mapping:', mapping);
       setCabinIdMapping(mapping);
       return mapping;
@@ -168,14 +120,17 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
       const cabinIds = cabins?.map(cabin => cabin.id) || [];
       let bookings: any[] = [];
       
+      const today = new Date();
+      const todayStr = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0, 10);
+
       if (cabinIds.length > 0) {
         const { data: bookingsData, error: bookingsError } = await supabase
           .from('cabin_bookings')
           .select('*')
           .in('cabin_id', cabinIds)
-          .in('status', ['active', 'pending'])
-          .neq('payment_status', 'failed')
-          .eq('is_vacated', false);
+          .eq('payment_status', 'paid')
+          .eq('is_vacated', false)
+          .gte('end_date', todayStr);
 
         if (bookingsError) {
           console.error('Error fetching bookings:', bookingsError);
@@ -189,19 +144,9 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
       // Map database cabin availability back to layout cabin IDs
       cabins?.forEach(dbCabin => {
         // Check for any bookings that would make the cabin occupied
-        const activeBookings = bookings.filter(booking => {
-          const isForThisCabin = booking.cabin_id === dbCabin.id;
-          const isOccupying = ['active', 'pending'].includes(booking.status);
-          const isPaid = booking.payment_status === 'paid' || booking.status === 'pending';
-          
-          // Include current date bookings and future bookings
-          const today = new Date().toISOString().split('T')[0];
-          const isCurrentOrFuture = booking.start_date >= today || 
-            (booking.end_date >= today && booking.start_date <= today);
-          const isNotVacated = !booking.is_vacated;
-          
-          return isForThisCabin && isOccupying && isPaid && isCurrentOrFuture && isNotVacated;
-        });
+        const activeBookings = bookings.filter(booking =>
+          booking.cabin_id === dbCabin.id && isCabinBookingBlocking(booking)
+        );
         
         // Find the layout cabin ID that corresponds to this database cabin
         const layoutCabinId = Object.keys(mappingToUse).find(
@@ -247,6 +192,15 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
         console.log('Real-time booking change:', payload);
         // Add small delay to ensure transaction is committed
         setTimeout(() => fetchAvailability(true), 500);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'cabins',
+        filter: `private_hall_id=eq.${privateHallId}`
+      }, (payload) => {
+        console.log('Real-time cabin change:', payload);
+        setTimeout(() => fetchAvailability(true), 200);
       })
       .subscribe((status) => {
         console.log('Subscription status:', status);

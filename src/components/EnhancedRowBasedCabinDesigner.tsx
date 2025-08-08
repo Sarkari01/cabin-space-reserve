@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Users, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { CabinLayoutData } from '@/types/PrivateHall';
+import { buildLayoutCabinMapping, isCabinBookingBlocking } from '@/utils/cabinAvailability';
 interface RowConfig {
   name: string;
   cabins: number;
@@ -71,14 +72,17 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
       // Then fetch bookings separately to avoid JOIN issues
       const cabinIds = dbCabinsList.map((c: any) => c.id);
       let bookings: any[] = [];
+      const today = new Date();
+      const todayStr = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0, 10);
 
       if (cabinIds.length > 0) {
         const { data: bookingsData, error: bookingsError } = await supabase
           .from('cabin_bookings')
           .select('*')
           .in('cabin_id', cabinIds)
-          .in('status', ['active', 'pending'])
-          .eq('payment_status', 'paid');
+          .eq('payment_status', 'paid')
+          .eq('is_vacated', false)
+          .gte('end_date', todayStr);
 
         if (bookingsError) {
           console.error('Error fetching bookings:', bookingsError);
@@ -87,34 +91,9 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
         }
       }
 
-      // Build mapping from layout cabin IDs to DB cabin IDs
-      const sortedDbCabins = [...dbCabinsList].sort((a, b) => (a.cabin_number || 0) - (b.cabin_number || 0));
-      const cabinIdMap: Record<string, string> = {};
+      // Build mapping from layout cabin IDs to DB cabin IDs (shared helper)
+      const cabinIdMap: Record<string, string> = buildLayoutCabinMapping(layout, dbCabinsList);
 
-      const extractNumber = (name: string) => {
-        const m = name?.match(/(\d+)/);
-        return m ? parseInt(m[1], 10) : NaN;
-      };
-
-      layout.cabins.forEach((lc, idx) => {
-        let match = dbCabinsList.find((c: any) => c.cabin_name === lc.name);
-        if (!match) {
-          const num = extractNumber(lc.name);
-          if (!isNaN(num)) {
-            match = dbCabinsList.find((c: any) => c.cabin_number === num);
-          }
-        }
-        if (!match) {
-          match = sortedDbCabins[idx];
-        }
-        if (match) {
-          cabinIdMap[lc.id] = match.id;
-        }
-      });
-
-      // Determine availability per layout cabin
-      const today = new Date();
-      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
       const availabilityMap: CabinAvailability = {};
 
@@ -134,11 +113,7 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
         }
 
         const activePaid = bookings.filter((b) =>
-          b.cabin_id === dbId &&
-          b.payment_status === 'paid' &&
-          b.is_vacated !== true &&
-          (b.status === 'active' || b.status === 'pending') &&
-          b.end_date && new Date(b.end_date) >= todayDate
+          b.cabin_id === dbId && isCabinBookingBlocking(b)
         );
 
         availabilityMap[lc.id] = {
