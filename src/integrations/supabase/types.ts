@@ -2208,8 +2208,9 @@ export type Database = {
       }
       settlement_transactions: {
         Row: {
-          booking_id: string
+          booking_id: string | null
           booking_number: number | null
+          cabin_booking_id: string | null
           created_at: string
           id: string
           settlement_id: string
@@ -2218,8 +2219,9 @@ export type Database = {
           transaction_number: number | null
         }
         Insert: {
-          booking_id: string
+          booking_id?: string | null
           booking_number?: number | null
+          cabin_booking_id?: string | null
           created_at?: string
           id?: string
           settlement_id: string
@@ -2228,8 +2230,9 @@ export type Database = {
           transaction_number?: number | null
         }
         Update: {
-          booking_id?: string
+          booking_id?: string | null
           booking_number?: number | null
+          cabin_booking_id?: string | null
           created_at?: string
           id?: string
           settlement_id?: string
@@ -2243,6 +2246,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlement_transactions_cabin_booking_id_fkey"
+            columns: ["cabin_booking_id"]
+            isOneToOne: false
+            referencedRelation: "cabin_bookings"
             referencedColumns: ["id"]
           },
           {
