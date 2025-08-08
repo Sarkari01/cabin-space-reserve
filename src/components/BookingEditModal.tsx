@@ -203,7 +203,6 @@ export function BookingEditModal({
                   <>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="refunded">Refunded</SelectItem>
