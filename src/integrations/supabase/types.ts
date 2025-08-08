@@ -3421,6 +3421,10 @@ export type Database = {
         Args: { p_private_hall_id: string; p_layout_json: Json }
         Returns: Json
       }
+      update_cabin_booking_status: {
+        Args: { p_booking_id: string; p_new_status: string }
+        Returns: Json
+      }
       update_user_rewards: {
         Args: {
           p_user_id: string

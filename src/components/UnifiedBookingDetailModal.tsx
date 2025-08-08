@@ -13,7 +13,7 @@ interface UnifiedBookingDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   booking: Booking | CombinedBooking | null;
-  userRole: "student" | "merchant" | "admin" | "incharge";
+  userRole: "student" | "merchant" | "admin" | "incharge" | "telemarketing_executive";
   onConfirm?: (bookingId: string) => void;
   onCancel?: (bookingId: string) => void;
   onEdit?: (booking: Booking | CombinedBooking) => void;
@@ -332,10 +332,10 @@ export function UnifiedBookingDetailModal({
                   private_hall: { name: locationName || 'Private Hall', location: locationAddress || '' },
                   user: (booking as any).user
                 };
-                return <CabinBookingQRCode booking={qrBooking as any} userRole={userRole} />;
+                return <CabinBookingQRCode booking={qrBooking as any} userRole={userRole as any} />;
               })()
             ) : (
-              <BookingQRCode booking={booking as any} userRole={userRole} />
+              <BookingQRCode booking={booking as any} userRole={userRole as any} />
             )
           )}
 
@@ -384,7 +384,7 @@ export function UnifiedBookingDetailModal({
               </Button>
             )}
             
-            {(userRole === 'merchant' || userRole === 'admin') && booking.status === 'pending' && onConfirm && (
+            {(userRole === 'merchant' || userRole === 'admin' || userRole === 'telemarketing_executive') && booking.status === 'pending' && onConfirm && (
               <Button 
                 onClick={() => {
                   onConfirm(booking.id);
@@ -397,7 +397,7 @@ export function UnifiedBookingDetailModal({
               </Button>
             )}
 
-            {(userRole === 'merchant' || userRole === 'admin') && bookingType === 'cabin' && paymentStatus === 'paid' && (booking as any).is_vacated !== true && (booking.status === 'pending' || booking.status === 'active') && (
+            {(userRole === 'merchant' || userRole === 'admin' || userRole === 'telemarketing_executive') && bookingType === 'cabin' && paymentStatus === 'paid' && (booking as any).is_vacated !== true && (booking.status === 'pending' || booking.status === 'active') && (
               <CabinVacateButton 
                 bookingId={booking.id}
                 onVacated={() => onOpenChange(false)}

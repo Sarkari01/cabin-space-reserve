@@ -23,7 +23,7 @@ serve(async (req) => {
       }
     );
 
-    const { action, bookingId, reason } = await req.json();
+    const { action, bookingId, reason, newStatus } = await req.json();
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -68,9 +68,10 @@ serve(async (req) => {
 
       // Check permissions: admin can vacate any booking, merchant can vacate their own private hall bookings
       const isAdmin = profile.role === 'admin';
+      const isTelemarketing = profile.role === 'telemarketing_executive';
       const isMerchantOfHall = profile.role === 'merchant' && booking.private_hall?.merchant_id === user.id;
       
-      if (!isAdmin && !isMerchantOfHall) {
+      if (!isAdmin && !isMerchantOfHall && !isTelemarketing) {
         return new Response(
           JSON.stringify({ success: false, error: 'Insufficient permissions to vacate this booking' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -98,9 +99,57 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
+    } else if (action === 'update-status') {
+      // Allow admin, telemarketing, or the merchant of the hall to update cabin booking status
+      const { data: booking } = await supabase
+        .from('cabin_bookings')
+        .select(`
+          *,
+          private_hall:private_halls!cabin_bookings_private_hall_id_fkey(merchant_id)
+        `)
+        .eq('id', bookingId)
+        .single();
+
+      if (!booking) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Booking not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const isAdmin = profile.role === 'admin';
+      const isTelemarketing = profile.role === 'telemarketing_executive';
+      const isMerchantOfHall = profile.role === 'merchant' && booking.private_hall?.merchant_id === user.id;
+
+      if (!isAdmin && !isMerchantOfHall && !isTelemarketing) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Insufficient permissions to update this booking' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: result, error: updateError } = await supabase
+        .rpc('update_cabin_booking_status', {
+          p_booking_id: bookingId,
+          p_new_status: newStatus
+        });
+
+      if (updateError) {
+        console.error('Error updating cabin booking status:', updateError);
+        return new Response(
+          JSON.stringify({ success: false, error: updateError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
     } else if (action === 'auto-expire') {
-      // Only allow admin to trigger manual auto-expire
-      if (profile.role !== 'admin') {
+      // Only allow admin or telemarketing to trigger manual auto-expire
+      if (!(profile.role === 'admin' || profile.role === 'telemarketing_executive')) {
         return new Response(
           JSON.stringify({ success: false, error: 'Only admins can trigger auto-expiration' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

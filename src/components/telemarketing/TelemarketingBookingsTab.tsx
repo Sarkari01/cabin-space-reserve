@@ -9,10 +9,11 @@ import { useAdminData } from '@/hooks/useAdminData';
 import { PageHeader } from '@/components/PageHeader';
 import { ResponsiveTable } from '@/components/ResponsiveTable';
 import { Calendar, User, Building, Search, Eye, CreditCard, Clock } from 'lucide-react';
-import { BookingDetailModal } from '@/components/BookingDetailModal';
+import { UnifiedBookingDetailModal } from '@/components/UnifiedBookingDetailModal';
+import { supabase } from '@/integrations/supabase/client';
 
 export const TelemarketingBookingsTab = () => {
-  const { bookings, loading } = useTelemarketingBookings();
+  const { bookings, loading, fetchTelemarketingBookings } = useTelemarketingBookings();
   const { users, studyHalls } = useAdminData();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -163,8 +164,8 @@ export const TelemarketingBookingsTab = () => {
       icon: Calendar,
     },
     {
-      title: "Confirmed Bookings",
-      value: bookings.filter(b => b.status === 'confirmed').length,
+      title: "Active Bookings",
+      value: bookings.filter(b => b.status === 'active').length,
       icon: Calendar,
     },
     {
