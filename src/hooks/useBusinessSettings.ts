@@ -50,6 +50,17 @@ interface BusinessSettings {
   gemini_api_key_preview?: string;
 }
 
+// Normalize raw DB object into our strict BusinessSettings type, especially platform_fee_type
+const normalizeBusinessSettings = (raw: any): BusinessSettings => {
+  if (!raw) return raw;
+  const platform_fee_type: 'flat' | 'percent' =
+    raw.platform_fee_type === 'flat' ? 'flat' : 'percent';
+  return {
+    ...raw,
+    platform_fee_type,
+  };
+};
+
 export const useBusinessSettings = () => {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +82,7 @@ export const useBusinessSettings = () => {
       }
 
       if (data) {
-        setSettings(data);
+        setSettings(normalizeBusinessSettings(data));
       } else {
         // Create default settings if none exist
         const defaultSettings: Partial<BusinessSettings> = {
@@ -115,7 +126,7 @@ export const useBusinessSettings = () => {
           throw createError;
         }
 
-        setSettings(newData);
+        setSettings(normalizeBusinessSettings(newData));
       }
     } catch (err) {
       console.error('Error fetching business settings:', err);
@@ -195,7 +206,7 @@ export const useBusinessSettings = () => {
         throw updateError;
       }
 
-      setSettings(data);
+      setSettings(normalizeBusinessSettings(data));
       return true;
     } catch (err) {
       console.error('Error updating business settings:', err);
@@ -233,7 +244,7 @@ export const useBusinessSettings = () => {
         },
         (payload) => {
           console.log('Business settings updated:', payload);
-          setSettings(payload.new as BusinessSettings);
+          setSettings(normalizeBusinessSettings(payload.new as any));
         }
       )
       .subscribe();
