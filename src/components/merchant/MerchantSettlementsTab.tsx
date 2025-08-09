@@ -115,6 +115,7 @@ export function MerchantSettlementsTab() {
 
   const handleViewDetails = async (settlement: Settlement) => {
     setSelectedSettlement(settlement);
+    setDetailsOpen(true);
     setLoadingTransactions(true);
     try {
       const transactions = await getSettlementTransactions(settlement.id);
@@ -301,6 +302,116 @@ export function MerchantSettlementsTab() {
                   </Button>
                 </div>
               }>
+                {/* Advanced Filters Toolbar */}
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Filters</span>
+                      </div>
+                      <DateRangePicker
+                        value={dateRange}
+                        onChange={setDateRange}
+                        className=""
+                        presets={[
+                          { label: "This Month", range: () => { const now = new Date(); return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now }; } },
+                          { label: "Last 30 Days", range: () => { const to = new Date(); const from = new Date(); from.setDate(from.getDate() - 30); return { from, to }; } },
+                        ]}
+                      />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Search # or payment reference"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-[240px]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Payment Method" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Methods</SelectItem>
+                            {paymentMethodOptions.map((pm) => (
+                              <SelectItem key={pm} value={(pm || "").toLowerCase()}>{pm}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Min Net"
+                          value={amountMin}
+                          onChange={(e) => setAmountMin(e.target.value)}
+                          className="w-[120px]"
+                        />
+                        <span className="text-muted-foreground">-</span>
+                        <Input
+                          type="number"
+                          placeholder="Max Net"
+                          value={amountMax}
+                          onChange={(e) => setAmountMax(e.target.value)}
+                          className="w-[120px]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch id="hasRef" checked={hasPaymentRef} onCheckedChange={setHasPaymentRef} />
+                        <Label htmlFor="hasRef" className="text-sm">Has payment reference</Label>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setDateRange(undefined);
+                          setStatuses(["pending", "approved", "paid", "rejected"]);
+                          setAmountMin("");
+                          setAmountMax("");
+                          setPaymentMethod("all");
+                          setHasPaymentRef(false);
+                          setSearchTerm("");
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Status toggles */}
+                  <div className="flex flex-wrap items-center gap-4">
+                    {(["pending", "approved", "paid", "rejected"] as const).map((s) => (
+                      <div key={s} className="flex items-center gap-2">
+                        <Switch id={`status-${s}`} checked={statuses.includes(s)} onCheckedChange={() => toggleStatus(s)} />
+                        <Label htmlFor={`status-${s}`} className="capitalize text-sm">{s}</Label>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Summary bar */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Card>
+                      <CardContent className="p-3">
+                        <div className="text-xs text-muted-foreground">Gross (filtered)</div>
+                        <div className="font-semibold">₹{totals.gross.toLocaleString()}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-3">
+                        <div className="text-xs text-muted-foreground">Platform Fees (filtered)</div>
+                        <div className="font-semibold">₹{totals.fee.toLocaleString()}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-3">
+                        <div className="text-xs text-muted-foreground">Net (filtered)</div>
+                        <div className="font-semibold">₹{totals.net.toLocaleString()}</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Table */}
                 <ResponsiveTable
                   data={filteredSettlements}
                   columns={[
@@ -390,6 +501,7 @@ export function MerchantSettlementsTab() {
                   ]}
                   loading={loading}
                   emptyMessage="No settlements found"
+                  onRowClick={(item) => handleViewDetails(item as unknown as Settlement)}
                 />
               </ErrorBoundary>
             </CardContent>
@@ -525,6 +637,20 @@ export function MerchantSettlementsTab() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <SettlementDetailsDrawer
+        open={detailsOpen}
+        onOpenChange={(open) => {
+          setDetailsOpen(open);
+          if (!open) {
+            setSelectedSettlement(null);
+            setSettlementTransactions([]);
+          }
+        }}
+        settlement={selectedSettlement}
+        transactions={settlementTransactions}
+        loading={loadingTransactions}
+      />
 
       <WithdrawalRequestModal
         open={showWithdrawalModal}
