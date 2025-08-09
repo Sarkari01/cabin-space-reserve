@@ -291,12 +291,38 @@ const MerchantDashboard = () => {
   });
   const handleExportBookings = () => {
     // Create CSV content
-    const headers = ["Booking ID", "User Name", "Email", "Private Hall", "Cabin", "Months", "Start Date", "End Date", "Amount", "Status", "Created"];
-    const csvData = filteredBookings.map(booking => [booking.booking_number ? `B${booking.booking_number}` : 'Pending', booking.user?.full_name || booking.guest_name || 'N/A', booking.user?.email || booking.guest_email || 'N/A', booking.location_name || 'N/A', booking.unit_name || 'N/A', booking.months_booked ?? '', formatDate(booking.start_date), formatDate(booking.end_date), Number(booking.total_amount).toLocaleString(), booking.status, formatDate(booking.created_at)]);
+    const headers = [
+      "Booking ID",
+      "User Name",
+      "Email",
+      "Private Hall",
+      "Cabin",
+      "Months",
+      "Start Date",
+      "End Date",
+      "Booking Amount",
+      "Deposit Amount",
+      "Total Amount",
+      "Status",
+      "Created"
+    ];
+    const csvData = filteredBookings.map(booking => [
+      booking.booking_number ? `B${booking.booking_number}` : 'Pending',
+      booking.user?.full_name || booking.guest_name || 'N/A',
+      booking.user?.email || booking.guest_email || 'N/A',
+      booking.location_name || 'Unknown Private Hall',
+      booking.unit_name || (booking.booking_type === 'study_hall' ? 'Unknown Seat' : 'Unknown Cabin'),
+      booking.months_booked ?? '',
+      formatDate(booking.start_date),
+      formatDate(booking.end_date),
+      booking.booking_amount != null ? Number(booking.booking_amount).toLocaleString() : '',
+      booking.deposit_amount != null ? Number(booking.deposit_amount).toLocaleString() : '',
+      Number(booking.total_amount).toLocaleString(),
+      booking.status,
+      formatDate(booking.created_at)
+    ]);
     const csvContent = [headers, ...csvData].map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], {
-      type: 'text/csv'
-    });
+    const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('hidden', '');
@@ -513,9 +539,9 @@ const MerchantDashboard = () => {
                               <span className="text-sm font-medium">Booking</span>
                             </div>
                             <div className="space-y-1 text-sm">
-                              <div className="font-medium">{booking.location_name || 'Location'}</div>
+                              <div className="font-medium">{booking.location_name || 'Unknown Private Hall'}</div>
                               <div className="text-muted-foreground">
-                                {booking.booking_type === 'study_hall' ? 'Seat' : 'Cabin'} {booking.unit_name}
+                                {booking.booking_type === 'study_hall' ? 'Seat' : 'Cabin'} {booking.unit_name || (booking.booking_type === 'study_hall' ? 'Unknown Seat' : 'Unknown Cabin')}
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
@@ -677,11 +703,11 @@ const MerchantDashboard = () => {
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Location:</span>
-                              <span className="font-medium">{booking.location_name}</span>
+                              <span className="font-medium">{booking.location_name || 'Unknown Private Hall'}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">{booking.booking_type === 'study_hall' ? 'Seat' : 'Cabin'}:</span>
-                              <span className="font-medium">{booking.unit_name}</span>
+                              <span className="font-medium">{booking.unit_name || (booking.booking_type === 'study_hall' ? 'Unknown Seat' : 'Unknown Cabin')}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-muted-foreground">Type:</span>
@@ -849,11 +875,11 @@ const MerchantDashboard = () => {
                           {userData.bookings.length > 0 && <div className="space-y-2 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Private Hall:</span>
-                                <p className="font-medium">{userData.bookings[0].location_name}</p>
+                                <p className="font-medium">{userData.bookings[0].location_name || 'Unknown Private Hall'}</p>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Cabin:</span>
-                                <p className="font-medium">{userData.bookings[0].unit_name}</p>
+                                <p className="font-medium">{userData.bookings[0].unit_name || 'Unknown Cabin'}</p>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Date:</span>
@@ -1071,11 +1097,11 @@ const MerchantDashboard = () => {
                           {userData.bookings.length > 0 && <div className="space-y-2 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Private Hall:</span>
-                                <p className="font-medium">{userData.bookings[0].location_name}</p>
+                                <p className="font-medium">{userData.bookings[0].location_name || 'Unknown Private Hall'}</p>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Cabin:</span>
-                                <p className="font-medium">{userData.bookings[0].unit_name}</p>
+                                <p className="font-medium">{userData.bookings[0].unit_name || 'Unknown Cabin'}</p>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Date:</span>
@@ -1249,14 +1275,14 @@ const MerchantDashboard = () => {
                         <div className="flex items-center justify-between">
                           <div className="space-y-2">
                             <div className="flex items-center space-x-2">
-                              <h4 className="font-semibold">{booking.location_name || 'Location'}</h4>
+                              <h4 className="font-semibold">{booking.location_name || 'Unknown Private Hall'}</h4>
                               <Badge variant={getStatusColor(booking.status)}>
                                 {(booking.status || 'pending').toUpperCase()}
                               </Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">
                               <span className="font-medium">{booking.user?.full_name || booking.guest_name || booking.user?.email || booking.guest_email}</span> • 
-                              {booking.booking_type === 'study_hall' ? 'Seat' : 'Cabin'} {booking.unit_name} • 
+                              {booking.booking_type === 'study_hall' ? 'Seat' : 'Cabin'} {booking.unit_name || (booking.booking_type === 'study_hall' ? 'Unknown Seat' : 'Unknown Cabin')} • 
                               {booking.booking_type} booking
                             </div>
                             <div className="text-xs text-muted-foreground">

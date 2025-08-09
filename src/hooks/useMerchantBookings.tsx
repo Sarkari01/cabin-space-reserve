@@ -204,6 +204,14 @@ export const useMerchantBookings = () => {
           fetchMerchantBookings();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions' },
+        (payload) => {
+          // Refresh when related transactions change (e.g., payment status updates)
+          fetchMerchantBookings();
+        }
+      )
       .subscribe();
 
     return () => {
