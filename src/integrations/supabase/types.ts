@@ -1798,6 +1798,27 @@ export type Database = {
           },
         ]
       }
+      private_hall_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          private_hall_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          private_hall_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          private_hall_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       private_hall_images: {
         Row: {
           display_order: number | null

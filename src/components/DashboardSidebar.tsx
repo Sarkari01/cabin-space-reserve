@@ -192,6 +192,7 @@ const sidebarItems = {
   incharge: [
     { title: "Dashboard", url: "/incharge/dashboard", icon: Home, tab: "overview" },
     { title: "Assigned Study Halls", url: "/incharge/dashboard", icon: Building, tab: "studyhalls" },
+    { title: "Assigned Private Halls", url: "/incharge/dashboard", icon: Building2, tab: "privatehalls" },
     { title: "Bookings Management", url: "/incharge/dashboard", icon: Calendar, tab: "bookings" },
     { title: "Transactions", url: "/incharge/dashboard", icon: CreditCard, tab: "transactions" },
     { title: "Activity Logs", url: "/incharge/dashboard", icon: BookOpen, tab: "activity" },

@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { PrivateHallBookingModal } from '@/components/student/PrivateHallBookingModal';
 import { usePrivateHallImages } from '@/hooks/usePrivateHallImages';
-import { useFavorites } from '@/hooks/useFavorites';
+import { usePrivateHallFavorites } from '@/hooks/usePrivateHallFavorites';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
 
@@ -24,7 +24,7 @@ interface PrivateHallCardProps {
 
 const PrivateHallCard: React.FC<PrivateHallCardProps> = ({ hall, onView, onBook }) => {
   const { images } = usePrivateHallImages(hall.id);
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite } = usePrivateHallFavorites();
   const mainImage = images.find(img => img.is_main) || images[0];
 
   // Calculate layout info from cabin_layout_json

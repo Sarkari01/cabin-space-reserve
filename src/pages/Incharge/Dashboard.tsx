@@ -25,6 +25,7 @@ import { InchargeActivityLogs } from '@/components/InchargeActivityLogs';
 import { InchargeProfile } from '@/components/InchargeProfile';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
+import InchargePrivateHallsTab from '@/components/incharge/InchargePrivateHallsTab';
 
 type Incharge = Tables<'incharges'>;
 
@@ -288,6 +289,11 @@ const InchargeDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        );
+
+      case 'privatehalls':
+        return (
+          <InchargePrivateHallsTab />
         );
 
       case 'bookings':
