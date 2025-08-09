@@ -3458,6 +3458,10 @@ export type Database = {
           distance_km: number
         }[]
       }
+      get_public_business_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_trial_plan_settings: {
         Args: Record<PropertyKey, never>
         Returns: {
