@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
+import type { HallCabinStatus } from '@/hooks/usePrivateHallAvailability';
 
 
 export const AdminPrivateHallsTab: React.FC = () => {
@@ -170,8 +171,8 @@ export const AdminPrivateHallsTab: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {filteredHalls.map((hall) => {
-             const statusData = statuses[hall.id] ?? ({ status: 'available' } as const);
+             {filteredHalls.map((hall) => {
+               const statusData: HallCabinStatus = statuses[hall.id] ?? { status: 'available' };
              return (
               <Card key={hall.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">

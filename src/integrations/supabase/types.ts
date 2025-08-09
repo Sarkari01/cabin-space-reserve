@@ -3249,12 +3249,14 @@ export type Database = {
         Returns: number
       }
       check_cabin_availability_for_dates: {
-        Args: {
-          p_cabin_id: string
-          p_start_date: string
-          p_end_date: string
-          p_exclude_booking_id?: string
-        }
+        Args:
+          | { p_cabin_id: string; p_start_date: string; p_end_date: string }
+          | {
+              p_cabin_id: string
+              p_start_date: string
+              p_end_date: string
+              p_exclude_booking_id?: string
+            }
         Returns: boolean
       }
       check_seat_availability: {
@@ -3480,6 +3482,16 @@ export type Database = {
           average_rating: number
           total_reviews: number
           distance_km: number
+        }[]
+      }
+      get_private_hall_cabin_availability: {
+        Args: { p_private_hall_id: string }
+        Returns: {
+          cabin_id: string
+          cabin_name: string
+          status: string
+          booked_until: string
+          days_remaining: number
         }[]
       }
       get_public_business_settings: {

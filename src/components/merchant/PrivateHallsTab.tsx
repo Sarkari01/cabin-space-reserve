@@ -8,6 +8,7 @@ import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
 import { Plus, MapPin, DollarSign, Users, Eye, Edit, Trash } from 'lucide-react';
 import type { PrivateHall } from '@/types/PrivateHall';
+import type { HallCabinStatus } from '@/hooks/usePrivateHallAvailability';
 import { CabinAvailabilityBadge } from '@/components/CabinAvailabilityBadge';
 import { AutoExpireButton } from '@/components/AutoExpireButton';
 import { usePrivateHallAvailability } from '@/hooks/usePrivateHallAvailability';
@@ -114,7 +115,7 @@ export const PrivateHallsTab: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
            {privateHalls.map((hall) => {
-             const statusData = statuses[hall.id] ?? ({ status: 'available' } as const);
+             const statusData: HallCabinStatus = statuses[hall.id] ?? { status: 'available' };
              return (
               <Card key={hall.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>

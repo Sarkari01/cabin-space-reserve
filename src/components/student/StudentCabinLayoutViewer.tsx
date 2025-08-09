@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { CabinLayoutData } from '@/types/PrivateHall';
 import { CouponInput } from '@/components/CouponInput';
 import { RewardsInput } from '@/components/RewardsInput';
-import { buildLayoutCabinMapping, isCabinBookingBlocking } from '@/utils/cabinAvailability';
+import { buildLayoutCabinMapping } from '@/utils/cabinAvailability';
 interface CabinAvailability {
   [cabinId: string]: {
     status: 'available' | 'occupied' | 'maintenance';
@@ -105,70 +105,33 @@ export const StudentCabinLayoutViewer: React.FC<StudentCabinLayoutViewerProps> =
       // If no mapping exists yet, create it
       const mappingToUse = Object.keys(currentMapping).length > 0 ? currentMapping : await createCabinIdMapping();
 
-      // Fetch cabins and bookings separately to avoid JOIN issues
-      const { data: cabins, error: cabinsError } = await supabase
-        .from('cabins')
-        .select('*')
-        .eq('private_hall_id', privateHallId);
+      // Fetch availability using RLS-safe RPC to include other users' bookings
+      const { data: availRows, error: availError } = await supabase.rpc(
+        'get_private_hall_cabin_availability',
+        { p_private_hall_id: privateHallId }
+      );
 
-      if (cabinsError) {
-        console.error('Error fetching cabins:', cabinsError);
+      if (availError) {
+        console.error('Error fetching RPC availability:', availError);
         return;
       }
 
-      // Fetch bookings separately - include more statuses that indicate occupation
-      const cabinIds = cabins?.map(cabin => cabin.id) || [];
-      let bookings: any[] = [];
-      
-      const today = new Date();
-      const todayStr = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0, 10);
-
-      if (cabinIds.length > 0) {
-        const { data: bookingsData, error: bookingsError } = await supabase
-          .from('cabin_bookings')
-          .select('*')
-          .in('cabin_id', cabinIds)
-          .eq('payment_status', 'paid')
-          .eq('is_vacated', false)
-          .gte('end_date', todayStr);
-
-        if (bookingsError) {
-          console.error('Error fetching bookings:', bookingsError);
-        } else {
-          bookings = bookingsData || [];
-        }
-      }
-
       const availabilityMap: CabinAvailability = {};
-      
-      // Map database cabin availability back to layout cabin IDs
-      cabins?.forEach(dbCabin => {
-        // Check for any bookings that would make the cabin occupied
-        const activeBookings = bookings.filter(booking =>
-          booking.cabin_id === dbCabin.id && isCabinBookingBlocking(booking)
-        );
-        
-        // Find the layout cabin ID that corresponds to this database cabin
+
+      (availRows || []).forEach((row: any) => {
         const layoutCabinId = Object.keys(mappingToUse).find(
-          layoutId => mappingToUse[layoutId] === dbCabin.id
+          (layoutId) => mappingToUse[layoutId] === row.cabin_id
         );
-        
         if (layoutCabinId) {
-          const status = dbCabin.status === 'maintenance' ? 'maintenance' : 
-                        (activeBookings.length > 0 ? 'occupied' : 'available');
-          
+          const status = (row.status as 'available' | 'occupied' | 'maintenance') || 'available';
           availabilityMap[layoutCabinId] = {
             status,
-            bookings: activeBookings.length
+            bookings: status === 'occupied' ? 1 : 0,
           };
-          
-          console.log(`📊 Cabin ${layoutCabinId} (${dbCabin.cabin_name}): ${status} (${activeBookings.length} bookings)`);
-        } else {
-          console.warn(`❌ No layout cabin found for database cabin ${dbCabin.id} (${dbCabin.cabin_name})`);
         }
       });
 
-      console.log('Availability update:', { mappingToUse, availabilityMap, bookings });
+      console.log('Availability update:', { mappingToUse, availabilityMap, availRows });
       setAvailability(availabilityMap);
     } catch (error) {
       console.error('Error fetching availability:', error);
