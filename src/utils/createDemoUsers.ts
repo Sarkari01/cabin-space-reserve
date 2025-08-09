@@ -3,13 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 export const createDemoUsers = async () => {
   try {
     // Get brand settings for dynamic email domains
-  const { data: brandSettings } = await supabase
-    .rpc("get_public_business_settings");
+    type PublicBusinessSettings = { brand_name?: string; website_url?: string };
+    const { data: brandSettingsRaw } = await supabase
+      .rpc('get_public_business_settings');
     
-    const brandName = brandSettings?.brand_name || "StudySpace";
-    const domain = brandSettings?.website_url ? 
-      new URL(brandSettings.website_url).hostname : 
-      "studyspace.com";
+    const brandSettings = (brandSettingsRaw ?? {}) as Partial<PublicBusinessSettings>;
+    const brandName = brandSettings.brand_name ?? 'StudySpace';
+    let domain = 'studyspace.com';
+    if (brandSettings.website_url) {
+      try {
+        domain = new URL(brandSettings.website_url).hostname;
+      } catch (e) {
+        console.warn('Invalid website_url in brand settings:', brandSettings.website_url);
+      }
+    }
 
     // Create Admin User
     const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
