@@ -174,7 +174,7 @@ export const useCombinedBookings = () => {
   useEffect(() => {
     fetchCombinedBookings();
     
-    // Set up real-time subscription for cabin bookings updates
+    // Real-time subscription for cabin bookings updates
     const cabinBookingsChannel = supabase
       .channel('cabin-bookings-changes')
       .on(
@@ -191,7 +191,7 @@ export const useCombinedBookings = () => {
       )
       .subscribe();
 
-    // Set up real-time subscription for study hall bookings updates  
+    // Real-time subscription for study hall bookings updates  
     const studyHallBookingsChannel = supabase
       .channel('study-hall-bookings-changes')
       .on(
@@ -208,11 +208,29 @@ export const useCombinedBookings = () => {
       )
       .subscribe();
 
+    // Real-time subscription for transaction updates (payment status changes)
+    const transactionsChannel = supabase
+      .channel('transactions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        (payload) => {
+          console.log('Transaction changed:', payload);
+          fetchCombinedBookings();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(cabinBookingsChannel);
       supabase.removeChannel(studyHallBookingsChannel);
+      supabase.removeChannel(transactionsChannel);
     };
-  }, [fetchCombinedBookings]);
+  }, [fetchCombinedBookings, user?.id]);
 
   const getUpcomingBookings = () => {
     return bookings.filter(booking => 

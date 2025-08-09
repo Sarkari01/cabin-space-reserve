@@ -8,6 +8,12 @@ interface PrivateHallFavorite {
   user_id: string;
   private_hall_id: string;
   created_at: string;
+  private_halls?: {
+    id: string;
+    name: string;
+    location: string;
+    monthly_price: number;
+  };
 }
 
 export const usePrivateHallFavorites = () => {
@@ -24,7 +30,9 @@ export const usePrivateHallFavorites = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      // Step 1: fetch favorites
+      const { data: favs, error } = await supabase
         .from("private_hall_favorites")
         .select("*")
         .eq("user_id", user.id);
@@ -39,7 +47,31 @@ export const usePrivateHallFavorites = () => {
         return;
       }
 
-      setFavorites(data || []);
+      if (!favs || favs.length === 0) {
+        setFavorites([]);
+        return;
+      }
+
+      // Step 2: fetch details for related private halls
+      const hallIds = Array.from(new Set(favs.map((f) => f.private_hall_id)));
+      const { data: halls, error: hallsError } = await supabase
+        .from("private_halls")
+        .select("id, name, location, monthly_price")
+        .in("id", hallIds);
+
+      if (hallsError) {
+        console.warn("Could not enrich private hall favorites with hall details:", hallsError);
+        setFavorites(favs as any);
+        return;
+      }
+
+      const hallMap = new Map(halls.map((h) => [h.id, h]));
+      const enriched = favs.map((f) => ({
+        ...f,
+        private_halls: hallMap.get(f.private_hall_id),
+      })) as PrivateHallFavorite[];
+
+      setFavorites(enriched);
     } catch (error) {
       console.error("Unexpected error fetching private hall favorites:", error);
     } finally {

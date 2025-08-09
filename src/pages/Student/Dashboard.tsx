@@ -11,6 +11,7 @@ import { useStudyHalls, useSeats } from "@/hooks/useStudyHalls";
 import { useBookings } from "@/hooks/useBookings";
 import { useCombinedBookings, CombinedBooking } from "@/hooks/useCombinedBookings";
 import { useFavorites } from "@/hooks/useFavorites";
+import { usePrivateHallFavorites } from "@/hooks/usePrivateHallFavorites";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { StudyHallDetailModal } from "@/components/StudyHallDetailModal";
 import { BannerCarousel } from "@/components/BannerCarousel";
@@ -51,6 +52,7 @@ const StudentDashboard = () => {
     getTotalSpent: getCombinedTotalSpent 
   } = useCombinedBookings();
   const { favorites, addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
+  const { favorites: privateHallFavorites, removeFromFavorites: removePrivateHallFavorite } = usePrivateHallFavorites();
   const { analytics, loading: analyticsLoading, lastUpdate, refreshAnalytics } = useDashboardAnalytics();
   
   const [activeTab, setActiveTab] = useState("overview");
@@ -570,62 +572,108 @@ const StudentDashboard = () => {
           {/* Favorites Tab */}
           {activeTab === "favorites" && (
             <div className="space-y-6">
-              <h3 className="text-2xl font-semibold">Your Favorite Study Halls</h3>
-              
-              {favorites.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {favorites.map((favorite) => (
-                    <Card key={favorite.id} className="hover:shadow-md transition-shadow">
-                      <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                        {favorite.study_halls?.image_url ? (
-                          <img 
-                            src={favorite.study_halls.image_url} 
-                            alt={favorite.study_halls.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                            <span className="text-muted-foreground">{favorite.study_halls?.name}</span>
-                          </div>
-                        )}
-                      </div>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-semibold">{favorite.study_halls?.name}</h4>
-                          <Badge variant="outline">Study Hall</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3 flex items-center">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {favorite.study_halls?.location}
-                        </p>
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold">₹{favorite.study_halls?.monthly_price}/month</span>
-                          <div className="space-x-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => removeFromFavorites(favorite.study_hall_id)}
-                            >
-                              <Heart className="h-4 w-4 fill-red-500 text-red-500" />
-                            </Button>
-                            <Button size="sm" onClick={() => favorite.study_halls && handleViewStudyHall(favorite.study_halls)}>
-                              View
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
+              <h3 className="text-2xl font-semibold">Your Favorites</h3>
+
+              {(favorites.length === 0 && privateHallFavorites.length === 0) ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <h3 className="text-lg font-medium mb-2">No favorites yet</h3>
-                  <p>Add study halls to your favorites while browsing</p>
+                  <p>Add study halls or private halls to your favorites while browsing</p>
                   <Button className="mt-4" onClick={() => setActiveTab("browse")}>
                     Browse Study Halls
                   </Button>
                 </div>
+              ) : (
+                <>
+                  {favorites.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="text-xl font-semibold">Study Halls</h4>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {favorites.map((favorite) => (
+                          <Card key={favorite.id} className="hover:shadow-md transition-shadow">
+                            <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+                              {favorite.study_halls?.image_url ? (
+                                <img 
+                                  src={favorite.study_halls.image_url} 
+                                  alt={favorite.study_halls.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                                  <span className="text-muted-foreground">{favorite.study_halls?.name}</span>
+                                </div>
+                              )}
+                            </div>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className="font-semibold">{favorite.study_halls?.name}</h4>
+                                <Badge variant="outline">Study Hall</Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-3 flex items-center">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {favorite.study_halls?.location}
+                              </p>
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold">₹{favorite.study_halls?.monthly_price}/month</span>
+                                <div className="space-x-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => removeFromFavorites(favorite.study_hall_id)}
+                                  >
+                                    <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                                  </Button>
+                                  <Button size="sm" onClick={() => favorite.study_halls && handleViewStudyHall(favorite.study_halls)}>
+                                    View
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {privateHallFavorites.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="text-xl font-semibold">Private Halls</h4>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {privateHallFavorites.map((favorite) => (
+                          <Card key={favorite.id} className="hover:shadow-md transition-shadow">
+                            <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
+                              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                                <span className="text-muted-foreground">{favorite.private_halls?.name || 'Private Hall'}</span>
+                              </div>
+                            </div>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className="font-semibold">{favorite.private_halls?.name || 'Private Hall'}</h4>
+                                <Badge variant="outline">Private Hall</Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-3 flex items-center">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {favorite.private_halls?.location}
+                              </p>
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold">₹{favorite.private_halls?.monthly_price}/month</span>
+                                <div className="space-x-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => removePrivateHallFavorite(favorite.private_hall_id)}
+                                  >
+                                    <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
