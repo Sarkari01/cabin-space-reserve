@@ -13,6 +13,7 @@ interface PrivateHallFavorite {
     name: string;
     location: string;
     monthly_price: number;
+    image_url?: string;
   };
 }
 
@@ -65,11 +66,34 @@ export const usePrivateHallFavorites = () => {
         return;
       }
 
+      // Step 3: fetch main images for these private halls
+      const { data: hallImages, error: imagesError } = await supabase
+        .from("private_hall_images")
+        .select("private_hall_id, image_url, is_main")
+        .in("private_hall_id", hallIds);
+
+      if (imagesError) {
+        console.warn("Could not load private hall images:", imagesError);
+      }
+
+      const imageMap = new Map<string, { image_url: string }>();
+      (hallImages || []).forEach((img: any) => {
+        const existing = imageMap.get(img.private_hall_id);
+        // Prefer main image; otherwise keep the first encountered
+        if (!existing || img.is_main) {
+          imageMap.set(img.private_hall_id, { image_url: img.image_url });
+        }
+      });
+
       const hallMap = new Map(halls.map((h) => [h.id, h]));
-      const enriched = favs.map((f) => ({
-        ...f,
-        private_halls: hallMap.get(f.private_hall_id),
-      })) as PrivateHallFavorite[];
+      const enriched = favs.map((f) => {
+        const hall = hallMap.get(f.private_hall_id);
+        const img = imageMap.get(f.private_hall_id);
+        return {
+          ...f,
+          private_halls: hall ? { ...hall, image_url: img?.image_url } : undefined,
+        };
+      }) as PrivateHallFavorite[];
 
       setFavorites(enriched);
     } catch (error) {

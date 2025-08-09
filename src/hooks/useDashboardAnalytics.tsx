@@ -89,7 +89,17 @@ export const useDashboardAnalytics = () => {
         trendQuery = trendQuery.eq('user_id', user.id);
       }
 
-      const { data: trendData } = await trendQuery;
+      const { data: trendBookings } = await trendQuery;
+      let trendData = trendBookings || [];
+      if (userRole === 'student') {
+        const { data: cabinTrend } = await supabase
+          .from('cabin_bookings')
+          .select('created_at, total_amount, status')
+          .gte('created_at', thirtyDaysAgo.toISOString())
+          .in('status', ['active', 'completed'])
+          .eq('user_id', user.id);
+        trendData = [...trendData, ...(cabinTrend || [])];
+      }
 
       // Process trend data
       const bookingsTrend = [];
@@ -229,18 +239,40 @@ export const useDashboardAnalytics = () => {
           .select('total_amount, status, start_date, end_date')
           .eq('user_id', user.id);
 
-        // Note: Favorites feature would need a separate table implementation
-        const favorites = []; // Placeholder for favorites functionality
+        const { data: studentCabinBookings } = await supabase
+          .from('cabin_bookings')
+          .select('total_amount, status, start_date, end_date')
+          .eq('user_id', user.id);
 
-        const totalBookings = studentBookings?.length || 0;
-        const totalSpent = studentBookings?.filter(b => b.status === 'completed')
-          .reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
-        const favoriteHalls = favorites?.length || 0;
-        const upcomingBookings = studentBookings?.filter(b => 
-          b.status && ['confirmed', 'pending'].includes(b.status) && 
+        const allStudentBookings = [
+          ...(studentBookings || []),
+          ...(studentCabinBookings || []),
+        ];
+
+        const totalBookings = allStudentBookings.length;
+        const totalSpent = allStudentBookings
+          .filter((b: any) => b.status === 'completed')
+          .reduce((sum: number, b: any) => sum + (Number(b.total_amount) || 0), 0) || 0;
+
+        const upcomingBookings = allStudentBookings.filter((b: any) =>
+          b.status && ['confirmed', 'pending'].includes(b.status) &&
           b.start_date && new Date(b.start_date) >= new Date()
         ).length || 0;
-        const completedBookings = studentBookings?.filter(b => b.status === 'completed').length || 0;
+
+        const completedBookings = allStudentBookings.filter((b: any) => b.status === 'completed').length || 0;
+
+        // Favorites count: study halls + private halls
+        const { count: favStudyCount } = await supabase
+          .from('favorites')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        const { count: favPrivateCount } = await supabase
+          .from('private_hall_favorites')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        const favoriteHalls = (favStudyCount || 0) + (favPrivateCount || 0);
 
         roleSpecificAnalytics = {
           studentStats: {
@@ -249,8 +281,8 @@ export const useDashboardAnalytics = () => {
             favoriteHalls,
             averageSessionDuration: 4.5, // Placeholder
             upcomingBookings,
-            completedBookings
-          }
+            completedBookings,
+          },
         };
       }
 

@@ -97,6 +97,22 @@ const StudentDashboard = () => {
     return () => window.removeEventListener('navigateToReviews', handleNavigateToReviews);
   }, []);
 
+  // Read initial tab from URL (?tab=...)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlTab = params.get('tab');
+    if (urlTab && urlTab !== activeTab) setActiveTab(urlTab);
+  }, [location.search]);
+
+  // Sync tab to URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('tab') !== activeTab) {
+      params.set('tab', activeTab);
+      navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+    }
+  }, [activeTab, location.pathname, location.search, navigate]);
+
   // Filter active study halls for browsing
   const activeStudyHalls = studyHalls.filter(hall => hall.status === 'active');
   
@@ -225,7 +241,7 @@ const StudentDashboard = () => {
                 />
                 <StatCard
                   title="Favorite Halls"
-                  value={analytics.studentStats?.favoriteHalls || favorites.length}
+                  value={analytics.studentStats?.favoriteHalls ?? (favorites.length + privateHallFavorites.length)}
                   icon={Heart}
                   loading={analyticsLoading}
                 />
@@ -642,9 +658,17 @@ const StudentDashboard = () => {
                         {privateHallFavorites.map((favorite) => (
                           <Card key={favorite.id} className="hover:shadow-md transition-shadow">
                             <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                                <span className="text-muted-foreground">{favorite.private_halls?.name || 'Private Hall'}</span>
-                              </div>
+                              {favorite.private_halls?.image_url ? (
+                                <img
+                                  src={favorite.private_halls.image_url}
+                                  alt={favorite.private_halls.name || 'Private Hall'}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                                  <span className="text-muted-foreground">{favorite.private_halls?.name || 'Private Hall'}</span>
+                                </div>
+                              )}
                             </div>
                             <CardContent className="p-4">
                               <div className="flex justify-between items-start mb-2">
