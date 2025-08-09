@@ -59,10 +59,13 @@ export const useBusinessSettings = () => {
         .select("*")
         .maybeSingle();
 
-      if (error) throw error;
-      
-      if (!data) {
-        // Create default settings if none exist
+      if (error) {
+        // Fallback to sanitized public settings via RPC (for non-admin views)
+        const { data: publicData, error: rpcError } = await supabase.rpc('get_public_business_settings');
+        if (rpcError) throw rpcError;
+        if (publicData) setSettings(publicData as any);
+      } else if (!data) {
+        // Only admins should initialize defaults; non-admins will not insert
         const { data: newData, error: insertError } = await supabase
           .from("business_settings")
           .insert({
@@ -76,14 +79,12 @@ export const useBusinessSettings = () => {
             points_profile_complete: 100,
             min_redemption_points: 10,
             brand_name: 'StudySpace Platform',
-            // New platform fee defaults
             platform_fee_enabled: false,
             platform_fee_type: 'percent',
             platform_fee_value: 0,
           })
           .select()
           .single();
-        
         if (insertError) throw insertError;
         setSettings(newData);
       } else {

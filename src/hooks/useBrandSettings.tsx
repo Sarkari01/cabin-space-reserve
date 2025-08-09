@@ -26,14 +26,12 @@ export const useBrandSettings = () => {
     const fetchBrandSettings = async () => {
       try {
         const { data, error } = await supabase
-          .from('business_settings')
-          .select('brand_name, support_email, support_phone, logo_url, copyright_text, business_address, social_facebook, social_twitter, social_instagram, social_linkedin, newsletter_enabled, newsletter_description, tagline')
-          .single();
+          .rpc('get_public_business_settings');
 
         if (error) {
           console.error('Error fetching brand settings:', error);
         } else {
-          setBrandSettings(data || {});
+          setBrandSettings((data as any) || {});
         }
       } catch (error) {
         console.error('Error fetching brand settings:', error);

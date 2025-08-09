@@ -10,19 +10,15 @@ import { supabase } from "@/integrations/supabase/client";
 const initializeBrandSettings = async () => {
   try {
     const { data, error } = await supabase
-      .from("business_settings")
-      .select("brand_name, favicon_url")
-      .maybeSingle();
+      .rpc("get_public_business_settings");
 
     if (data && !error) {
-      // Update page title
-      document.title = data.brand_name || "StudySpace Platform";
-      
-      // Update favicon if available
-      if (data.favicon_url) {
+      const d = data as any;
+      document.title = d.brand_name || "StudySpace Platform";
+      if (d.favicon_url) {
         const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
         if (link) {
-          link.href = data.favicon_url;
+          link.href = d.favicon_url;
         }
       }
     }

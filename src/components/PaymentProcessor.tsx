@@ -118,22 +118,21 @@ export const PaymentProcessor = ({ bookingIntent, onPaymentSuccess, onCancel }: 
         
         // Try to fetch business settings directly
         const { data: freshSettings, error: settingsError } = await supabase
-          .from('business_settings')
-          .select('*')
-          .single();
+          .rpc('get_public_business_settings');
         
-        if (settingsError || !freshSettings) {
+        const fs: any = freshSettings as any;
+        if (settingsError || !fs) {
           console.error('❌ EKQR: Failed to load business settings:', settingsError);
           
           // More specific error message based on the type of error
-          if (settingsError?.code === 'PGRST116') {
+          if ((settingsError as any)?.code === 'PGRST116') {
             throw new Error("Payment system not initialized. Please contact support to set up payments.");
           } else {
             throw new Error("Unable to load payment configuration. Please refresh the page or contact support.");
           }
         }
         
-        if (!freshSettings.ekqr_enabled) {
+        if (!fs.ekqr_enabled) {
           throw new Error("QR payments are currently disabled. Please try Card/UPI Payment or contact support.");
         }
       } else if (!settings.ekqr_enabled) {

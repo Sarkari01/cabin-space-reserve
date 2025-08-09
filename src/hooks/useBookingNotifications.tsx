@@ -24,11 +24,10 @@ export const useBookingNotifications = () => {
             try {
               // Get business settings to check if SMS is enabled
               const { data: settings } = await supabase
-                .from('business_settings')
-                .select('sms_enabled, sms_booking_confirmations_enabled')
-                .single();
+                .rpc('get_public_business_settings');
 
-              if (!settings?.sms_enabled || !settings?.sms_booking_confirmations_enabled) {
+              const s: any = settings as any;
+              if (!s?.sms_enabled || !s?.sms_booking_confirmations_enabled) {
                 return;
               }
 

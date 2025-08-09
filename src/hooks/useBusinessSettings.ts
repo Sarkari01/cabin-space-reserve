@@ -78,55 +78,15 @@ export const useBusinessSettings = () => {
         .maybeSingle();
 
       if (fetchError) {
-        throw fetchError;
-      }
-
-      if (data) {
+        // Fallback to sanitized public settings via RPC under RLS
+        const { data: publicData, error: rpcError } = await supabase.rpc('get_public_business_settings');
+        if (rpcError) throw rpcError;
+        if (publicData) setSettings(normalizeBusinessSettings(publicData));
+      } else if (data) {
         setSettings(normalizeBusinessSettings(data));
       } else {
-        // Create default settings if none exist
-        const defaultSettings: Partial<BusinessSettings> = {
-          ekqr_enabled: true,
-          offline_enabled: true,
-          razorpay_enabled: false,
-          gemini_enabled: false,
-          brand_name: 'StudySpace Platform',
-          trial_plan_enabled: false,
-          trial_duration_days: 14,
-          trial_plan_name: 'Free Trial',
-          trial_max_study_halls: 1,
-          platform_fee_percentage: 10.00,
-          minimum_settlement_amount: 100.00,
-          minimum_withdrawal_amount: 500.00,
-          auto_approval_threshold: 10000.00,
-          withdrawal_processing_days: 3,
-          rewards_enabled: true,
-          rewards_conversion_rate: 0.10,
-          points_per_booking: 50,
-          points_per_referral: 500,
-          points_profile_complete: 100,
-          min_redemption_points: 10,
-          maintenance_mode_enabled: false,
-          maintenance_message: 'We are currently performing maintenance. Please check back later.',
-          maintenance_estimated_return: null,
-          maintenance_target_roles: ['merchant', 'student', 'incharge', 'telemarketing_executive', 'pending_payments_caller', 'customer_care_executive', 'settlement_manager', 'general_administrator', 'institution'],
-          // New platform fee defaults
-          platform_fee_enabled: false,
-          platform_fee_type: 'percent',
-          platform_fee_value: 0,
-        };
-
-        const { data: newData, error: createError } = await supabase
-          .from('business_settings')
-          .insert(defaultSettings)
-          .select()
-          .single();
-
-        if (createError) {
-          throw createError;
-        }
-
-        setSettings(normalizeBusinessSettings(newData));
+        // No data and no error: only admins should initialize defaults; skip for others
+        setSettings(null);
       }
     } catch (err) {
       console.error('Error fetching business settings:', err);

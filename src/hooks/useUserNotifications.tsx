@@ -22,11 +22,10 @@ export const useUserNotifications = () => {
           try {
             // Check if SMS is enabled for user/merchant creation
             const { data: settings } = await supabase
-              .from('business_settings')
-              .select('sms_enabled, sms_user_enabled, sms_merchant_enabled, sms_login_credentials_enabled')
-              .single();
+              .rpc('get_public_business_settings');
 
-            if (!settings?.sms_enabled || !settings?.sms_login_credentials_enabled) {
+            const s: any = settings as any;
+            if (!s?.sms_enabled || !s?.sms_login_credentials_enabled) {
               return;
             }
 
@@ -61,11 +60,10 @@ export const useUserNotifications = () => {
             try {
               // Check if SMS is enabled
               const { data: settings } = await supabase
-                .from('business_settings')
-                .select('sms_enabled, sms_merchant_enabled')
-                .single();
+                .rpc('get_public_business_settings');
 
-              if (!settings?.sms_enabled || !settings?.sms_merchant_enabled) {
+              const s: any = settings as any;
+              if (!s?.sms_enabled || !s?.sms_merchant_enabled) {
                 return;
               }
 

@@ -19,10 +19,8 @@ export const useMaintenanceMode = () => {
 
   const fetchMaintenanceStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from('business_settings')
-        .select('maintenance_mode_enabled, maintenance_message, maintenance_estimated_return, maintenance_target_roles')
-        .maybeSingle();
+        const { data, error } = await supabase
+          .rpc('get_public_business_settings');
 
       if (error) {
         console.error('Error fetching maintenance status:', error);
@@ -30,11 +28,12 @@ export const useMaintenanceMode = () => {
       }
 
       if (data) {
+        const d = data as any;
         setMaintenanceStatus({
-          enabled: data.maintenance_mode_enabled || false,
-          message: data.maintenance_message || 'We are currently performing maintenance. Please check back later.',
-          estimatedReturn: data.maintenance_estimated_return,
-          targetRoles: data.maintenance_target_roles || null
+          enabled: Boolean(d.maintenance_mode_enabled) || false,
+          message: d.maintenance_message || 'We are currently performing maintenance. Please check back later.',
+          estimatedReturn: d.maintenance_estimated_return,
+          targetRoles: d.maintenance_target_roles || null
         });
       }
     } catch (err) {

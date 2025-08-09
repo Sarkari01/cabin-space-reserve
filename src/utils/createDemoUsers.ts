@@ -3,10 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 export const createDemoUsers = async () => {
   try {
     // Get brand settings for dynamic email domains
-    const { data: brandSettings } = await supabase
-      .from("business_settings")
-      .select("brand_name, website_url")
-      .maybeSingle();
+  const { data: brandSettings } = await supabase
+    .rpc("get_public_business_settings");
     
     const brandName = brandSettings?.brand_name || "StudySpace";
     const domain = brandSettings?.website_url ? 
