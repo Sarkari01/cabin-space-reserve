@@ -253,7 +253,7 @@ export const useCabinBooking = () => {
       const endDate = addMonths(new Date(startDate), 1);
       const endDateString = format(endDate, 'yyyy-MM-dd');
       
-      const { data, error } = await supabase.rpc('check_cabin_availability_for_dates', {
+      const { data, error } = await supabase.rpc('verify_cabin_availability', {
         p_cabin_id: cabinId,
         p_start_date: startDate,
         p_end_date: endDateString

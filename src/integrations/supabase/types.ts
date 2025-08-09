@@ -3612,6 +3612,10 @@ export type Database = {
           available_balance: number
         }[]
       }
+      verify_cabin_availability: {
+        Args: { p_cabin_id: string; p_start_date: string; p_end_date: string }
+        Returns: boolean
+      }
     }
     Enums: {
       banner_status: "active" | "inactive"

@@ -252,7 +252,7 @@ const { settings } = useBusinessSettings();
       
       const end = addMonths(start, 1);
       // Use the new database function for availability checking
-      const { data, error } = await supabase.rpc('check_cabin_availability_for_dates', {
+      const { data, error } = await supabase.rpc('verify_cabin_availability', {
         p_cabin_id: cabinId,
         p_start_date: format(start, 'yyyy-MM-dd'),
         p_end_date: format(end, 'yyyy-MM-dd')
