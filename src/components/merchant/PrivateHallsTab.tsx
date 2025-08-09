@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,12 +10,11 @@ import { Plus, MapPin, DollarSign, Users, Eye, Edit, Trash } from 'lucide-react'
 import type { PrivateHall } from '@/types/PrivateHall';
 import { CabinAvailabilityBadge } from '@/components/CabinAvailabilityBadge';
 import { AutoExpireButton } from '@/components/AutoExpireButton';
-import { useCombinedBookings } from '@/hooks/useCombinedBookings';
-import { computeHallCabinStatus } from '@/utils/cabinStatus';
+import { usePrivateHallAvailability } from '@/hooks/usePrivateHallAvailability';
 
 export const PrivateHallsTab: React.FC = () => {
   const { privateHalls, loading, updatePrivateHall, deletePrivateHall } = usePrivateHalls();
-  const { bookings } = useCombinedBookings();
+  const { statuses, fetchStatuses } = usePrivateHallAvailability();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -45,9 +44,9 @@ export const PrivateHallsTab: React.FC = () => {
     }
   };
 
-  const getCabinStatusData = (privateHallId: string) => {
-    return computeHallCabinStatus(bookings as any, privateHallId);
-  };
+  useEffect(() => {
+    fetchStatuses(privateHalls.map(h => h.id));
+  }, [privateHalls, fetchStatuses]);
 
   if (loading) {
     return (
@@ -114,9 +113,9 @@ export const PrivateHallsTab: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {privateHalls.map((hall) => {
-            const statusData = getCabinStatusData(hall.id);
-            return (
+           {privateHalls.map((hall) => {
+             const statusData = statuses[hall.id] ?? ({ status: 'available' } as const);
+             return (
               <Card key={hall.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">

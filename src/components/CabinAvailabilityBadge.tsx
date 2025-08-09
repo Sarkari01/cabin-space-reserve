@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 
 interface CabinAvailabilityBadgeProps {
-  status: 'available' | 'booked' | 'maintenance' | 'expiring-soon';
+  status: 'available' | 'booked' | 'occupied' | 'maintenance' | 'expiring-soon';
   bookedUntil?: string;
   daysRemaining?: number;
   size?: 'sm' | 'default';
@@ -24,20 +24,21 @@ export function CabinAvailabilityBadge({
           text: 'Available'
         };
       case 'booked':
+      case 'occupied':
         return {
           variant: 'outline' as const,
           className: 'text-orange-600 border-orange-200 bg-orange-50',
           icon: Calendar,
           text: bookedUntil 
-            ? `Booked until ${new Date(bookedUntil).toLocaleDateString()}`
-            : 'Booked'
+            ? `Occupied until ${new Date(bookedUntil).toLocaleDateString()}`
+            : 'Occupied'
         };
       case 'expiring-soon':
         return {
           variant: 'outline' as const,
           className: 'text-yellow-600 border-yellow-200 bg-yellow-50',
           icon: Clock,
-          text: `Expires in ${daysRemaining} days`
+          text: daysRemaining !== undefined ? `Vacates in ${daysRemaining} days` : 'Expiring soon'
         };
       case 'maintenance':
         return {

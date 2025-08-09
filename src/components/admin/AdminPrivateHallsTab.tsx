@@ -7,17 +7,17 @@ import { Building, MapPin, Users, DollarSign, Search, Eye, Edit, Trash2 } from '
 import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { CabinAvailabilityBadge } from '@/components/CabinAvailabilityBadge';
 import { AutoExpireButton } from '@/components/AutoExpireButton';
-import { useCombinedBookings } from '@/hooks/useCombinedBookings';
+import { usePrivateHallAvailability } from '@/hooks/usePrivateHallAvailability';
 import { PrivateHallCreationModal } from '@/components/PrivateHallCreationModal';
 import { PrivateHallDetailModal } from '@/components/PrivateHallDetailModal';
 import { PrivateHallEditModal } from '@/components/PrivateHallEditModal';
 import { toast } from 'sonner';
 import type { PrivateHall } from '@/types/PrivateHall';
-import { computeHallCabinStatus } from '@/utils/cabinStatus';
+
 
 export const AdminPrivateHallsTab: React.FC = () => {
   const { privateHalls, loading, deletePrivateHall } = usePrivateHalls();
-  const { bookings } = useCombinedBookings();
+  const { statuses, fetchStatuses } = usePrivateHallAvailability();
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedHall, setSelectedHall] = useState<PrivateHall | null>(null);
@@ -55,9 +55,9 @@ export const AdminPrivateHallsTab: React.FC = () => {
   };
 
   // NEW: compute hall-level cabin status using bookings (paid, not vacated, end_date >= today)
-  const getCabinStatusData = (privateHallId: string) => {
-    return computeHallCabinStatus(bookings as any, privateHallId);
-  };
+  useEffect(() => {
+    fetchStatuses(privateHalls.map(h => h.id));
+  }, [privateHalls, fetchStatuses]);
 
   if (loading) {
     return (
@@ -170,9 +170,9 @@ export const AdminPrivateHallsTab: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredHalls.map((hall) => {
-            const statusData = getCabinStatusData(hall.id);
-            return (
+           {filteredHalls.map((hall) => {
+             const statusData = statuses[hall.id] ?? ({ status: 'available' } as const);
+             return (
               <Card key={hall.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
