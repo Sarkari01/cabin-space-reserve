@@ -273,6 +273,19 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
     }));
   };
 
+  const handlePermissionToggle = (
+    permission: keyof FormData['permissions'],
+    checked: boolean
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [permission]: checked,
+      },
+    }));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
