@@ -37,8 +37,8 @@ export function CabinVacateButton({
   const { vacateCabinBooking, loading } = useCabinVacate();
   const { userRole } = useAuth();
 
-  // Only show button for admins, merchants, and telemarketing executives
-  if (!userRole || !['admin', 'merchant', 'telemarketing_executive'].includes(userRole)) {
+  // Only show button for admins, merchants, telemarketing executives, and incharges
+  if (!userRole || !['admin', 'merchant', 'telemarketing_executive', 'incharge'].includes(userRole)) {
     return null;
   }
 

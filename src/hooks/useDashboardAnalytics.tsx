@@ -99,6 +99,21 @@ export const useDashboardAnalytics = () => {
           .in('status', ['active', 'completed'])
           .eq('user_id', user.id);
         trendData = [...trendData, ...(cabinTrend || [])];
+      } else if (userRole === 'merchant') {
+        const { data: privateHalls } = await supabase
+          .from('private_halls')
+          .select('id')
+          .eq('merchant_id', user.id);
+        const privateHallIds = privateHalls?.map(ph => ph.id) || [];
+        if (privateHallIds.length > 0) {
+          const { data: cabinTrend } = await supabase
+            .from('cabin_bookings')
+            .select('created_at, total_amount, status, private_hall_id')
+            .gte('created_at', thirtyDaysAgo.toISOString())
+            .in('status', ['active', 'completed'])
+            .in('private_hall_id', privateHallIds);
+          trendData = [...trendData, ...(cabinTrend || [])];
+        }
       }
 
       // Process trend data
@@ -192,7 +207,7 @@ export const useDashboardAnalytics = () => {
           .eq('merchant_id', user.id);
 
         const studyHallIds = merchantStudyHalls?.map(sh => sh.id) || [];
-        let merchantBookings = [];
+        let merchantBookings: any[] = [];
         
         if (studyHallIds.length > 0) {
           const { data: bookingsData } = await supabase
@@ -200,6 +215,21 @@ export const useDashboardAnalytics = () => {
             .select('study_hall_id, total_amount, status')
             .in('study_hall_id', studyHallIds);
           merchantBookings = bookingsData || [];
+        }
+
+        // Include private hall (cabin) bookings in merchant metrics
+        const { data: merchantPrivateHalls } = await supabase
+          .from('private_halls')
+          .select('id')
+          .eq('merchant_id', user.id);
+        const privateHallIds = merchantPrivateHalls?.map(ph => ph.id) || [];
+        let merchantCabinBookings: any[] = [];
+        if (privateHallIds.length > 0) {
+          const { data: cabinBookingsData } = await supabase
+            .from('cabin_bookings')
+            .select('private_hall_id, total_amount, status')
+            .in('private_hall_id', privateHallIds);
+          merchantCabinBookings = cabinBookingsData || [];
         }
 
         const studyHallPerformance = merchantStudyHalls?.map(hall => {
@@ -218,9 +248,11 @@ export const useDashboardAnalytics = () => {
         const totalStudyHalls = merchantStudyHalls?.length || 0;
         const activeStudyHalls = merchantStudyHalls?.filter(h => h.status === 'active').length || 0;
         const totalSeats = merchantStudyHalls?.reduce((sum, h) => sum + (h.total_seats || 0), 0) || 0;
-        const monthlyEarnings = merchantBookings?.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
-        const averageBookingValue = merchantBookings && merchantBookings.length > 0 ? 
-          monthlyEarnings / merchantBookings.length : 0;
+        const monthlyEarnings = [...merchantBookings, ...merchantCabinBookings]
+          .reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0) || 0;
+        const totalBookingsCount = (merchantBookings?.length || 0) + (merchantCabinBookings?.length || 0);
+        const averageBookingValue = totalBookingsCount > 0 ? 
+          monthlyEarnings / totalBookingsCount : 0;
 
         roleSpecificAnalytics = {
           studyHallPerformance,

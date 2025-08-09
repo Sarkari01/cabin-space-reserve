@@ -84,32 +84,102 @@ export const useReports = () => {
         return [];
       }
 
-      // Fetch related data separately
-      const userIds = [...new Set(data.map(b => b.user_id))];
-      const studyHallIds = [...new Set(data.map(b => b.study_hall_id))];
-      const seatIds = [...new Set(data.map(b => b.seat_id))];
+      // Fetch related data for study hall bookings
+      const userIds = [...new Set(data.map(b => b.user_id).filter(Boolean))];
+      const studyHallIds = [...new Set(data.map(b => b.study_hall_id).filter(Boolean))];
+      const seatIds = [...new Set(data.map(b => b.seat_id).filter(Boolean))];
 
       const [usersRes, studyHallsRes, seatsRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, email').in('id', userIds),
-        supabase.from('study_halls').select('id, name, location, merchant_id').in('id', studyHallIds),
-        supabase.from('seats').select('id, seat_id').in('id', seatIds)
+        userIds.length ? supabase.from('profiles').select('id, full_name, email').in('id', userIds) : Promise.resolve({ data: [] as any[] }),
+        studyHallIds.length ? supabase.from('study_halls').select('id, name, location, merchant_id').in('id', studyHallIds) : Promise.resolve({ data: [] as any[] }),
+        seatIds.length ? supabase.from('seats').select('id, seat_id').in('id', seatIds) : Promise.resolve({ data: [] as any[] })
       ]);
 
       // Create lookup maps
-      const usersMap = new Map(usersRes.data?.map(u => [u.id, u]) || []);
-      const studyHallsMap = new Map(studyHallsRes.data?.map(sh => [sh.id, sh]) || []);
-      const seatsMap = new Map(seatsRes.data?.map(s => [s.id, s]) || []);
+      const usersMap = new Map<string, any>((usersRes.data ?? []).map((u: any) => [u.id as string, u] as [string, any]));
+      const studyHallsMap = new Map<string, any>((studyHallsRes.data ?? []).map((sh: any) => [sh.id as string, sh] as [string, any]));
+      const seatsMap = new Map<string, any>((seatsRes.data ?? []).map((s: any) => [s.id as string, s] as [string, any]));
 
-      // Transform data to match expected structure
-      const transformedData = data.map(booking => ({
+      // Transform study hall bookings
+      const studyTransformed = data.map(booking => ({
         ...booking,
+        booking_type: 'study_hall',
         total_amount: Number(booking.total_amount) || 0,
         user: usersMap.get(booking.user_id) || { full_name: 'Unknown', email: 'N/A' },
         study_hall: studyHallsMap.get(booking.study_hall_id) || { name: 'Unknown', location: 'N/A' },
         seat: seatsMap.get(booking.seat_id) || { seat_id: 'N/A' }
       }));
 
-      return transformedData;
+      // Fetch and transform cabin (private hall) bookings
+      let cabinTransformed: any[] = [];
+      try {
+        let cabinQuery = supabase.from('cabin_bookings').select('*');
+
+        if (userRole === 'merchant' && user?.id) {
+          const { data: privateHalls, error: phErr } = await supabase
+            .from('private_halls')
+            .select('id')
+            .eq('merchant_id', user.id);
+          if (phErr) throw phErr;
+          const phIds = privateHalls?.map((ph: any) => ph.id) || [];
+          if (phIds.length > 0) {
+            cabinQuery = cabinQuery.in('private_hall_id', phIds);
+          } else {
+            cabinQuery = null as any; // no private halls
+          }
+        } else if (userRole === 'student' && user?.id) {
+          cabinQuery = cabinQuery.eq('user_id', user.id);
+        } else if (userRole !== 'admin') {
+          cabinQuery = null as any;
+        }
+
+        if (cabinQuery) {
+          if (filters.dateFrom) cabinQuery = cabinQuery.gte('start_date', filters.dateFrom);
+          if (filters.dateTo) cabinQuery = cabinQuery.lte('end_date', filters.dateTo);
+          if (filters.status && filters.status !== 'all') cabinQuery = cabinQuery.eq('status', filters.status);
+
+          const { data: cabinData, error: cabinErr } = await cabinQuery.order('created_at', { ascending: false });
+          if (cabinErr) throw cabinErr;
+
+          if (cabinData && cabinData.length > 0) {
+            const cabinUserIds = [...new Set(cabinData.map((b: any) => b.user_id).filter(Boolean))];
+            const privateHallIds = [...new Set(cabinData.map((b: any) => b.private_hall_id).filter(Boolean))];
+            const cabinIds = [...new Set(cabinData.map((b: any) => b.cabin_id).filter(Boolean))];
+
+            const [cUsersRes, privateHallsRes, cabinsRes] = await Promise.all([
+              cabinUserIds.length ? supabase.from('profiles').select('id, full_name, email').in('id', cabinUserIds) : Promise.resolve({ data: [] as any[] }),
+              privateHallIds.length ? supabase.from('private_halls').select('id, name, location, merchant_id').in('id', privateHallIds) : Promise.resolve({ data: [] as any[] }),
+              cabinIds.length ? supabase.from('cabins').select('id, cabin_name, cabin_number').in('id', cabinIds) : Promise.resolve({ data: [] as any[] })
+            ]);
+
+            const cUsersMap = new Map(cUsersRes.data?.map((u: any) => [u.id, u]) || []);
+            const privateHallsMap = new Map(privateHallsRes.data?.map((ph: any) => [ph.id, ph]) || []);
+            const cabinsMap = new Map(cabinsRes.data?.map((c: any) => [c.id, c]) || []);
+
+            cabinTransformed = cabinData.map((b: any) => {
+              const cab = cabinsMap.get(b.cabin_id);
+              const seat_id = cab ? (cab.cabin_name || (cab.cabin_number ? `Cabin ${cab.cabin_number}` : 'Cabin')) : 'Cabin';
+              return {
+                ...b,
+                booking_type: 'cabin',
+                total_amount: Number(b.total_amount) || 0,
+                user: cUsersMap.get(b.user_id) || { full_name: 'Unknown', email: 'N/A' },
+                study_hall: privateHallsMap.get(b.private_hall_id) || { name: 'Unknown', location: 'N/A' },
+                seat: { seat_id }
+              };
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Cabin bookings fetch failed, continuing with study hall data only:', e);
+      }
+
+      // Combine and sort
+      const combined = [...studyTransformed, ...cabinTransformed].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      return combined;
     } catch (error) {
       console.error('Error fetching bookings report:', error);
       toast({

@@ -37,7 +37,7 @@ serve(async (req) => {
     // Check user role and permissions
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, email')
       .eq('id', user.id)
       .single();
 
@@ -66,12 +66,23 @@ serve(async (req) => {
         );
       }
 
-      // Check permissions: admin can vacate any booking, merchant can vacate their own private hall bookings
+      // Check permissions: admin can vacate any booking, merchant can vacate their own private hall bookings, incharge can vacate for assigned halls
       const isAdmin = profile.role === 'admin';
       const isTelemarketing = profile.role === 'telemarketing_executive';
       const isMerchantOfHall = profile.role === 'merchant' && booking.private_hall?.merchant_id === user.id;
+      let isInchargeAssigned = false;
+      if (profile.role === 'incharge' && profile.email) {
+        const { data: incharge } = await supabase
+          .from('incharges')
+          .select('assigned_private_halls, status, email')
+          .eq('email', profile.email)
+          .eq('status', 'active')
+          .maybeSingle();
+        const assigned = Array.isArray(incharge?.assigned_private_halls) ? incharge?.assigned_private_halls : [];
+        isInchargeAssigned = assigned?.includes(booking.private_hall_id) || assigned?.includes(String(booking.private_hall_id));
+      }
       
-      if (!isAdmin && !isMerchantOfHall && !isTelemarketing) {
+      if (!isAdmin && !isMerchantOfHall && !isTelemarketing && !isInchargeAssigned) {
         return new Response(
           JSON.stringify({ success: false, error: 'Insufficient permissions to vacate this booking' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -120,8 +131,19 @@ serve(async (req) => {
       const isAdmin = profile.role === 'admin';
       const isTelemarketing = profile.role === 'telemarketing_executive';
       const isMerchantOfHall = profile.role === 'merchant' && booking.private_hall?.merchant_id === user.id;
+      let isInchargeAssigned = false;
+      if (profile.role === 'incharge' && profile.email) {
+        const { data: incharge } = await supabase
+          .from('incharges')
+          .select('assigned_private_halls, status, email')
+          .eq('email', profile.email)
+          .eq('status', 'active')
+          .maybeSingle();
+        const assigned = Array.isArray(incharge?.assigned_private_halls) ? incharge?.assigned_private_halls : [];
+        isInchargeAssigned = assigned?.includes(booking.private_hall_id) || assigned?.includes(String(booking.private_hall_id));
+      }
 
-      if (!isAdmin && !isMerchantOfHall && !isTelemarketing) {
+      if (!isAdmin && !isMerchantOfHall && !isTelemarketing && !isInchargeAssigned) {
         return new Response(
           JSON.stringify({ success: false, error: 'Insufficient permissions to update this booking' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
