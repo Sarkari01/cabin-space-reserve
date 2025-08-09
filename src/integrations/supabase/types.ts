@@ -1203,6 +1203,7 @@ export type Database = {
       incharges: {
         Row: {
           account_activated: boolean
+          assigned_private_halls: Json
           assigned_study_halls: Json
           auth_method: string | null
           created_at: string
@@ -1222,6 +1223,7 @@ export type Database = {
         }
         Insert: {
           account_activated?: boolean
+          assigned_private_halls?: Json
           assigned_study_halls?: Json
           auth_method?: string | null
           created_at?: string
@@ -1241,6 +1243,7 @@ export type Database = {
         }
         Update: {
           account_activated?: boolean
+          assigned_private_halls?: Json
           assigned_study_halls?: Json
           auth_method?: string | null
           created_at?: string

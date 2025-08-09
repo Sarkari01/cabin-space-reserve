@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { useIncharges } from '@/hooks/useIncharges';
 import { useStudyHalls } from '@/hooks/useStudyHalls';
+import { usePrivateHalls } from '@/hooks/usePrivateHalls';
 import { Tables } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
@@ -31,6 +32,8 @@ interface FormData {
   full_name: string;
   mobile: string;
   assigned_study_halls: string[];
+  // NEW: private halls
+  assigned_private_halls: string[];
   permissions: {
     view_bookings: boolean;
     manage_bookings: boolean;
@@ -49,6 +52,7 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
 }) => {
   const { createIncharge, createInchargeWithPassword, updateIncharge, updateInchargePassword } = useIncharges();
   const { studyHalls } = useStudyHalls();
+  const { privateHalls } = usePrivateHalls();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -61,6 +65,7 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
     full_name: '',
     mobile: '',
     assigned_study_halls: [],
+    assigned_private_halls: [],
     permissions: {
       view_bookings: true,
       manage_bookings: true,
@@ -102,6 +107,9 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
         assigned_study_halls: Array.isArray(incharge.assigned_study_halls) 
           ? (incharge.assigned_study_halls as string[])
           : [],
+        assigned_private_halls: Array.isArray((incharge as any).assigned_private_halls)
+          ? ((incharge as any).assigned_private_halls as string[])
+          : [],
         permissions: {
           view_bookings: (incharge.permissions as any)?.view_bookings ?? true,
           manage_bookings: (incharge.permissions as any)?.manage_bookings ?? true,
@@ -118,6 +126,7 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
         full_name: '',
         mobile: '',
         assigned_study_halls: [],
+        assigned_private_halls: [],
         permissions: {
           view_bookings: true,
           manage_bookings: true,
@@ -177,9 +186,10 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
           full_name: formData.full_name,
           mobile: formData.mobile,
           assigned_study_halls: formData.assigned_study_halls,
+          assigned_private_halls: formData.assigned_private_halls,
           permissions: formData.permissions,
           status: formData.status
-        });
+        } as any);
       } else {
         // Create new incharge
         if (formData.auth_method === 'password') {
@@ -188,6 +198,7 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
             full_name: formData.full_name,
             mobile: formData.mobile,
             assigned_study_halls: formData.assigned_study_halls,
+            assigned_private_halls: formData.assigned_private_halls,
             permissions: formData.permissions,
             password: formData.password,
             auth_method: 'password'
@@ -198,6 +209,7 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
             full_name: formData.full_name,
             mobile: formData.mobile,
             assigned_study_halls: formData.assigned_study_halls,
+            assigned_private_halls: formData.assigned_private_halls,
             permissions: formData.permissions
           });
         }
@@ -252,13 +264,12 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
     }));
   };
 
-  const handlePermissionToggle = (permission: keyof FormData['permissions'], checked: boolean) => {
+  const handlePrivateHallToggle = (privateHallId: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      permissions: {
-        ...prev.permissions,
-        [permission]: checked
-      }
+      assigned_private_halls: checked
+        ? [...prev.assigned_private_halls, privateHallId]
+        : prev.assigned_private_halls.filter(id => id !== privateHallId)
     }));
   };
 
@@ -351,6 +362,30 @@ export const InchargeModal: React.FC<InchargeModalProps> = ({
               {studyHalls.length === 0 && (
                 <p className="text-muted-foreground text-sm">
                   No study halls available. Create a study hall first to assign to incharges.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Private Hall Assignment */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Private Hall Assignment</h3>
+            <div className="space-y-2">
+              {privateHalls.map((ph) => (
+                <div key={ph.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`ph-${ph.id}`}
+                    checked={formData.assigned_private_halls.includes(ph.id)}
+                    onCheckedChange={(checked) => handlePrivateHallToggle(ph.id, checked as boolean)}
+                  />
+                  <Label htmlFor={`ph-${ph.id}`} className="flex-1">
+                    {ph.name} - {ph.location}
+                  </Label>
+                </div>
+              ))}
+              {privateHalls.length === 0 && (
+                <p className="text-muted-foreground text-sm">
+                  No private halls available. Create a private hall first to assign to incharges.
                 </p>
               )}
             </div>

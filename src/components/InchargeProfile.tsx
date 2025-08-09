@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +21,11 @@ type Incharge = Tables<'incharges'>;
 interface InchargeProfileProps {
   inchargeData: Incharge;
   assignedStudyHalls: any[];
+  // NEW: private halls prop
+  assignedPrivateHalls?: any[];
 }
 
-export function InchargeProfile({ inchargeData, assignedStudyHalls }: InchargeProfileProps) {
+export function InchargeProfile({ inchargeData, assignedStudyHalls, assignedPrivateHalls = [] }: InchargeProfileProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -201,6 +204,40 @@ export function InchargeProfile({ inchargeData, assignedStudyHalls }: InchargePr
             </div>
           ) : (
             <p className="text-muted-foreground">No study halls assigned</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* NEW: Assigned Private Halls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Building className="h-5 w-5 mr-2" />
+            Assigned Private Halls
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {assignedPrivateHalls.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {assignedPrivateHalls.map((ph) => (
+                <div key={ph.id} className="border rounded-lg p-3">
+                  <h3 className="font-medium">{ph.name}</h3>
+                  <p className="text-sm text-muted-foreground flex items-center">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {ph.formatted_address || ph.location}
+                  </p>
+                  <div className="flex justify-between items-center mt-2 text-xs">
+                    <span>Monthly: ₹{ph.monthly_price}</span>
+                    <Badge variant="outline">{ph.status}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Cabins: {ph.cabin_count ?? 0}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No private halls assigned</p>
           )}
         </CardContent>
       </Card>

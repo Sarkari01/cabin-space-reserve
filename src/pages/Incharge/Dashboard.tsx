@@ -32,6 +32,7 @@ const InchargeDashboard = () => {
   const { user, userProfile } = useAuth();
   const [inchargeData, setInchargeData] = useState<Incharge | null>(null);
   const [assignedStudyHalls, setAssignedStudyHalls] = useState<any[]>([]);
+  const [assignedPrivateHalls, setAssignedPrivateHalls] = useState<any[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -59,7 +60,7 @@ const InchargeDashboard = () => {
           return;
         }
 
-        setInchargeData(incharge);
+        setInchargeData(incharge as Incharge);
 
         // Fetch assigned study halls
         const hallsArray = Array.isArray(incharge.assigned_study_halls) ? incharge.assigned_study_halls : [];
@@ -72,6 +73,25 @@ const InchargeDashboard = () => {
           if (!hallsError) {
             setAssignedStudyHalls(studyHalls || []);
           }
+        } else {
+          setAssignedStudyHalls([]);
+        }
+
+        // Fetch assigned private halls
+        const privateHallsArray = Array.isArray((incharge as any).assigned_private_halls)
+          ? ((incharge as any).assigned_private_halls as string[])
+          : [];
+        if (privateHallsArray.length > 0) {
+          const { data: privateHalls, error: phError } = await supabase
+            .from('private_halls')
+            .select('*')
+            .in('id', privateHallsArray);
+
+          if (!phError) {
+            setAssignedPrivateHalls(privateHalls || []);
+          }
+        } else {
+          setAssignedPrivateHalls([]);
         }
       } catch (error) {
         console.error('Error fetching incharge data:', error);
@@ -380,7 +400,7 @@ const InchargeDashboard = () => {
         return <InchargeActivityLogs inchargeId={inchargeData.id} />;
 
       case 'profile':
-        return <InchargeProfile inchargeData={inchargeData} assignedStudyHalls={assignedStudyHalls} />;
+        return <InchargeProfile inchargeData={inchargeData} assignedStudyHalls={assignedStudyHalls} assignedPrivateHalls={assignedPrivateHalls} />;
 
       default:
         return <div>Tab content not found</div>;

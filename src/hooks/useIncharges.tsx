@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +12,8 @@ interface CreateInchargeData {
   full_name: string;
   mobile: string;
   assigned_study_halls: string[];
+  // NEW: private halls assignment
+  assigned_private_halls?: string[];
   permissions?: any;
 }
 
@@ -66,6 +69,8 @@ export const useIncharges = () => {
         full_name: data.full_name,
         mobile: data.mobile,
         assigned_study_halls: data.assigned_study_halls,
+        // NEW: include private halls (default empty array)
+        assigned_private_halls: data.assigned_private_halls || [],
         permissions: data.permissions || {
           view_bookings: true,
           manage_bookings: true,
@@ -189,6 +194,8 @@ export const useIncharges = () => {
           fullName: data.full_name,
           mobile: data.mobile,
           assignedStudyHalls: data.assigned_study_halls,
+          // NEW: pass private halls to edge function (if supported)
+          assignedPrivateHalls: data.assigned_private_halls || [],
           permissions: data.permissions
         }
       });
