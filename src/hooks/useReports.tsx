@@ -136,7 +136,12 @@ export const useReports = () => {
         if (cabinQuery) {
           if (filters.dateFrom) cabinQuery = cabinQuery.gte('start_date', filters.dateFrom);
           if (filters.dateTo) cabinQuery = cabinQuery.lte('end_date', filters.dateTo);
-          if (filters.status && filters.status !== 'all') cabinQuery = cabinQuery.eq('status', filters.status);
+          if (filters.status && filters.status !== 'all') {
+            const allowedCabinStatuses = ['pending','active','completed','cancelled'] as const;
+            if ((allowedCabinStatuses as readonly string[]).includes(filters.status)) {
+              cabinQuery = cabinQuery.eq('status', filters.status as (typeof allowedCabinStatuses)[number]);
+            }
+          }
 
           const { data: cabinData, error: cabinErr } = await cabinQuery.order('created_at', { ascending: false });
           if (cabinErr) throw cabinErr;
@@ -152,13 +157,14 @@ export const useReports = () => {
               cabinIds.length ? supabase.from('cabins').select('id, cabin_name, cabin_number').in('id', cabinIds) : Promise.resolve({ data: [] as any[] })
             ]);
 
-            const cUsersMap = new Map(cUsersRes.data?.map((u: any) => [u.id, u]) || []);
-            const privateHallsMap = new Map(privateHallsRes.data?.map((ph: any) => [ph.id, ph]) || []);
-            const cabinsMap = new Map(cabinsRes.data?.map((c: any) => [c.id, c]) || []);
+            type CabinInfo = { id: string; cabin_name?: string | null; cabin_number?: number | null };
+            const cUsersMap = new Map<string, any>((cUsersRes.data ?? []).map((u: any) => [u.id as string, u] as [string, any]));
+            const privateHallsMap = new Map<string, any>((privateHallsRes.data ?? []).map((ph: any) => [ph.id as string, ph] as [string, any]));
+            const cabinsMap = new Map<string, CabinInfo>((cabinsRes.data ?? []).map((c: any) => [c.id as string, c as CabinInfo] as [string, CabinInfo]));
 
             cabinTransformed = cabinData.map((b: any) => {
-              const cab = cabinsMap.get(b.cabin_id);
-              const seat_id = cab ? (cab.cabin_name || (cab.cabin_number ? `Cabin ${cab.cabin_number}` : 'Cabin')) : 'Cabin';
+              const cab = cabinsMap.get(b.cabin_id as string);
+              const seat_id = cab?.cabin_name || (cab?.cabin_number ? `Cabin ${cab.cabin_number}` : 'Cabin');
               return {
                 ...b,
                 booking_type: 'cabin',
