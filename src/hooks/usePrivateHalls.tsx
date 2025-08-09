@@ -7,17 +7,21 @@ import type { PrivateHall, Cabin, CabinLayoutData } from '@/types/PrivateHall';
 export const usePrivateHalls = () => {
   const [privateHalls, setPrivateHalls] = useState<PrivateHall[]>([]);
   const [loading, setLoading] = useState(true);
-  const { userRole } = useAuth();
+  const { userRole, user } = useAuth();
 
   const fetchPrivateHalls = async () => {
     try {
+      // Wait for user id when filtering by merchant
+      if (userRole === 'merchant' && !user?.id) {
+        return;
+      }
       setLoading(true);
       
       let query = supabase.from('private_halls').select('*');
       
       // If merchant, only show their halls
-      if (userRole === 'merchant') {
-        query = query.eq('merchant_id', (await supabase.auth.getUser()).data.user?.id);
+      if (userRole === 'merchant' && user?.id) {
+        query = query.eq('merchant_id', user.id);
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -133,7 +137,7 @@ export const usePrivateHalls = () => {
 
   useEffect(() => {
     fetchPrivateHalls();
-  }, [userRole]);
+  }, [userRole, user?.id]);
 
   return {
     privateHalls,
