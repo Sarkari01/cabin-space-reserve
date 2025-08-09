@@ -3462,6 +3462,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_public_landing_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_trial_plan_settings: {
         Args: Record<PropertyKey, never>
         Returns: {

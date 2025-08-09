@@ -9,20 +9,16 @@ const AboutSection = () => {
   const { data: realStats } = useQuery({
     queryKey: ["about-stats"],
     queryFn: async () => {
-      const [
-        { count: studyHallsCount },
-        { count: usersCount },
-        { count: bookingsCount }
-      ] = await Promise.all([
-        supabase.from("study_halls").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("bookings").select("*", { count: "exact", head: true })
-      ]);
+      const { data, error } = await supabase.rpc('get_public_landing_stats');
+      if (error) {
+        console.error('Failed to fetch public landing stats:', error);
+        return { users: 0, studyHalls: 0, bookings: 0 };
+      }
 
       return {
-        users: usersCount || 0,
-        studyHalls: studyHallsCount || 0,
-        bookings: bookingsCount || 0
+        users: Number((data as any)?.users) || 0,
+        studyHalls: Number((data as any)?.study_halls) || 0,
+        bookings: Number((data as any)?.bookings) || 0
       };
     }
   });

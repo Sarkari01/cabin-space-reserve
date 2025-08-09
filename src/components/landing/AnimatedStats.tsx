@@ -45,24 +45,17 @@ const AnimatedStats = () => {
   const { data: stats } = useQuery({
     queryKey: ["landing-stats"],
     queryFn: async () => {
-      // Get real data from the database
-      const [
-        { count: studyHallsCount },
-        { count: bookingsCount },
-        { count: usersCount },
-        { count: merchantsCount }
-      ] = await Promise.all([
-        supabase.from("study_halls").select("*", { count: "exact", head: true }),
-        supabase.from("bookings").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "merchant")
-      ]);
-
+      const { data, error } = await supabase.rpc('get_public_landing_stats');
+      if (error) {
+        console.error('Failed to fetch public landing stats:', error);
+        return { studyHalls: 0, bookings: 0, users: 0, merchants: 0 };
+      }
+      const d = data as any;
       return {
-        studyHalls: studyHallsCount || 0,
-        bookings: bookingsCount || 0,
-        users: usersCount || 0,
-        merchants: merchantsCount || 0
+        studyHalls: Number(d?.study_halls) || 0,
+        bookings: Number(d?.bookings) || 0,
+        users: Number(d?.users) || 0,
+        merchants: Number(d?.merchants) || 0
       };
     },
     initialData: {
