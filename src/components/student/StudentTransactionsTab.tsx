@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useCombinedTransactions } from "@/hooks/useCombinedTransactions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, Clock, DollarSign, Download, Eye } from "lucide-react";
@@ -9,14 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StudentTransactionDetailsModal } from "./StudentTransactionDetailsModal";
-
+import { exportToPDF, formatCurrency, formatDateTime } from "@/utils/exportUtils";
 export const StudentTransactionsTab = () => {
   const { transactions, loading } = useTransactions("student");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [methodFilter, setMethodFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
@@ -43,26 +42,71 @@ export const StudentTransactionsTab = () => {
     }
   };
 
-  const getMethodColor = (method: string) => {
-    switch (method) {
-      case "razorpay":
-        return "bg-blue-100 text-blue-800";
-      case "ekqr":
-        return "bg-purple-100 text-purple-800";
-      case "offline":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+const getMethodColor = (method: string) => {
+  switch (method) {
+    case "razorpay":
+      return "bg-blue-100 text-blue-800";
+    case "ekqr":
+      return "bg-purple-100 text-purple-800";
+    case "offline":
+      return "bg-gray-100 text-gray-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesStatus = statusFilter === "all" || transaction.status === statusFilter;
-    const matchesSearch = searchTerm === "" || 
-      transaction.booking?.study_hall?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+const handleDownloadReceipt = (t: any) => {
+  const data = [{
+    Date: formatDateTime(t.created_at),
+    "Transaction ID": t.id,
+    "Payment ID": t.payment_id || "N/A",
+    Method: t.payment_method?.toUpperCase(),
+    Status: t.status?.toUpperCase(),
+    "Total Amount": formatCurrency(Number(t.amount)),
+    ...(t.booking_amount ? { "Booking Amount": formatCurrency(Number(t.booking_amount)) } : {}),
+    ...(t.deposit_amount && Number(t.deposit_amount) > 0 ? { "Deposit Amount": formatCurrency(Number(t.deposit_amount)) } : {}),
+    "Booking Type": t.booking_type === 'cabin' ? 'Private Hall Cabin' : 'Study Hall',
+    "Location": t.booking_type === 'cabin' ? (t.private_hall?.name || 'N/A') : (t.booking?.study_hall?.name || 'N/A'),
+    ...(t.booking?.seat?.seat_id ? { "Seat/Cabin": t.booking?.seat?.seat_id } : (t.cabin?.cabin_name ? { "Seat/Cabin": t.cabin.cabin_name } : {})),
+  }];
+
+  const filename = t.booking_type === 'cabin' 
+    ? `Receipt_${t.private_hall?.name || 'PrivateHall'}_${t.id.slice(0,8)}`
+    : `Receipt_${t.booking?.study_hall?.name || 'StudyHall'}_${t.id.slice(0,8)}`;
+
+  exportToPDF(data as any, 
+    [
+      { key: "Date", title: "Date" },
+      { key: "Transaction ID", title: "Transaction ID" },
+      { key: "Payment ID", title: "Payment ID" },
+      { key: "Method", title: "Method" },
+      { key: "Status", title: "Status" },
+      { key: "Total Amount", title: "Total Amount" },
+      ...(t.booking_amount ? [{ key: "Booking Amount", title: "Booking Amount" }] : [] as any),
+      ...(t.deposit_amount && Number(t.deposit_amount) > 0 ? [{ key: "Deposit Amount", title: "Deposit Amount" }] : [] as any),
+      { key: "Booking Type", title: "Booking Type" },
+      { key: "Location", title: "Location" },
+      { key: "Seat/Cabin", title: "Seat/Cabin" },
+    ],
+    filename,
+    "Payment Receipt"
+  );
+};
+
+const filteredTransactions = transactions.filter((transaction) => {
+  const matchesStatus = statusFilter === "all" || transaction.status === statusFilter;
+  const matchesMethod = methodFilter === "all" || transaction.payment_method === methodFilter;
+  const q = searchTerm.trim().toLowerCase();
+  const matchesSearch =
+    q === "" ||
+    transaction.id.toLowerCase().includes(q) ||
+    (transaction.payment_id && transaction.payment_id.toLowerCase().includes(q)) ||
+    (transaction.transaction_number && `t${transaction.transaction_number}`.toLowerCase().includes(q)) ||
+    (transaction.booking?.study_hall?.name && transaction.booking.study_hall.name.toLowerCase().includes(q)) ||
+    (transaction.private_hall?.name && transaction.private_hall.name.toLowerCase().includes(q)) ||
+    (transaction.cabin?.cabin_name && transaction.cabin.cabin_name.toLowerCase().includes(q));
+  return matchesStatus && matchesMethod && matchesSearch;
+});
 
   const totalSpent = filteredTransactions
     .filter(t => t.status === "completed")
@@ -83,9 +127,9 @@ export const StudentTransactionsTab = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Payment History</h3>
+        <h3 className="text-lg font-medium">Transactions & Receipts</h3>
         <p className="text-sm text-muted-foreground">
-          Track your study hall booking payments
+          Track payments for study halls and private hall cabins
         </p>
       </div>
 
@@ -124,7 +168,7 @@ export const StudentTransactionsTab = () => {
       <div className="flex gap-4 flex-wrap">
         <div className="flex-1 min-w-[200px]">
           <Input
-            placeholder="Search by study hall or transaction ID..."
+            placeholder="Search by hall/cabin, transaction or payment ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -138,6 +182,17 @@ export const StudentTransactionsTab = () => {
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="failed">Failed</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={methodFilter} onValueChange={setMethodFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Method" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Methods</SelectItem>
+            <SelectItem value="razorpay">Razorpay</SelectItem>
+            <SelectItem value="ekqr">EKQR</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -189,6 +244,12 @@ export const StudentTransactionsTab = () => {
                         {transaction.booking.seat?.seat_id && ` • Seat: ${transaction.booking.seat.seat_id}`}
                       </div>
                     )}
+                    {transaction.private_hall?.name && (
+                      <div className="text-sm font-medium">
+                        {transaction.private_hall.name}
+                        {transaction.cabin?.cabin_name && ` • Cabin: ${transaction.cabin.cabin_name}`}
+                      </div>
+                    )}
                     {transaction.status === "pending" && transaction.payment_method === "offline" && (
                       <div className="text-sm text-yellow-600 font-medium">
                         ⚠️ Please pay at the study hall to complete your booking
@@ -210,7 +271,7 @@ export const StudentTransactionsTab = () => {
                     </Button>
                     
                     {transaction.status === "completed" && (
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleDownloadReceipt(transaction)}>
                         <Download className="h-4 w-4 mr-2" />
                         Receipt
                       </Button>
