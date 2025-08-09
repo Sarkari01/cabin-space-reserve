@@ -49,82 +49,57 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
   }]);
   const [availability, setAvailability] = useState<CabinAvailability>({});
   const [loading, setLoading] = useState(false);
+  const [availError, setAvailError] = useState<string | null>(null);
 
   // Fetch real-time availability data
   const fetchAvailability = async () => {
     if (!privateHallId || !showAvailability) return;
     try {
       setLoading(true);
+      setAvailError(null);
 
-      // Fetch cabins first
-      const { data: dbCabins, error: cabinsError } = await supabase
-        .from('cabins')
-        .select('*')
-        .eq('private_hall_id', privateHallId);
+      // Use RLS-safe RPC to get availability and cabin names/ids
+      const { data: availRows, error: rpcError } = await supabase.rpc(
+        'get_private_hall_cabin_availability',
+        { p_private_hall_id: privateHallId }
+      );
 
-      if (cabinsError) {
-        console.error('Error fetching cabins:', cabinsError);
+      if (rpcError) {
+        console.error('Error fetching availability via RPC:', rpcError);
+        setAvailError(rpcError.message || 'Failed to load availability');
+        setAvailability({});
         return;
       }
 
-      const dbCabinsList = dbCabins || [];
-
-      // Then fetch bookings separately to avoid JOIN issues
-      const cabinIds = dbCabinsList.map((c: any) => c.id);
-      let bookings: any[] = [];
-      const today = new Date();
-      const todayStr = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().slice(0, 10);
-
-      if (cabinIds.length > 0) {
-        const { data: bookingsData, error: bookingsError } = await supabase
-          .from('cabin_bookings')
-          .select('*')
-          .in('cabin_id', cabinIds)
-          .eq('payment_status', 'paid')
-          .eq('is_vacated', false)
-          .gte('end_date', todayStr);
-
-        if (bookingsError) {
-          console.error('Error fetching bookings:', bookingsError);
-        } else {
-          bookings = bookingsData || [];
-        }
-      }
+      const dbCabinsList = (availRows || []).map((row: any) => ({
+        id: row.cabin_id,
+        cabin_name: row.cabin_name
+      }));
 
       // Build mapping from layout cabin IDs to DB cabin IDs (shared helper)
-      const cabinIdMap: Record<string, string> = buildLayoutCabinMapping(layout, dbCabinsList);
-
+      const cabinIdMap: Record<string, string> = buildLayoutCabinMapping(layout, dbCabinsList as any);
 
       const availabilityMap: CabinAvailability = {};
 
       layout.cabins.forEach((lc) => {
         const dbId = cabinIdMap[lc.id];
-        if (!dbId) {
+        const row = (availRows || []).find((r: any) => r.cabin_id === dbId);
+        if (!dbId || !row) {
           availabilityMap[lc.id] = { status: 'available', bookings: 0 };
           return;
         }
 
-        const cabinRecord = dbCabinsList.find((c: any) => c.id === dbId);
-
-        // Check maintenance first
-        if (cabinRecord?.status === 'maintenance') {
-          availabilityMap[lc.id] = { status: 'maintenance', bookings: 0 };
-          return;
-        }
-
-        const activePaid = bookings.filter((b) =>
-          b.cabin_id === dbId && isCabinBookingBlocking(b)
-        );
-
+        const status = (row.status as 'available' | 'occupied' | 'maintenance') || 'available';
         availabilityMap[lc.id] = {
-          status: activePaid.length > 0 ? 'occupied' : 'available',
-          bookings: activePaid.length,
+          status,
+          bookings: status === 'occupied' ? 1 : 0,
         };
       });
 
       setAvailability(availabilityMap);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
+      setAvailError(error?.message || 'Failed to load availability');
     } finally {
       setLoading(false);
     }
@@ -271,7 +246,7 @@ export const EnhancedRowBasedCabinDesigner: React.FC<EnhancedRowBasedCabinDesign
         <div>
           <h3 className="text-lg font-semibold">{readOnly ? "Cabin Layout" : "Enhanced Theater-Style Layout"}</h3>
           {showAvailability && <p className="text-sm text-muted-foreground">
-              Real-time availability • {loading ? 'Updating...' : 'Live data'}
+              Real-time availability • {loading ? 'Updating...' : (availError ? 'Issue loading' : 'Live data')}
             </p>}
         </div>
         {!readOnly && (
